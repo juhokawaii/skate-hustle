@@ -1,9 +1,7 @@
 import Player from './Player.js';
 
 export default class HubScene extends Phaser.Scene {
-    constructor() {
-        super("HubScene");
-    }
+    constructor() { super("HubScene"); }
 
     preload() {
         this.load.image("player1", "assets/player1.png");
@@ -14,66 +12,148 @@ export default class HubScene extends Phaser.Scene {
     }
 
     create() {
-        // --- 1. WORLD GEOMETRY ---
         const worldWidth = 3000;
-        const worldHeight = 1500; // Increased height from 720 to 1500
+        const worldHeight = 1500;
+        this.matter.world.setBounds(0, 0, worldWidth, worldHeight);
 
-        this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
-        this.cameras.main.setBackgroundColor("#3b3b3b");
+    // --- 3. PHYSICS OBJECTS (The New Skate Park) ---
+    
+    // A. The Floor (Standard Rectangle)
+    this.createPlatform(worldWidth/2, worldHeight - 50, { 
+        type: 'RECT', 
+        width: worldWidth, 
+        height: 100 
+    });
 
-        // --- 2. THE GROUND ---
-        // Moved the ground down to the new bottom (1500 - 50)
-        const groundY = worldHeight - 50;
-        const ground = this.add.rectangle(worldWidth / 2, groundY, worldWidth, 100, 0x333333);
-        this.physics.add.existing(ground, true);
+    // B. Smooth "Grind Box" (Rectangle with Chamfer)
+    // The rounded corners (radius 20) mean you won't catch your wheels if you hit the side.
+    this.createPlatform(600, 1350, { 
+        type: 'RECT', 
+        width: 300, 
+        height: 60, 
+        chamfer: 20 
+    });
 
-        // --- 3. THE PLATFORMS (Climbable Path) ---
-        this.platforms = this.physics.add.staticGroup();
+    // C. The "Kicker" (Triangular Ramp)
+    // A perfect wedge. No more "lip" issues.
+    this.createPlatform(1000, 1300, { 
+        type: 'RAMP', 
+        width: 400, 
+        height: 100 
+    });
 
-        // Staircase leading up
-        this.createPlatform(400, groundY - 150, 200, 20); 
-        this.createPlatform(700, groundY - 300, 200, 20);
-        this.createPlatform(1000, groundY - 450, 250, 20);
-        
-        // Higher "Rooftop" area
-        this.createPlatform(1400, 800, 600, 40); 
-        this.createPlatform(1800, 650, 300, 20);
-        this.createPlatform(1500, 500, 200, 20);
+    // D. The "Quarter Pipe" (Curved Polygon)
+    // Generates a smooth 20-segment curve.
+    this.createPlatform(1800, 1250, { 
+        type: 'CURVE', 
+        width: 400, 
+        height: 400, 
+        curvature: 1.0 // 1.0 = 90 degree arc
+    });
+        // Player
+        this.player = new Player(this, 100, 1200);
 
-        // High ledge near the end
-        this.createPlatform(2500, 400, 400, 20);
-
-        // --- 4. PLAYER ---
-        // Spawn the player near the ground
-        this.player = new Player(this, 200, groundY - 200);
-        
-        this.physics.add.collider(this.player, ground);
-        this.physics.add.collider(this.player, this.platforms);
-
-        // --- 5. CAMERA SETUP ---
+        // Camera
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-        
-        // CRITICAL: Update bounds so the camera can scroll UP to 0
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
-        // --- 6. ANIMATIONS & UI ---
         this.setupAnims();
+        this.setupZones(worldWidth, worldHeight);
+    }
 
-        this.hintText = this.add.text(16, 16, "", { 
-            fontFamily: "monospace", fontSize: "18px", fill: "#ffffff"
-        }).setScrollFactor(0);
+    /**
+     * General Object Factory
+     * @param {number} x - Center X
+     * @param {number} y - Center Y
+     * @param {object} config - { type, width, height, angle, chamfer, ... }
+     */
+
+    createPlatform(x, y, config) {
+        const { 
+            type = 'RECT', 
+            width = 100, 
+            height = 100, 
+            angle = 0, 
+            chamfer = 0,
+            friction = 0.5
+        } = config;
+
+        // 1. Define the Physics Body options
+        const bodyOptions = { 
+            isStatic: true, 
+            friction: friction,
+            chamfer: chamfer > 0 ? { radius: chamfer } : null
+        };
+
+        let body;
+
+        // --- STEP 1: CREATE PHYSICS BODY ---
         
-        // Arcade Zone stays at the bottom near the end
-        this.arcadeZone = this.add.rectangle(worldWidth - 250, groundY - 100, 200, 200, 0x00ff00, 0.1);
-        this.physics.add.existing(this.arcadeZone, true);
-        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        if (type === 'RECT') {
+            body = this.matter.add.rectangle(x, y, width, height, bodyOptions);
+        }
+        else if (type === 'RAMP') {
+            // Define the shape relative to (0,0)
+            const verts = [
+                { x: width/2,  y: height/2 }, 
+                { x: -width/2, y: height/2 }, 
+                { x: width/2,  y: -height/2 }
+            ];
+            body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
+        }
+        else if (type === 'CURVE') {
+            const segments = 20;
+            const verts = [{ x: width/2, y: height/2 }]; // Corner
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                const px = -width/2 + (Math.cos(t * Math.PI/2) * width); 
+                const py = -height/2 + (Math.sin(t * Math.PI/2) * height);
+                verts.push({ x: px, y: py });
+            }
+            verts.push({ x: width/2, y: height/2 }); // Close loop
+            
+            body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
+        }
+
+        // --- STEP 2: APPLY TRANSFORMATIONS ---
+        // We set the angle NOW, so the vertices update to their final positions
+        if (body) {
+            this.matter.body.setAngle(body, Phaser.Math.DegToRad(angle));
+        }
+
+        // --- STEP 3: DRAW VISUALS FROM PHYSICS DATA ---
+        if (body) {
+            // Create a Graphics object. We do NOT set its x/y because we will 
+            // draw using the World Coordinates provided by the body.
+            const graphics = this.add.graphics({ fillStyle: { color: 0x666666 } });
+
+            // Helper function to draw a single set of vertices
+            const drawVertices = (vertices) => {
+                graphics.beginPath();
+                vertices.forEach((v, index) => {
+                    if (index === 0) graphics.moveTo(v.x, v.y);
+                    else graphics.lineTo(v.x, v.y);
+                });
+                graphics.closePath();
+                graphics.fillPath();
+            };
+
+            // CHECK FOR COMPOUND BODIES (Important for Curves!)
+            // Matter.js decomposes complex shapes (concave curves) into multiple convex parts.
+            // We need to draw each "part" separately to see the full shape.
+            if (body.parts.length > 1) {
+                // Skip part[0] - it is the "Hull" (bounding box) of the whole group
+                for (let i = 1; i < body.parts.length; i++) {
+                    drawVertices(body.parts[i].vertices);
+                }
+            } else {
+                // Simple shape (Rectangle, Triangle)
+                drawVertices(body.vertices);
+            }
+        }
     }
 
-    createPlatform(x, y, width, height) {
-        const rect = this.add.rectangle(x, y, width, height, 0x555555);
-        this.platforms.add(rect);
-    }
-
+    
     setupAnims() {
         this.anims.create({
             key: "idle_pump",
@@ -81,7 +161,6 @@ export default class HubScene extends Phaser.Scene {
             frameRate: 3,
             repeat: -1
         });
-
         this.anims.create({
             key: "kick",
             frames: [
@@ -94,10 +173,18 @@ export default class HubScene extends Phaser.Scene {
         });
     }
 
+    setupZones(worldWidth, worldHeight) {
+        this.hintText = this.add.text(16, 16, "", { fontFamily: "monospace", fontSize: "18px" }).setScrollFactor(0);
+        this.arcadeZone = this.matter.add.rectangle(worldWidth - 250, worldHeight - 150, 200, 200, {
+            isStatic: true, isSensor: true
+        });
+        this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+    }
+
     update() {
         this.player.update();
         this.hintText.setText("");
-        if (this.physics.overlap(this.player, this.arcadeZone)) {
+        if (this.matter.query.collides(this.player.body, [this.arcadeZone]).length > 0) {
             this.hintText.setText("Press ENTER to enter the Arcade");
         }
     }
