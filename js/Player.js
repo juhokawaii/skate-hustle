@@ -15,7 +15,10 @@ const PhysicsConfig = {
 
     // Jump & Slope
     jumpForce: -0.25,
-    slopeStickForce: 0.02 
+    slopeStickForce: 0.02,
+    
+    // Visuals
+    leanSpeed: 0.1 
 };
 
 export default class Player extends Phaser.Physics.Matter.Sprite {
@@ -23,11 +26,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         super(scene.matter.world, x, y, 'player1');
         scene.add.existing(this);
 
-        const { width, height } = this;
+        const { width } = this;
 
         // --- 1. PHYSICS SETUP ---
-        const body = scene.matter.add.rectangle(x, y, width * 0.5, height * 0.9, {
-            chamfer: { radius: 10 }, 
+        const radius = width * 0.25;
+        
+        const body = scene.matter.add.circle(x, y, radius, {
             friction: PhysicsConfig.friction,      
             frictionStatic: 0.0,  
             frictionAir: PhysicsConfig.frictionAir,     
@@ -35,47 +39,43 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         });
 
         this.setExistingBody(body);
-        
-        // Lock rotation so the physics box never tips over
         this.setFixedRotation(true); 
         this.setMass(PhysicsConfig.mass);
-        this.setOrigin(0.5, 0.55);
+        
+        // --- 2. VISUAL ALIGNMENT ---
+        // Your manual tweak for better foot placement:
+        this.setOrigin(0.5, 0.8); 
 
         this.cursors = scene.input.keyboard.createCursorKeys();
         
-        // State
         this.groundTimer = 0; 
     }
 
     update() {
-        // --- 2. GROUND DETECTION (Simplified) ---
-        // We just need to know if we can jump/kick.
+        // --- GROUND DETECTION ---
         const isGrounded = this.checkGrounded();
 
-        if (isGrounded) {
-            this.groundTimer = 6; // Coyote time
-        } else if (this.groundTimer > 0) {
-            this.groundTimer--;
-        }
+        if (isGrounded) this.groundTimer = 6; 
+        else if (this.groundTimer > 0) this.groundTimer--;
         const hasFooting = this.groundTimer > 0;
 
-        // --- 3. PHYSICS FORCES ---
+        // --- PHYSICS FORCES ---
         const velX = this.body.velocity.x;
+        const velY = this.body.velocity.y;
         const speedAbs = Math.abs(velX);
         
-        // Aerodynamic Drag (Air resistance)
+        // Drag
         if (speedAbs > PhysicsConfig.freeRollSpeed) {
             const dragForce = PhysicsConfig.dragCoeff * velX * velX;
             this.applyForce({ x: -Math.sign(velX) * dragForce, y: 0 });
         }
 
-        // Slope Stick (Downforce)
-        // Keeps player from flying off ramps when skating down
+        // Slope Stick
         if (hasFooting && !this.cursors.up.isDown) {
              this.applyForce({ x: 0, y: PhysicsConfig.slopeStickForce });
         }
 
-        // --- 4. MOVEMENT & JUMP ---
+        // --- MOVEMENT & JUMP ---
         let currentKickForce = speedAbs > PhysicsConfig.freeRollSpeed ? PhysicsConfig.kickForceFast : PhysicsConfig.kickForceStart;
 
         if (this.cursors.left.isDown) {
@@ -86,23 +86,36 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             this.setFlipX(false);
         }
 
-        // Jump
         if (hasFooting && Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
             this.setVelocityY(0); 
-            // Simple vertical impulse
             this.applyForce({ x: 0, y: PhysicsConfig.jumpForce });
             this.groundTimer = 0; 
-            this.y -= 5; // Snap up to clear friction
+            this.y -= 5; 
         }
+
+        // --- VISUAL TILT (Correction) ---
+        let targetRotation = 0;
+
+        if (hasFooting && (Math.abs(velX) > 1 || Math.abs(velY) > 1)) { 
+            // 1. Get the slope angle (-90 to 90 degrees)
+            // This works for forward AND backward sliding.
+            let angle = Math.atan(velY / velX);
+            
+            // [FIX] Removed the "if (this.flipX) angle = -angle" block.
+            // The atan angle applies correctly to the sprite regardless of flip.
+            
+            targetRotation = angle;
+        }
+
+        this.rotation = Phaser.Math.Angle.RotateTo(this.rotation, targetRotation, PhysicsConfig.leanSpeed);
 
         this.handleAnimations(hasFooting, speedAbs);
     }
 
-    /**
-     * Casts a single ray downwards to check for ground.
-     */
     checkGrounded() {
-        const rayLength = (this.height * 0.5) + 15; // Distance from center to below feet
+        const radius = this.body.circleRadius;
+        const rayLength = radius + 10; 
+        
         const startPoint = { x: this.x, y: this.y };
         const endPoint = { x: this.x, y: this.y + rayLength };
 
@@ -121,7 +134,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
         if (this.cursors.down.isDown) {
             this.setTexture("player5");
-            this.setFriction(0.1); // Brake
+            this.setFriction(0.1); 
             return;
         }
         this.setFriction(PhysicsConfig.friction);
