@@ -16,44 +16,47 @@ export default class HubScene extends Phaser.Scene {
         const worldHeight = 1500;
         this.matter.world.setBounds(0, 0, worldWidth, worldHeight);
 
-    // --- 3. PHYSICS OBJECTS (The New Skate Park) ---
-    
-    // A. The Floor (Standard Rectangle)
-    this.createPlatform(worldWidth/2, worldHeight - 50, { 
-        type: 'RECT', 
-        width: worldWidth, 
-        height: 100 
-    });
+        // --- 1. DEFINE COLLISION CATEGORIES ---
+        // We create unique bitmasks for different types of objects
+        this.cats = {
+            GROUND: this.matter.world.nextCategory(),
+            ONE_WAY: this.matter.world.nextCategory(),
+            PLAYER: this.matter.world.nextCategory()
+        };
 
-    // B. Smooth "Grind Box" (Rectangle with Chamfer)
-    // The rounded corners (radius 20) mean you won't catch your wheels if you hit the side.
-    this.createPlatform(600, 1350, { 
-        type: 'RECT', 
-        width: 300, 
-        height: 60, 
-        chamfer: 20 
-    });
+        // --- 2. PHYSICS OBJECTS ---
+        
+        // A. The Floor
+        this.createPlatform(worldWidth/2, worldHeight - 50, { 
+            type: 'RECT', width: worldWidth, height: 100 
+        });
 
-    // C. The "Kicker" (Triangular Ramp)
-    // A perfect wedge. No more "lip" issues.
-    this.createPlatform(1000, 1300, { 
-        type: 'RAMP', 
-        width: 400, 
-        height: 100 
-    });
+        // B. Grind Box
+        this.createPlatform(600, 1350, { 
+            type: 'RECT', width: 300, height: 60, chamfer: 20 
+        });
 
-    // D. The "Quarter Pipe" (Curved Polygon)
-    // Generates a smooth 20-segment curve.
-    this.createPlatform(1800, 1250, { 
-        type: 'CURVE', 
-        width: 400, 
-        height: 400, 
-        curvature: 1.0 // 1.0 = 90 degree arc
-    });
-        // Player
-        this.player = new Player(this, 100, 1200);
+        // C. The Kicker (Ramp)
+        this.createPlatform(1000, 1300, { 
+            type: 'RAMP', width: 400, height: 100 
+        });
 
-        // Camera
+        // D. The Quarter Pipe
+        this.createPlatform(1800, 1250, { 
+            type: 'CURVE', width: 400, height: 400, curvature: 1.0 
+        });
+
+        // E. [NEW] Floating Platform (One-Way)
+        // You can jump through this from below, or drop through it with DOWN key
+        this.createPlatform(1400, 1100, { 
+            type: 'RECT', width: 200, height: 20, isOneWay: true 
+        });
+
+        // --- 3. PLAYER ---
+        // We pass 'this.cats' so the player knows what to collide with
+        this.player = new Player(this, 100, 1200, this.cats);
+
+        // --- 4. CAMERA & ZONES ---
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
@@ -65,9 +68,8 @@ export default class HubScene extends Phaser.Scene {
      * General Object Factory
      * @param {number} x - Center X
      * @param {number} y - Center Y
-     * @param {object} config - { type, width, height, angle, chamfer, ... }
+     * @param {object} config - { type, width, height, angle, isOneWay, ... }
      */
-
     createPlatform(x, y, config) {
         const { 
             type = 'RECT', 
@@ -75,10 +77,10 @@ export default class HubScene extends Phaser.Scene {
             height = 100, 
             angle = 0, 
             chamfer = 0,
-            friction = 0.5
+            friction = 0.5,
+            isOneWay = false // [NEW] Flag for pass-through platforms
         } = config;
 
-        // 1. Define the Physics Body options
         const bodyOptions = { 
             isStatic: true, 
             friction: friction,
@@ -87,13 +89,11 @@ export default class HubScene extends Phaser.Scene {
 
         let body;
 
-        // --- STEP 1: CREATE PHYSICS BODY ---
-        
+        // --- GENERATE SHAPE ---
         if (type === 'RECT') {
             body = this.matter.add.rectangle(x, y, width, height, bodyOptions);
         }
         else if (type === 'RAMP') {
-            // Define the shape relative to (0,0)
             const verts = [
                 { x: width/2,  y: height/2 }, 
                 { x: -width/2, y: height/2 }, 
@@ -103,31 +103,31 @@ export default class HubScene extends Phaser.Scene {
         }
         else if (type === 'CURVE') {
             const segments = 20;
-            const verts = [{ x: width/2, y: height/2 }]; // Corner
+            const verts = [{ x: width/2, y: height/2 }];
             for (let i = 0; i <= segments; i++) {
                 const t = i / segments;
                 const px = -width/2 + (Math.cos(t * Math.PI/2) * width); 
                 const py = -height/2 + (Math.sin(t * Math.PI/2) * height);
                 verts.push({ x: px, y: py });
             }
-            verts.push({ x: width/2, y: height/2 }); // Close loop
-            
+            verts.push({ x: width/2, y: height/2 });
             body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
         }
 
-        // --- STEP 2: APPLY TRANSFORMATIONS ---
-        // We set the angle NOW, so the vertices update to their final positions
         if (body) {
+            // --- TRANSFORM & CATEGORIZE ---
             this.matter.body.setAngle(body, Phaser.Math.DegToRad(angle));
-        }
+            
+            // [NEW] Assign Physics Category
+            if (isOneWay) {
+                body.collisionFilter.category = this.cats.ONE_WAY;
+            } else {
+                body.collisionFilter.category = this.cats.GROUND;
+            }
 
-        // --- STEP 3: DRAW VISUALS FROM PHYSICS DATA ---
-        if (body) {
-            // Create a Graphics object. We do NOT set its x/y because we will 
-            // draw using the World Coordinates provided by the body.
-            const graphics = this.add.graphics({ fillStyle: { color: 0x666666 } });
+            // --- VISUALS ---
+            const graphics = this.add.graphics({ fillStyle: { color: isOneWay ? 0x44AA44 : 0x666666 } });
 
-            // Helper function to draw a single set of vertices
             const drawVertices = (vertices) => {
                 graphics.beginPath();
                 vertices.forEach((v, index) => {
@@ -138,21 +138,15 @@ export default class HubScene extends Phaser.Scene {
                 graphics.fillPath();
             };
 
-            // CHECK FOR COMPOUND BODIES (Important for Curves!)
-            // Matter.js decomposes complex shapes (concave curves) into multiple convex parts.
-            // We need to draw each "part" separately to see the full shape.
             if (body.parts.length > 1) {
-                // Skip part[0] - it is the "Hull" (bounding box) of the whole group
                 for (let i = 1; i < body.parts.length; i++) {
                     drawVertices(body.parts[i].vertices);
                 }
             } else {
-                // Simple shape (Rectangle, Triangle)
                 drawVertices(body.vertices);
             }
         }
     }
-
     
     setupAnims() {
         this.anims.create({

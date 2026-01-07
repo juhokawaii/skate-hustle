@@ -22,9 +22,11 @@ const PhysicsConfig = {
 };
 
 export default class Player extends Phaser.Physics.Matter.Sprite {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, cats) {
         super(scene.matter.world, x, y, 'player1');
         scene.add.existing(this);
+        
+        this.cats = cats;
 
         const { width } = this;
 
@@ -42,8 +44,11 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setFixedRotation(true); 
         this.setMass(PhysicsConfig.mass);
         
-        // --- 2. VISUAL ALIGNMENT ---
-        // Your manual tweak for better foot placement:
+        // --- 2. COLLISION FILTER SETUP ---
+        this.setCollisionCategory(this.cats.PLAYER);
+        this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY]);
+
+        // --- 3. VISUAL ALIGNMENT ---
         this.setOrigin(0.5, 0.8); 
 
         this.cursors = scene.input.keyboard.createCursorKeys();
@@ -59,9 +64,17 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         else if (this.groundTimer > 0) this.groundTimer--;
         const hasFooting = this.groundTimer > 0;
 
+        // --- ONE-WAY PLATFORM LOGIC ---
+        const velY = this.body.velocity.y;
+        
+        if (velY < -1 || this.cursors.down.isDown) {
+            this.setCollidesWith([this.cats.GROUND]); 
+        } else {
+            this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY]); 
+        }
+
         // --- PHYSICS FORCES ---
         const velX = this.body.velocity.x;
-        const velY = this.body.velocity.y;
         const speedAbs = Math.abs(velX);
         
         // Drag
@@ -93,20 +106,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             this.y -= 5; 
         }
 
-        // --- VISUAL TILT (Correction) ---
+        // --- VISUAL TILT ---
         let targetRotation = 0;
-
         if (hasFooting && (Math.abs(velX) > 1 || Math.abs(velY) > 1)) { 
-            // 1. Get the slope angle (-90 to 90 degrees)
-            // This works for forward AND backward sliding.
             let angle = Math.atan(velY / velX);
-            
-            // [FIX] Removed the "if (this.flipX) angle = -angle" block.
-            // The atan angle applies correctly to the sprite regardless of flip.
-            
             targetRotation = angle;
         }
-
         this.rotation = Phaser.Math.Angle.RotateTo(this.rotation, targetRotation, PhysicsConfig.leanSpeed);
 
         this.handleAnimations(hasFooting, speedAbs);
@@ -132,11 +137,19 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             this.setTexture("player4");
             return;
         }
+
+        // [RESTORED] BRAKING LOGIC
+        // If we are on the floor and holding DOWN, we try to brake.
+        // NOTE: If we are on a "Green" platform, the One-Way logic in update() 
+        // will cause us to fall instantly, so this frame won't last long.
+        // If we are on "Grey" ground, we stay here and the friction kicks in.
         if (this.cursors.down.isDown) {
             this.setTexture("player5");
-            this.setFriction(0.1); 
+            this.setFriction(0.2); // High friction to stop
             return;
         }
+        
+        // Reset friction to normal if not braking
         this.setFriction(PhysicsConfig.friction);
 
         if (this.anims.isPlaying && this.anims.currentAnim.key === "kick") return;
