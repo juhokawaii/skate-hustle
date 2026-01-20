@@ -24,112 +24,45 @@ export default class HubScene extends Phaser.Scene {
             PLAYER: this.matter.world.nextCategory()
         };
 
-        // --- 2. THE PARK LAYOUT (Based on your Sketch) ---
+        // --- 2. THE PARK LAYOUT  ---
 
         // == A. THE FLOOR ==
         // One solid piece of concrete across the bottom
         this.createPlatform(1600, worldHeight - 50, { 
             type: 'RECT', width: 3200, height: 100 
         });
-
-
-        // == B. LEFT SIDE: THE ROLL-IN (Start Area) ==
-        // Corresponds to the raised block on the left of your sketch.
         
-        // 1. The solid block tower
-        // Position: Far left. Height: ~400px tall.
-        this.createPlatform(250, worldHeight - 250, { 
-            type: 'RECT', width: 500, height: 400 
-        });
-
-        // 2. The Down-Slope (Ramp)
-        // This connects the tower to the floor.
-        // x = 500 (edge of tower) + 200 (half ramp width) = 700
-        // Angle 90 rotates the standard ramp to point DOWN-RIGHT.
-        this.createPlatform(700, worldHeight - 250, { 
-            type: 'RAMP', width: 400, height: 400, angle: 90 
-        });
-        
-        // 3. A Curve Transition at the bottom of the ramp (Optional smoothing)
-        // Helps momentum transition to floor
-        this.createPlatform(1000, worldHeight - 100, { 
-            type: 'CURVE', width: 200, height: 200, angle: -90 // Bottom-left curve
-        });
-
-
-        // == C. CENTER: GREEN FLOATING PLATFORMS ==
-        // Corresponds to the "blacked out rectangles" in your sketch.
-        // Staggered height to allow climbing or dropping.
-
-        const platWidth = 300;
-        const platHeight = 25;
-
-        // Lowest (Center-Left)
-        this.createPlatform(1300, worldHeight - 400, { 
-            type: 'RECT', width: platWidth, height: platHeight, isOneWay: true 
-        });
-
-        // Middle (Center)
-        this.createPlatform(1600, worldHeight - 600, { 
-            type: 'RECT', width: platWidth, height: platHeight, isOneWay: true 
-        });
-
-        // High (Center-Right)
-        this.createPlatform(1300, worldHeight - 800, { 
-            type: 'RECT', width: platWidth, height: platHeight, isOneWay: true 
-        });
-
-        // Top (Center)
-        this.createPlatform(1600, worldHeight - 1000, { 
-            type: 'RECT', width: platWidth, height: platHeight, isOneWay: true 
-        });
-
-        // == D. RIGHT-CENTER: THE PUMP HUMP ==
-        // Replaced the "Two Ramps" with a smooth "Buried Circle".
-        
-        // We place the circle slightly below the floor level.
-        // A radius of 300 gives a very wide, gentle hill.
-        // Floor Y is roughly (worldHeight - 100).
-        // By placing center at (worldHeight + 50), the top sticks out ~150px.
-        this.createPlatform(2250, worldHeight + 50, { 
-            type: 'CIRCLE', radius: 300 
-        });
-
-        // == D. RIGHT-CENTER: THE PUMP HUMP ==
-        // The mound in your sketch. 
-        // We create a "Pyramid" shape using two ramps back-to-back.
-        
-        // Ramp Up
-        this.createPlatform(2100, worldHeight - 150, { 
-            type: 'RAMP', width: 300, height: 100, angle: 0 
-        });
-        
-        // Ramp Down
-        // We position it right next to the first one.
-        this.createPlatform(2400, worldHeight - 150, { 
-            type: 'RAMP', width: 300, height: 100, angle: 90 
-        });
-
-
-        // == E. FAR RIGHT: THE BIG VERT WALL ==
-        // The curved wall at the end of the sketch.
-        
-        // Large Quarter Pipe
-        // Width 600 means a nice gentle curve radius.
+        // Half pipe made of two quarters 
         this.createPlatform(2900, worldHeight - 350, { 
-            type: 'CURVE', width: 600, height: 600, angle: 0 
+            type: 'CURVE', 
+            width: 600, 
+            height: 600, 
+            angle: 0 
+        });
+        this.createPlatform(2000, worldHeight - 350, { 
+            type: 'CURVE', 
+            width: 600, 
+            height: 600, 
+            angle: 90 
         });
 
-        // Vertical Extension (The wall part above the curve)
-        this.createPlatform(3180, worldHeight - 850, { 
-            type: 'RECT', width: 40, height: 400 
+        // Staggered Green Platforms (One-Way)
+        this.createPlatform(1600, worldHeight - 200, { 
+            type: 'RECT', width: 300, height: 25, isOneWay: true 
         });
-
+        this.createPlatform(1300, worldHeight - 400, { 
+            type: 'RECT', width: 300, height: 25, isOneWay: true 
+        });
+        this.createPlatform(1600, worldHeight - 600, { 
+            type: 'RECT', width: 300, height: 25, isOneWay: true 
+        });
+        this.createPlatform(1300, worldHeight - 800, { 
+            type: 'RECT', width: 300, height: 25, isOneWay: true 
+        });
 
         // --- 3. PLAYER SPAWN ---
-        // Spawn on top of the Left Roll-In tower so you have speed immediately.
+        // Spawn on top of the Left Roll-In tower
         this.player = new Player(this, 200, worldHeight - 550, this.cats);
-
 
         // --- 4. CAMERA & ZONES ---
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
@@ -152,7 +85,7 @@ export default class HubScene extends Phaser.Scene {
             type = 'RECT', 
             width = 100, 
             height = 100, 
-            radius = 50,    // [NEW] Default radius for circles
+            radius = 50,    
             angle = 0, 
             chamfer = 0,
             friction = 0.5,
@@ -180,7 +113,8 @@ export default class HubScene extends Phaser.Scene {
             body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
         }
         else if (type === 'CURVE') {
-            const segments = 20;
+            // [FIX] Increased segments from 20 to 32 for smoother skating
+            const segments = 32;
             const verts = [{ x: width/2, y: height/2 }];
             for (let i = 0; i <= segments; i++) {
                 const t = i / segments;
@@ -192,8 +126,6 @@ export default class HubScene extends Phaser.Scene {
             body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
         }
         else if (type === 'CIRCLE') {
-            // [NEW] Simple Circle Collider
-            // Note: We ignore 'width'/'height' and use 'radius'
             body = this.matter.add.circle(x, y, radius, bodyOptions);
         }
 
@@ -201,7 +133,7 @@ export default class HubScene extends Phaser.Scene {
             // Apply Rotation
             this.matter.body.setAngle(body, Phaser.Math.DegToRad(angle));
             
-            // Force Position (Fixes center-of-mass offsets)
+            // Force Position
             this.matter.body.setPosition(body, { x: x, y: y });
             
             // Assign Physics Category
@@ -214,7 +146,6 @@ export default class HubScene extends Phaser.Scene {
             // --- VISUALS ---
             const graphics = this.add.graphics({ fillStyle: { color: isOneWay ? 0x44AA44 : 0x666666 } });
 
-            // [NEW] Draw Circle vs Draw Polygon
             if (body.circleRadius) {
                 graphics.fillCircle(body.position.x, body.position.y, body.circleRadius);
             } else {
@@ -238,7 +169,6 @@ export default class HubScene extends Phaser.Scene {
             }
         }
     }
-
     
     setupAnims() {
         this.anims.create({
