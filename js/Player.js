@@ -15,12 +15,12 @@ const PhysicsConfig = {
 
     // Jump & Slope
     jumpForce: -0.25,
-    slopeStickForce: 0.003, // [TWEAKED] Slight increase to hold the curve better
+    slopeStickForce: 0.003, 
     
     // VISUALS
     leanSpeed: 0.15,       
     airLeanAngle: -0.25,   
-    maxSlopeAngle: 1.6,    // [TWEAKED] Increased to allow full 90 degree vert riding
+    maxSlopeAngle: 1.6,    
     bufferSize: 5,
     
     // VERT PHYSICS
@@ -59,6 +59,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         
         this.groundTimer = 0;
         this.angleBuffer = []; 
+        this.currentSlopeAngle = 0; 
     }
 
     update() {
@@ -74,50 +75,52 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         // Calculate Speed Magnitude
         const speedAbs = Math.sqrt(velX*velX + velY*velY);
 
-        // --- 1. ROTATION LOGIC (With Fakie Fix) ---
-        let slopeAngle = 0; 
-
+        // --- 1. ROTATION LOGIC ---
+        
         if (!hasFooting) {
-            // [TWEAK] Don't snap instantly to air angle, blend it slightly or keep inertia
-            // But for now, we use the config default
-            slopeAngle = PhysicsConfig.airLeanAngle; 
-            
-            // Clear buffer so we don't average old ground angles when we land
-            if (this.angleBuffer.length > 0) this.angleBuffer = []; 
+            // In Air: Lean back slightly
+            this.currentSlopeAngle = Phaser.Math.Linear(this.currentSlopeAngle, PhysicsConfig.airLeanAngle, 0.1);
+            this.angleBuffer = []; 
         } 
         else {
-            // Only calculate if moving fast enough to determine a "slope"
-            if (speedAbs > 0.5) {
+            // [FIX] We need significant horizontal motion to calculate a slope.
+            if (speedAbs > 0.5 && Math.abs(velX) > 0.1) {
+                
                 // Determine "Forward" relative to facing direction
                 const forwardX = this.flipX ? -velX : velX;
                 
-                // Calculate Raw Angle
                 let rawAngle = Math.atan2(velY, forwardX);
 
-                // [FIX] FAKIE DETECTION
+                // Fakie/Invert Check
                 if (Math.abs(rawAngle) > Math.PI / 2) {
                     if (rawAngle > 0) rawAngle -= Math.PI;
                     else rawAngle += Math.PI;
                 }
 
-                // Filter out noise
+                // Noise Filter
                 if (Math.abs(rawAngle) < PhysicsConfig.maxSlopeAngle) {
                     this.angleBuffer.push(rawAngle);
                 }
+                
+                // Average the buffer
+                if (this.angleBuffer.length > PhysicsConfig.bufferSize) {
+                    this.angleBuffer.shift();
+                }
+                
+                if (this.angleBuffer.length > 0) {
+                    const sum = this.angleBuffer.reduce((a, b) => a + b, 0);
+                    this.currentSlopeAngle = sum / this.angleBuffer.length;
+                }
             }
-
-            if (this.angleBuffer.length > PhysicsConfig.bufferSize) {
-                this.angleBuffer.shift();
-            }
-
-            if (this.angleBuffer.length > 0) {
-                const sum = this.angleBuffer.reduce((a, b) => a + b, 0);
-                slopeAngle = sum / this.angleBuffer.length;
+            else {
+                // Stopped Logic: Decay angle back to 0
+                this.currentSlopeAngle = Phaser.Math.Linear(this.currentSlopeAngle, 0, 0.1);
+                if (this.angleBuffer.length > 0) this.angleBuffer = [];
             }
         }
 
         // Apply Rotation
-        let visualRotation = this.flipX ? -slopeAngle : slopeAngle;
+        let visualRotation = this.flipX ? -this.currentSlopeAngle : this.currentSlopeAngle;
         
         this.rotation = Phaser.Math.Angle.RotateTo(
             this.rotation, 
@@ -133,11 +136,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             this.applyForce({ x: -Math.sign(velX) * drag, y: 0 });
         }
         
-        // Slope Stick (Crucial for Ramps)
+        // Slope Stick
         if (hasFooting && !this.cursors.up.isDown) {
-             // [FIX] Increased threshold from 1.0 to 1.6 (approx 90 degrees)
-             // This ensures we apply stick force even when vertical
-             if (Math.abs(slopeAngle) < 1.6) {
+             if (Math.abs(this.currentSlopeAngle) < 1.6) {
                  this.applyForce({ x: 0, y: PhysicsConfig.slopeStickForce });
              }
         }
@@ -149,19 +150,29 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             this.y -= 5; 
         }
 
-        // --- 3. INPUT with STALL ---
+        // --- 3. INPUT with SLOPE PENALTY ---
         
         let kickPower = speedAbs > PhysicsConfig.freeRollSpeed ? PhysicsConfig.kickForceFast : PhysicsConfig.kickForceStart;
         
-        // STALL CHECK
-        let isStalled = false;
+        // [NEW] Slope Penalty
+        // Math.cos(0) = 1 (Full power on flat)
+        // Math.cos(90 deg) = 0 (No power on vert)
+        // We use Math.max to ensure we never get a negative multiplier
+        let slopePenalty = Math.max(0, Math.cos(this.currentSlopeAngle));
         
-        if (hasFooting && Math.abs(slopeAngle) > PhysicsConfig.vertSlopeThreshold) {
-            if (velY < 0) { // Going UP
-                if (speedAbs < PhysicsConfig.minVertSpeed) {
-                    kickPower = 0;
-                    isStalled = true;
-                }
+        // Make it a bit harsher: if angle > 45 degrees, power drops fast
+        // (Optional: remove the power of 2 for a linear drop off)
+        slopePenalty = slopePenalty * slopePenalty; 
+
+        kickPower *= slopePenalty;
+
+        // Stall logic (Failsafe)
+        let isStalled = false;
+        if (hasFooting && Math.abs(this.currentSlopeAngle) > PhysicsConfig.vertSlopeThreshold) {
+            if (velY < 0 && speedAbs < PhysicsConfig.minVertSpeed) {
+                // If we are too slow on a slope, cut power completely to ensure slide back
+                kickPower = 0;
+                isStalled = true;
             }
         }
 
@@ -190,20 +201,16 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     checkGrounded() {
         const radius = this.body.circleRadius;
-        const rayLength = radius + 15; // [TWEAK] Slightly longer ray
+        const rayLength = radius + 15; 
         const bodies = this.scene.matter.world.localWorld.bodies;
         
-        // [FIX] Multi-directional Raycast
-        // We cast 3 rays: Center, Down-Left, and Down-Right.
-        // This allows us to detect walls/ramps even if the center ray misses.
         const rays = [
-            { x: 0, y: 1 },    // Straight Down
-            { x: -0.5, y: 1 }, // Down-Left
-            { x: 0.5, y: 1 }   // Down-Right
+            { x: 0, y: 1 },    
+            { x: -0.5, y: 1 }, 
+            { x: 0.5, y: 1 }   
         ];
 
         for (let dir of rays) {
-            // Normalize the vector so diagonal rays aren't longer
             const len = Math.sqrt(dir.x*dir.x + dir.y*dir.y);
             const dx = (dir.x / len) * rayLength;
             const dy = (dir.y / len) * rayLength;
@@ -241,7 +248,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const justPressed = Phaser.Input.Keyboard.JustDown(this.cursors.left) || 
                             Phaser.Input.Keyboard.JustDown(this.cursors.right);
         
-        if (isInput && justPressed && !isStalled) {
+        // Only allow kick anim if we actually have kick power (not stalled/too steep)
+        if (isInput && justPressed && !isStalled && Math.cos(this.currentSlopeAngle) > 0.3) {
              this.play("kick");
              return;
         }
