@@ -9,6 +9,7 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("player3", "assets/player3.png");
         this.load.image("player4", "assets/player4.png");
         this.load.image("player5", "assets/player5.png");
+        this.load.image("concrete_bg", "assets/hubworld_background.png");
     }
 
     create() {
@@ -16,6 +17,12 @@ export default class HubScene extends Phaser.Scene {
         const worldWidth = 3200;
         const worldHeight = 1800;
         this.matter.world.setBounds(0, 0, worldWidth, worldHeight);
+
+        // --- BACKGROUND ---
+        const bg = this.add.tileSprite(0, 0, worldWidth, worldHeight, "concrete_bg");
+        bg.setOrigin(0, 0);
+        bg.setScrollFactor(0.85, 0.85);
+        bg.setDepth(-10);
 
         // --- 1. COLLISION CATEGORIES ---
         this.cats = {
@@ -62,7 +69,7 @@ export default class HubScene extends Phaser.Scene {
 
         // --- 3. PLAYER SPAWN ---
         // Spawn on top of the Left Roll-In tower
-        this.player = new Player(this, 200, worldHeight - 550, this.cats);
+        this.player = new Player(this, 200, worldHeight - 850, this.cats);
 
         // --- 4. CAMERA & ZONES ---
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
@@ -174,7 +181,7 @@ export default class HubScene extends Phaser.Scene {
         this.anims.create({
             key: "idle_pump",
             frames: [{ key: "player1" }, { key: "player2" }],
-            frameRate: 3,
+            frameRate: 1.5,
             repeat: -1
         });
         this.anims.create({

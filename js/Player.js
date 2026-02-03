@@ -1,12 +1,12 @@
 // --- TUNING CONFIGURATION ---
 const PhysicsConfig = {
     mass: 5,
-    friction: 0.001,       
-    frictionAir: 0.001,    
+    friction: 0.002,       
+    frictionAir: 0.004,    
     
     // Movement
-    kickForceStart: 0.015,
-    kickForceFast: 0.01,  
+    kickForceStart: 0.008,
+    kickForceFast: 0.005,  
     maxKickSpeed: 20,      
     
     // Aerodynamics
@@ -18,10 +18,10 @@ const PhysicsConfig = {
     slopeStickForce: 0.003, 
     
     // VISUALS
-    leanSpeed: 0.15,       
+    leanSpeed: 0.08,       
     airLeanAngle: -0.25,   
     maxSlopeAngle: 1.6,    
-    bufferSize: 5,
+    bufferSize: 15,
     
     // VERT PHYSICS
     minVertSpeed: 5.0,     
