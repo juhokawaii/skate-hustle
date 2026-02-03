@@ -1,280 +1,201 @@
-// --- TUNING CONFIGURATION ---
-const PhysicsConfig = {
-    mass: 5,
-    friction: 0.0011,       
-    frictionAir: 0.004,    
-    
-    // Movement
-    kickForceStart: 0.006,
-    kickForceFast: 0.004,   
-    maxKickSpeed: 20,      
-    
-    // Aerodynamics
-    freeRollSpeed: 8,
-    dragCoeff: 0.0001,     
-
-    // Jump & Slope
-    jumpForce: 0.25,        
-    slopeStickForce: 0.02,  
-    
-    // VISUALS
-    leanSpeed: 0.08,       
-    airLeanAngle: -0.25,   
-    maxSlopeAngle: 2.5,     
-    bufferSize: 15,
-    
-    // VERT PHYSICS
-    minVertSpeed: 2.0,      
-    vertSlopeThreshold: 0.8 
-};
-
 export default class Player extends Phaser.Physics.Matter.Sprite {
     constructor(scene, x, y, cats) {
-        super(scene.matter.world, x, y, 'player1');
-        scene.add.existing(this);
+        // 1. CONFIGURATION
+        const radius = 35; 
         
-        this.cats = cats;
-        const { width } = this;
-
-        // --- 1. PHYSICS SETUP ---
-        const radius = width * 0.25;
-        
-        const body = scene.matter.add.circle(x, y, radius, {
-            friction: PhysicsConfig.friction,      
-            frictionStatic: 0.0,  
-            frictionAir: PhysicsConfig.frictionAir,     
-            restitution: 0        
+        super(scene.matter.world, x, y, 'player1', null, {
+            shape: { type: 'circle', radius: radius },
+            friction: 0.0,
+            frictionStatic: 0.0, 
+            frictionAir: 0.0,
+            restitution: 0.0,    
+            density: 0.005       
         });
 
-        this.setExistingBody(body);
+        scene.add.existing(this);
+        this.cats = cats;
+
+        // 2. SETUP
+        this.setOrigin(0.5, 0.8); 
         this.setFixedRotation(true); 
-        this.setMass(PhysicsConfig.mass);
-        
-        // --- 2. COLLISION ---
         this.setCollisionCategory(this.cats.PLAYER);
         this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY]);
 
-        this.setOrigin(0.5, 0.8); 
         this.cursors = scene.input.keyboard.createCursorKeys();
-        
+
+        // State & Vectors
+        this.groundNormal = new Phaser.Math.Vector2(0, -1);
+        this.smoothedNormal = new Phaser.Math.Vector2(0, -1);
         this.groundTimer = 0;
-        this.angleBuffer = []; 
-        this.currentSlopeAngle = 0; 
+        
+        // [NEW] Visual Buffer for smoother animations
+        this.airFrameBuffer = 0; 
+        
+        // 3. COLLISION SENSOR
+        this.scene.matter.world.on('collisionactive', (event) => {
+            const pairs = event.pairs;
+            for (let i = 0; i < pairs.length; i++) {
+                const bodyA = pairs[i].bodyA;
+                const bodyB = pairs[i].bodyB;
+
+                if (bodyA === this.body || bodyB === this.body) {
+                    const other = (bodyA === this.body) ? bodyB : bodyA;
+                    if (!other.isSensor) {
+                        this.groundTimer = 10; // Physics buffer
+                        
+                        const contactNormal = pairs[i].collision.normal;
+                        if (bodyA === this.body) {
+                            this.groundNormal.set(contactNormal.x, contactNormal.y);
+                        } else {
+                            this.groundNormal.set(-contactNormal.x, -contactNormal.y);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     update() {
-        const isGrounded = this.checkGrounded(this.rotation);
+        // --- TUNING KNOBS ---
+        const PADDLE_FORCE = 0.02;   
+        const JUMP_FORCE = 15.0;     
+        const STICKY_FORCE = 0.05; 
         
-        if (isGrounded) this.groundTimer = 5; 
-        else if (this.groundTimer > 0) this.groundTimer--;
-        const hasFooting = this.groundTimer > 0;
-
-        const velX = this.body.velocity.x;
-        const velY = this.body.velocity.y;
-        const speedAbs = Math.sqrt(velX*velX + velY*velY);
-
-        // --- 1. ROTATION LOGIC ---
+        const DRAG_FLAT = 0.02;   
+        const DRAG_RAMP = 0.0;    
+        const DRAG_AIR = 0.005;      
+        const MAX_SPEED = 20;        
         
-        if (!hasFooting) {
-            this.currentSlopeAngle = Phaser.Math.Linear(this.currentSlopeAngle, PhysicsConfig.airLeanAngle, 0.05);
-            this.angleBuffer = []; 
-        } 
-        else {
-            // [FIX] INCREASED THRESHOLD from 0.5 to 2.0
-            // If we are in that "Equilibrium" jitter zone (speed < 2), 
-            // we IGNORE the velocity noise and keep our previous angle.
-            if (speedAbs > 2.0) { 
-                const forwardX = this.flipX ? -velX : velX;
-                let rawAngle = Math.atan2(velY, forwardX);
-
-                // Fakie/Invert Check
-                if (Math.abs(rawAngle) > Math.PI / 2) {
-                    if (rawAngle > 0) rawAngle -= Math.PI;
-                    else rawAngle += Math.PI;
-                }
-
-                // Continuity Check (Anti-Jitter)
-                const diff = rawAngle - this.currentSlopeAngle;
-                if (Math.abs(diff) > 2.0) { 
-                     if (diff > 0) rawAngle -= Math.PI;
-                     else rawAngle += Math.PI;
-                }
-
-                if (Math.abs(rawAngle) < PhysicsConfig.maxSlopeAngle) {
-                    this.angleBuffer.push(rawAngle);
-                }
-                
-                if (this.angleBuffer.length > PhysicsConfig.bufferSize) {
-                    this.angleBuffer.shift();
-                }
-                
-                if (this.angleBuffer.length > 0) {
-                    const sum = this.angleBuffer.reduce((a, b) => a + b, 0);
-                    this.currentSlopeAngle = sum / this.angleBuffer.length;
-                }
-            }
-            else {
-                // [FIX] STOPPED/STALLED LOGIC
-                // If we are flat (angle < 0.5), we straighten up.
-                // If we are on a ramp (angle >= 0.5), we DO NOTHING. 
-                // We lock the angle to the last known good value.
-                if (Math.abs(this.currentSlopeAngle) < 0.5) {
-                    this.currentSlopeAngle = Phaser.Math.Linear(this.currentSlopeAngle, 0, 0.1);
-                }
-                
-                // Clear buffer so old movement doesn't average into new movement later
-                if (this.angleBuffer.length > 0) this.angleBuffer = [];
-            }
+        // --- TIMERS ---
+        if (this.groundTimer > 0) this.groundTimer--;
+        const isGrounded = (this.groundTimer > 0);
+        
+        // [NEW] Update Visual Air Buffer
+        // If we are grounded, reset the counter.
+        // If we are in the air, start counting up.
+        if (isGrounded) {
+            this.airFrameBuffer = 0;
+        } else {
+            this.airFrameBuffer++;
         }
 
-        let visualRotation = this.flipX ? -this.currentSlopeAngle : this.currentSlopeAngle;
-        
-        this.rotation = Phaser.Math.Angle.RotateTo(
-            this.rotation, 
-            visualRotation, 
-            PhysicsConfig.leanSpeed
-        );
+        const isJumping = Phaser.Input.Keyboard.JustDown(this.cursors.up);
 
-        // --- 2. PHYSICS FORCES ---
-        
-        if (speedAbs > PhysicsConfig.freeRollSpeed) {
-            const drag = PhysicsConfig.dragCoeff * velX * velX;
-            this.applyForce({ x: -Math.sign(velX) * drag, y: 0 });
-        }
-        
-        // Spider-Man Gravity (Stick)
-        if (hasFooting && !this.cursors.up.isDown) {
-             const stickX = -Math.sin(this.rotation) * PhysicsConfig.slopeStickForce;
-             const stickY = Math.cos(this.rotation) * PhysicsConfig.slopeStickForce;
-             this.applyForce({ x: stickX, y: stickY });
+        // --- 1. ROTATION ---
+        if (isGrounded) {
+            this.smoothedNormal.x = Phaser.Math.Linear(this.smoothedNormal.x, this.groundNormal.x, 0.15);
+            this.smoothedNormal.y = Phaser.Math.Linear(this.smoothedNormal.y, this.groundNormal.y, 0.15);
+        } else {
+            this.smoothedNormal.x = Phaser.Math.Linear(this.smoothedNormal.x, 0, 0.05);
+            this.smoothedNormal.y = Phaser.Math.Linear(this.smoothedNormal.y, -1, 0.05);
         }
 
-        // Jump
-        if (hasFooting && Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
-            const jumpX = Math.sin(this.rotation) * PhysicsConfig.jumpForce;
-            const jumpY = -Math.cos(this.rotation) * PhysicsConfig.jumpForce;
-            
-            this.applyForce({ x: jumpX, y: jumpY });
-            this.x += jumpX * 10;
-            this.y += jumpY * 10;
-            this.groundTimer = 0; 
-        }
+        const targetAngle = Math.atan2(this.smoothedNormal.y, this.smoothedNormal.x) + (Math.PI / 2);
+        this.rotation = targetAngle;
 
-        // --- 3. INPUT (PUMPING LOGIC) ---
+
+        // --- 2. MOVEMENT ---
+        const tangent = { x: -this.smoothedNormal.y, y: this.smoothedNormal.x };
+        const forceX = tangent.x * PADDLE_FORCE;
+        const forceY = tangent.y * PADDLE_FORCE;
         
-        let kickPower = speedAbs > PhysicsConfig.freeRollSpeed ? PhysicsConfig.kickForceFast : PhysicsConfig.kickForceStart;
-        let kickEfficiency = 1.0;
-        
-        const slopeAbs = Math.abs(this.currentSlopeAngle);
-        const isOnRamp = slopeAbs > 0.25; 
-        const isGoingDownhill = velY > 0;
-
-        if (isOnRamp) {
-            if (isGoingDownhill) {
-                kickEfficiency = 1.0; 
-            } else {
-                if (speedAbs > 4.0) {
-                    kickEfficiency = 0.0; 
-                }
-            }
-        }
-        
-        // Apex Stall Check
-        if (slopeAbs > 0.5 && speedAbs < 2.0) {
-            kickEfficiency = 0.0;
-        }
-
-        kickPower *= kickEfficiency;
-
         if (this.cursors.left.isDown) {
             this.setFlipX(true);
-            const forceX = Math.cos(this.rotation) * -kickPower; 
-            const forceY = Math.sin(this.rotation) * -kickPower; 
-            this.applyForce({ x: forceX, y: forceY });
-
-        } else if (this.cursors.right.isDown) {
+            if (isGrounded) this.applyForce({ x: -forceX, y: -forceY });
+            else this.applyForce({ x: -forceX * 0.1, y: -forceY * 0.1 });
+        } 
+        else if (this.cursors.right.isDown) {
             this.setFlipX(false);
-            const forceX = Math.cos(this.rotation) * kickPower; 
-            const forceY = Math.sin(this.rotation) * kickPower; 
-            this.applyForce({ x: forceX, y: forceY });
+            if (isGrounded) this.applyForce({ x: forceX, y: forceY });
+            else this.applyForce({ x: forceX * 0.1, y: forceY * 0.1 });
+        }        
+
+        // --- 3. STICKY FORCE ---
+        if (isGrounded && !isJumping) {
+            this.applyForce({ 
+                x: -this.groundNormal.x * STICKY_FORCE, 
+                y: -this.groundNormal.y * STICKY_FORCE 
+            });
         }
 
-        // --- 4. FRICTION & ANIMATION ---
+        // --- 4. BRAKE ---
+        if (this.cursors.down.isDown && isGrounded) {
+            this.setVelocity(this.body.velocity.x * 0.90, this.body.velocity.y * 0.90);
+        }
+
+        // --- 5. JUMP ---
+        if (isGrounded && isJumping) {
+            this.setVelocity(
+                this.body.velocity.x + (this.smoothedNormal.x * JUMP_FORCE),
+                this.body.velocity.y + (this.smoothedNormal.y * JUMP_FORCE)
+            );
+            this.groundTimer = 0; 
+            // [TRICK] Force immediate visual switch so jump feels responsive
+            this.airFrameBuffer = 100; 
+        }
+
+        // --- 6. DRAG & CAP ---
+        let currentDrag = DRAG_AIR;
+        if (isGrounded) {
+            const slopeSteepness = Math.abs(this.smoothedNormal.x);
+            currentDrag = (slopeSteepness > 0.1) ? DRAG_RAMP : DRAG_FLAT;
+        }
+
+        this.setVelocity(
+            this.body.velocity.x * (1 - currentDrag),
+            this.body.velocity.y * (1 - currentDrag)
+        );
         
-        // Zero Friction on Ramps
-        if (isOnRamp) {
-            this.setFriction(0.0);
-        } else {
-            this.setFriction(PhysicsConfig.friction);
+        if (this.body.speed > MAX_SPEED) {
+            const scale = MAX_SPEED / this.body.speed;
+            this.setVelocity(this.body.velocity.x * scale, this.body.velocity.y * scale);
         }
-
-        if (velY < -2 || this.cursors.down.isDown) {
-             this.setCollidesWith([this.cats.GROUND]); 
-        } else {
-             this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY]); 
-        }
-
-        this.handleAnimations(hasFooting, speedAbs, kickEfficiency);
-    }
-
-    checkGrounded(angle) {
-        const radius = this.body.circleRadius;
-        const rayLength = radius + 10; 
-        const bodies = this.scene.matter.world.localWorld.bodies;
         
-        const raysLocal = [
-            { x: 0, y: 1 },    
-            { x: -0.4, y: 1 }, 
-            { x: 0.4, y: 1 }   
-        ];
-
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-
-        for (let r of raysLocal) {
-            const rotX = r.x * cos - r.y * sin;
-            const rotY = r.x * sin + r.y * cos;
-
-            const len = Math.sqrt(rotX*rotX + rotY*rotY);
-            const dx = (rotX / len) * rayLength;
-            const dy = (rotY / len) * rayLength;
-
-            const startPoint = { x: this.x, y: this.y };
-            const endPoint = { x: this.x + dx, y: this.y + dy };
-
-            const hit = this.scene.matter.query.ray(bodies, startPoint, endPoint)
-                .filter(c => c.body !== this.body && !c.body.isSensor);
-            
-            if (hit.length > 0) return true;
+        // --- 7. PLATFORMS ---
+        if (this.body.velocity.y < -2.0) {
+            this.setCollidesWith([this.cats.GROUND]);
+        } 
+        else if (this.cursors.down.isDown) {
+            this.setCollidesWith([this.cats.GROUND]);
+        }
+        else {
+            this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY]);
         }
 
-        return false;
+        this.handleAnimations(isGrounded);
     }
+    
+    handleAnimations(isGrounded) {
+        // [TUNED] VISUAL DELAY LOGIC
+        // 1. We are physically in the air (!isGrounded)
+        // 2. We have been in the air for > 8 frames (was 5). 
+        //    This effectively ignores all ramp jitters.
+        // 3. OR we are moving UP fast (Instant feedback for intentional jumps)
+        
+        const isJumpingFast = (this.body.velocity.y < -5.0);
+        
+        // [CHANGE] Increased threshold from 5 to 8
+        const isAirStable = (this.airFrameBuffer > 8);
 
-    handleAnimations(isOnFloor, speedAbs, kickEfficiency) {
-        if (!isOnFloor) {
+        if (!isGrounded && (isAirStable || isJumpingFast)) {
             this.anims.stop();
             this.setTexture("player4"); 
             return;
         }
 
         if (this.cursors.down.isDown) {
-            this.setTexture("player5");
-            this.setFriction(0.2); 
+            this.setTexture("player5"); 
             return;
         }
-
-        if (this.anims.isPlaying && this.anims.currentAnim.key === "kick") return;
-
+        
         const isInput = this.cursors.left.isDown || this.cursors.right.isDown;
-        const justPressed = Phaser.Input.Keyboard.JustDown(this.cursors.left) || 
-                            Phaser.Input.Keyboard.JustDown(this.cursors.right);
-        
-        if (isInput && justPressed && kickEfficiency > 0.1) {
-             this.play("kick");
-             return;
+        const currentSpeed = this.body.speed;
+
+        // Kick Speed Limit: 4.0
+        if (isInput && currentSpeed < 4.0) {
+             this.play("kick", true);
+        } else {
+             this.play("idle_pump", true);
         }
-        
-        this.play("idle_pump", true);
     }
 }
