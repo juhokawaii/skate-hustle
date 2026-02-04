@@ -10,6 +10,8 @@ const config = {
         default: "matter", // Use Matter physics
         matter: {
             gravity: { y: 1.5 }, // Matter gravity feels different; 1.5 - 2 is a good start
+            positionIterations: 12, 
+            velocityIterations: 8, 
             debug: false,         // Shows the pink lines for hitboxes
             enableSleeping: false
         }

@@ -64,12 +64,14 @@ export default class HubScene extends Phaser.Scene {
             type: 'CURVE', 
             width: 600, 
             height: 600, 
+            friction: 0, 
             angle: 0 
         });
         this.createPlatform(2000, worldHeight - 350, { 
             type: 'CURVE', 
             width: 600, 
-            height: 600, 
+            height: 600,
+            friction: 0,  
             angle: 90 
         });
 
