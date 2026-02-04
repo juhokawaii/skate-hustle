@@ -19,7 +19,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setOrigin(0.5, 0.8); 
         this.setFixedRotation(true); 
         this.setCollisionCategory(this.cats.PLAYER);
-        this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY]);
+        this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY, this.cats.SENSOR]);
 
         this.cursors = scene.input.keyboard.createCursorKeys();
 
@@ -99,6 +99,29 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const forceX = tangent.x * PADDLE_FORCE;
         const forceY = tangent.y * PADDLE_FORCE;
         
+        // The magical video game thrusters while in the air 
+        const AIR_CONTROL = 0.35; 
+        
+        if (this.cursors.left.isDown) {
+            this.setFlipX(true);
+            if (isGrounded) {
+                this.applyForce({ x: -forceX, y: -forceY });
+            } else {
+                // Use the variable here instead of hardcoded 0.1
+                this.applyForce({ x: -forceX * AIR_CONTROL, y: -forceY * AIR_CONTROL });
+            }
+        } 
+        else if (this.cursors.right.isDown) {
+            this.setFlipX(false);
+            if (isGrounded) {
+                this.applyForce({ x: forceX, y: forceY });
+            } else {
+                // And here
+                this.applyForce({ x: forceX * AIR_CONTROL, y: forceY * AIR_CONTROL });
+            }
+        }
+        
+        /* Old implementation 
         if (this.cursors.left.isDown) {
             this.setFlipX(true);
             if (isGrounded) this.applyForce({ x: -forceX, y: -forceY });
@@ -109,6 +132,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             if (isGrounded) this.applyForce({ x: forceX, y: forceY });
             else this.applyForce({ x: forceX * 0.1, y: forceY * 0.1 });
         }        
+        */
 
         // --- 3. STICKY FORCE ---
         if (isGrounded && !isJumping) {
@@ -153,13 +177,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         
         // --- 7. PLATFORMS ---
         if (this.body.velocity.y < -2.0) {
-            this.setCollidesWith([this.cats.GROUND]);
+            this.setCollidesWith([this.cats.GROUND, this.cats.SENSOR]);
         } 
         else if (this.cursors.down.isDown) {
-            this.setCollidesWith([this.cats.GROUND]);
+            this.setCollidesWith([this.cats.GROUND, this.cats.SENSOR]);
         }
         else {
-            this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY]);
+            this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY, this.cats.SENSOR]);
         }
 
         this.handleAnimations(isGrounded);

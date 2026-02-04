@@ -1,4 +1,5 @@
 import Player from './Player.js';
+import Graffiti from './graffiti.js';
 
 export default class HubScene extends Phaser.Scene {
     constructor() { super("HubScene"); }
@@ -9,27 +10,46 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("player3", "assets/player3.png");
         this.load.image("player4", "assets/player4.png");
         this.load.image("player5", "assets/player5.png");
+
         this.load.image("concrete_bg", "assets/hubworld_background.png");
+        this.load.image("chaos_monkey_bw", "assets/Chaos_monkey_graffiti_bw.png");
+        this.load.image("chaos_monkey", "assets/Chaos_monkey_graffiti.png");
+
+        this.load.audio("title", "assets/title.mp3");
+        this.load.audio("chase", "assets/ramp.mp3");
     }
 
     create() {
+        // --- BACKGROUND MUSIC ---
+        this.sound.stopAll();
+
+
         // --- WORLD SETUP ---
         const worldWidth = 3200;
         const worldHeight = 1800;
         this.matter.world.setBounds(0, 0, worldWidth, worldHeight);
 
-        // --- BACKGROUND ---
+        // --- 0. COLLISION CATEGORIES ---
+        this.cats = {
+            GROUND: this.matter.world.nextCategory(),
+            ONE_WAY: this.matter.world.nextCategory(),
+            PLAYER: this.matter.world.nextCategory(), 
+            SENSOR: this.matter.world.nextCategory()
+        };
+
+        // --- 1. BACKGROUND AND GRAFFITI---
         const bg = this.add.tileSprite(0, 0, worldWidth, worldHeight, "concrete_bg");
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
 
-        // --- 1. COLLISION CATEGORIES ---
-        this.cats = {
-            GROUND: this.matter.world.nextCategory(),
-            ONE_WAY: this.matter.world.nextCategory(),
-            PLAYER: this.matter.world.nextCategory()
-        };
+        this.bgmusic = this.sound.add("title", { volume: 1.0, loop: true });
+        this.bgmusic.play();
+
+        this.portal1 = new Graffiti(this, 1100, 550, "chaos_monkey_bw", "chaos_monkey", this.cats.SENSOR);
+        this.portal1.setScrollFactor(0.85, 0.85);
+
+
 
         // --- 2. THE PARK LAYOUT  ---
 
@@ -201,11 +221,18 @@ export default class HubScene extends Phaser.Scene {
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     }
 
+    
+
     update() {
         this.player.update();
         this.hintText.setText("");
+
         if (this.matter.query.collides(this.player.body, [this.arcadeZone]).length > 0) {
             this.hintText.setText("Press ENTER to enter the Arcade");
         }
+        if(this.portal1.isPlayerTouching) {
+            this.hintText.setText("Press ENTER to enter the Portal");
+        }
+
     }
 }
