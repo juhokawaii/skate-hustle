@@ -5,18 +5,18 @@ export default class HubScene extends Phaser.Scene {
     constructor() { super("HubScene"); }
 
     preload() {
-        this.load.image("player1", "assets/player1.png");
-        this.load.image("player2", "assets/player2.png");
-        this.load.image("player3", "assets/player3.png");
-        this.load.image("player4", "assets/player4.png");
-        this.load.image("player5", "assets/player5.png");
+        this.load.image("player1", "assets/player_sprites/player1.png");
+        this.load.image("player2", "assets/player_sprites/player2.png");
+        this.load.image("player3", "assets/player_sprites/player3.png");
+        this.load.image("player4", "assets/player_sprites/player4.png");
+        this.load.image("player5", "assets/player_sprites/player5.png");
 
-        this.load.image("concrete_bg", "assets/hubworld_background.png");
-        this.load.image("chaos_monkey_bw", "assets/Chaos_monkey_graffiti_bw.png");
-        this.load.image("chaos_monkey", "assets/Chaos_monkey_graffiti.png");
+        this.load.image("concrete_bg", "assets/backgrounds/hubworld_background.png");
+        this.load.image("chaos_monkey_bw", "assets/backgrounds/Chaos_monkey_graffiti_bw.png");
+        this.load.image("chaos_monkey", "assets/backgrounds/Chaos_monkey_graffiti.png");
 
-        this.load.audio("title", "assets/title.mp3");
-        this.load.audio("chase", "assets/ramp.mp3");
+        this.load.audio("title", "assets/music/title.mp3");
+        this.load.audio("chase", "assets/music/ramp.mp3");
     }
 
     create() {
@@ -97,11 +97,6 @@ export default class HubScene extends Phaser.Scene {
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
-        // Put the arcade zone at the top of the highest green platform
-        this.arcadeZone = this.matter.add.rectangle(1600, worldHeight - 1100, 100, 100, {
-            isStatic: true, isSensor: true
-        });
-        
         this.setupAnims();
         this.setupZones(worldWidth, worldHeight);
     }
@@ -229,9 +224,6 @@ export default class HubScene extends Phaser.Scene {
         this.player.update();
         this.hintText.setText("");
 
-        if (this.matter.query.collides(this.player.body, [this.arcadeZone]).length > 0) {
-            this.hintText.setText("Press ENTER to enter the Arcade");
-        }
         if(this.portal1.isPlayerTouching) {
             this.hintText.setText("Press ENTER to enter the Portal");
         }
