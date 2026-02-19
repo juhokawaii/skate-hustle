@@ -13,6 +13,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         });
 
         scene.add.existing(this);
+        this.setDepth(100);
         this.cats = cats;
 
         // 2. SETUP
