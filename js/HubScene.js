@@ -14,6 +14,8 @@ export default class HubScene extends Phaser.Scene {
 
         this.load.image("concrete_bg", "assets/backgrounds/hubworld_background.png");
         this.load.image("platform_texture", "assets/backgrounds/256x256.png");
+        this.load.image("ground", "assets/backgrounds/ground.png");
+        this.load.image("drop", "assets/backgrounds/drop.png");
         this.load.image("chaos_monkey_bw", "assets/backgrounds/Chaos_monkey_graffiti_bw.png");
         this.load.image("chaos_monkey", "assets/backgrounds/Chaos_monkey_graffiti.png");
 
@@ -42,7 +44,6 @@ export default class HubScene extends Phaser.Scene {
         // Create the invisible box around the world
         this.matter.world.setBounds(0, 0, worldWidth, worldHeight, 1000, true, true, true, true);
 
-        // 3. LABEL THE WALLS (The Fix)
         // Now we can use 'this.cats.GROUND' because we defined it in Step 1.
         Object.values(this.matter.world.walls).forEach(wall => {
             if (wall) {
@@ -65,8 +66,8 @@ export default class HubScene extends Phaser.Scene {
         // --- 2. THE PARK LAYOUT  ---
 
         // == A. THE FLOOR ==
-        this.createPlatform(1600, worldHeight - 50, { 
-            type: 'RECT', width: 3200, height: 100 
+        this.createPlatform(2000, worldHeight - 50, { 
+            type: 'RECT', width: 4000, height: 100, texture: 'ground' // <--- Added texture
         });
         
         // == B. HALF PIPE ==
@@ -106,16 +107,24 @@ export default class HubScene extends Phaser.Scene {
 
         // == C. FLOATING PLATFORMS ==
         this.createPlatform(1600, worldHeight - 200, { 
-            type: 'RECT', width: 300, height: 25, isOneWay: true 
+            type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop'
         });
         this.createPlatform(1300, worldHeight - 400, { 
-            type: 'RECT', width: 300, height: 25, isOneWay: true 
+            type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop' 
         });
         this.createPlatform(1600, worldHeight - 600, { 
-            type: 'RECT', width: 300, height: 25, isOneWay: true 
+            type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop' 
         });
         this.createPlatform(1300, worldHeight - 800, { 
-            type: 'RECT', width: 300, height: 25, isOneWay: true 
+            type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop' 
+        });
+
+        // == D. DEMO TEXTURED CIRCLE ==
+        this.createPlatform(900, worldHeight - 300, {
+            type: 'CIRCLE',
+            radius: 90,
+            friction: 0.2,
+            texture: 'platform_texture'
         });
 
         // --- 3. PLAYER SPAWN ---
@@ -139,7 +148,8 @@ export default class HubScene extends Phaser.Scene {
             angle = 0, 
             chamfer = 0,
             friction = 0.5,
-            isOneWay = false 
+            isOneWay = false, 
+            texture = 'platform_texture'
         } = config;
 
         const bodyOptions = { 
@@ -194,26 +204,28 @@ export default class HubScene extends Phaser.Scene {
 
             // --- VISUALS (UPDATED) ---
             
-            // 1. One-Way Platforms (Green bars)
-            if (isOneWay) {
-                const graphics = this.add.graphics({ fillStyle: { color: 0x44AA44 } });
-                graphics.fillRect(body.position.x - width/2, body.position.y - height/2, width, height);
+            // 1. One-Way Platforms (the graphis previously known as the green bars)
+            if (isOneWay || type === 'RECT') {
+                TextureFactory.styleRectangle(this, x, y, width, height, body, texture);
+
+
+                //const graphics = this.add.graphics({ fillStyle: { color: 0x44AA44 } });
+                //graphics.fillRect(body.position.x - width/2, body.position.y - height/2, width, height);
             } 
-            
-            // 2. Rectangles (Floor)
-            else if (type === 'RECT') {
+        
+            // 2. Rectangles (Floor) 
+            /* else if (type === 'RECT') {
                 TextureFactory.styleRectangle(this, x, y, width, height, body);
-            }
+            } */
             
             // 3. Curves / Ramps (Use new method)
             else if (type === 'CURVE' || type === 'RAMP') {
-                TextureFactory.styleCurve(this, body);
+                TextureFactory.styleCurve(this, body, texture);
             }
             
             // 4. Circles
             else if (type === 'CIRCLE') {
-                const graphics = this.add.graphics({ fillStyle: { color: 0x666666 } });
-                graphics.fillCircle(body.position.x, body.position.y, body.circleRadius);
+                TextureFactory.styleCircle(this, body, texture);
             }
         }
     }
