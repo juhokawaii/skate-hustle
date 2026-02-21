@@ -121,27 +121,25 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
                 this.applyForce({ x: forceX * AIR_CONTROL, y: forceY * AIR_CONTROL });
             }
         }
-        
-        /* Old implementation 
-        if (this.cursors.left.isDown) {
-            this.setFlipX(true);
-            if (isGrounded) this.applyForce({ x: -forceX, y: -forceY });
-            else this.applyForce({ x: -forceX * 0.1, y: -forceY * 0.1 });
-        } 
-        else if (this.cursors.right.isDown) {
-            this.setFlipX(false);
-            if (isGrounded) this.applyForce({ x: forceX, y: forceY });
-            else this.applyForce({ x: forceX * 0.1, y: forceY * 0.1 });
-        }        
-        */
+
 
         // --- 3. STICKY FORCE ---
         if (isGrounded && !isJumping) {
-            this.applyForce({ 
-                x: -this.groundNormal.x * STICKY_FORCE, 
-                y: -this.groundNormal.y * STICKY_FORCE 
-            });
+            // Measure how vertical the surface is (0 = Flat Floor, 1.0 = Pure Vertical Wall)
+            const steepness = Math.abs(this.groundNormal.x);
+            
+            // If it's a steep wall (> 55 degrees) AND we are moving too slow, let go!
+            // This prevents sticking in corners or stalling on walls indefinitely.
+            const isStallingOnWall = (steepness > 0.8 && this.body.speed < 4.0);
+
+            if (!isStallingOnWall) {
+                this.applyForce({ 
+                    x: -this.groundNormal.x * STICKY_FORCE, 
+                    y: -this.groundNormal.y * STICKY_FORCE 
+                });
+            }
         }
+
 
         // --- 4. BRAKE ---
         if (this.cursors.down.isDown && isGrounded) {
@@ -191,11 +189,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     }
     
     handleAnimations(isGrounded) {
-        // [TUNED] VISUAL DELAY LOGIC
-        // 1. We are physically in the air (!isGrounded)
-        // 2. We have been in the air for > 8 frames (was 5). 
-        //    This effectively ignores all ramp jitters.
-        // 3. OR we are moving UP fast (Instant feedback for intentional jumps)
         
         const isJumpingFast = (this.body.velocity.y < -5.0);
         
