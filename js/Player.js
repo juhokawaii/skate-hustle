@@ -28,6 +28,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.groundNormal = new Phaser.Math.Vector2(0, -1);
         this.smoothedNormal = new Phaser.Math.Vector2(0, -1);
         this.groundTimer = 0;
+        this.rampDragGraceTimer = 0;
         
         // [NEW] Visual Buffer for smoother animations
         this.airFrameBuffer = 0; 
@@ -35,6 +36,10 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         // 3. COLLISION SENSOR
         this.scene.matter.world.on('collisionactive', (event) => {
             const pairs = event.pairs;
+            let normalSumX = 0;
+            let normalSumY = 0;
+            let contactCount = 0;
+
             for (let i = 0; i < pairs.length; i++) {
                 const bodyA = pairs[i].bodyA;
                 const bodyB = pairs[i].bodyB;
@@ -42,16 +47,32 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
                 if (bodyA === this.body || bodyB === this.body) {
                     const other = (bodyA === this.body) ? bodyB : bodyA;
                     if (!other.isSensor) {
-                        this.groundTimer = 10; // Physics buffer
-                        
                         const contactNormal = pairs[i].collision.normal;
+                        let normalX;
+                        let normalY;
+
                         if (bodyA === this.body) {
-                            this.groundNormal.set(contactNormal.x, contactNormal.y);
+                            normalX = contactNormal.x;
+                            normalY = contactNormal.y;
                         } else {
-                            this.groundNormal.set(-contactNormal.x, -contactNormal.y);
+                            normalX = -contactNormal.x;
+                            normalY = -contactNormal.y;
+                        }
+
+                        // Ignore ceilings so underside bumps don't overwrite ride normals.
+                        if (normalY <= 0.2) {
+                            normalSumX += normalX;
+                            normalSumY += normalY;
+                            contactCount++;
                         }
                     }
                 }
+            }
+
+            if (contactCount > 0) {
+                this.groundTimer = 10; // Physics buffer
+                const invLength = 1 / Math.max(0.0001, Math.hypot(normalSumX, normalSumY));
+                this.groundNormal.set(normalSumX * invLength, normalSumY * invLength);
             }
         });
     }
@@ -61,10 +82,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const PADDLE_FORCE = 0.02;   
         const JUMP_FORCE = 15.0;     
         const STICKY_FORCE = 0.05; 
+        const WALL_STEEP_THRESHOLD = 0.8;
+        const WALL_RIDE_MIN_SPEED = 3.5;
+        const WALL_RELEASE_PUSH = 0.004;
         
         const DRAG_FLAT = 0.02;   
         const DRAG_RAMP = 0.0;    
         const DRAG_AIR = 0.005;      
+        const RAMP_DRAG_GRACE_FRAMES = 6;
         const MAX_SPEED = 20;        
         
         // --- TIMERS ---
@@ -82,8 +107,18 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
         const isJumping = Phaser.Input.Keyboard.JustDown(this.cursors.up);
 
+        const rawTangent = { x: -this.groundNormal.y, y: this.groundNormal.x };
+        const tangentVelocity =
+            (this.body.velocity.x * rawTangent.x) +
+            (this.body.velocity.y * rawTangent.y);
+        const tangentSpeedAbs = Math.abs(tangentVelocity);
+        const wallSteepness = Math.abs(this.groundNormal.x);
+        const isSteepWall = isGrounded && (wallSteepness > WALL_STEEP_THRESHOLD);
+        const isWallStalled = isSteepWall && (tangentSpeedAbs < WALL_RIDE_MIN_SPEED);
+        const canUseGroundAssist = isGrounded && !isWallStalled;
+
         // --- 1. ROTATION ---
-        if (isGrounded) {
+        if (canUseGroundAssist) {
             this.smoothedNormal.x = Phaser.Math.Linear(this.smoothedNormal.x, this.groundNormal.x, 0.15);
             this.smoothedNormal.y = Phaser.Math.Linear(this.smoothedNormal.y, this.groundNormal.y, 0.15);
         } else {
@@ -105,7 +140,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         
         if (this.cursors.left.isDown) {
             this.setFlipX(true);
-            if (isGrounded) {
+            if (canUseGroundAssist) {
                 this.applyForce({ x: -forceX, y: -forceY });
             } else {
                 // Use the variable here instead of hardcoded 0.1
@@ -114,7 +149,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         } 
         else if (this.cursors.right.isDown) {
             this.setFlipX(false);
-            if (isGrounded) {
+            if (canUseGroundAssist) {
                 this.applyForce({ x: forceX, y: forceY });
             } else {
                 // And here
@@ -125,14 +160,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
         // --- 3. STICKY FORCE ---
         if (isGrounded && !isJumping) {
-            // Measure how vertical the surface is (0 = Flat Floor, 1.0 = Pure Vertical Wall)
-            const steepness = Math.abs(this.groundNormal.x);
-            
-            // If it's a steep wall (> 55 degrees) AND we are moving too slow, let go!
-            // This prevents sticking in corners or stalling on walls indefinitely.
-            const isStallingOnWall = (steepness > 0.8 && this.body.speed < 4.0);
-
-            if (!isStallingOnWall) {
+            if (isWallStalled) {
+                this.applyForce({
+                    x: this.groundNormal.x * WALL_RELEASE_PUSH,
+                    y: this.groundNormal.y * WALL_RELEASE_PUSH
+                });
+            } else {
                 this.applyForce({ 
                     x: -this.groundNormal.x * STICKY_FORCE, 
                     y: -this.groundNormal.y * STICKY_FORCE 
@@ -147,7 +180,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
 
         // --- 5. JUMP ---
-        if (isGrounded && isJumping) {
+        if (canUseGroundAssist && isJumping) {
             this.setVelocity(
                 this.body.velocity.x + (this.smoothedNormal.x * JUMP_FORCE),
                 this.body.velocity.y + (this.smoothedNormal.y * JUMP_FORCE)
@@ -159,9 +192,18 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
         // --- 6. DRAG & CAP ---
         let currentDrag = DRAG_AIR;
-        if (isGrounded) {
+        if (canUseGroundAssist) {
             const slopeSteepness = Math.abs(this.smoothedNormal.x);
-            currentDrag = (slopeSteepness > 0.1) ? DRAG_RAMP : DRAG_FLAT;
+            if (slopeSteepness > 0.1) {
+                this.rampDragGraceTimer = RAMP_DRAG_GRACE_FRAMES;
+            } else if (this.rampDragGraceTimer > 0) {
+                this.rampDragGraceTimer--;
+            }
+
+            const keepRampFeel = (slopeSteepness > 0.1) || (this.rampDragGraceTimer > 0);
+            currentDrag = keepRampFeel ? DRAG_RAMP : DRAG_FLAT;
+        } else {
+            this.rampDragGraceTimer = 0;
         }
 
         this.setVelocity(
