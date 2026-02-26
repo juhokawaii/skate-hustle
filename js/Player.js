@@ -28,6 +28,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.groundNormal = new Phaser.Math.Vector2(0, -1);
         this.smoothedNormal = new Phaser.Math.Vector2(0, -1);
         this.groundTimer = 0;
+        this.cornerLockTimer = 0;
+        this.cornerWallNormalX = 0;
         this.rampDragGraceTimer = 0;
         
         // [NEW] Visual Buffer for smoother animations
@@ -39,6 +41,10 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             let normalSumX = 0;
             let normalSumY = 0;
             let contactCount = 0;
+            let hasFloorContact = false;
+            let hasWallContact = false;
+            let wallNormalSumX = 0;
+            let wallContactCount = 0;
 
             for (let i = 0; i < pairs.length; i++) {
                 const bodyA = pairs[i].bodyA;
@@ -64,8 +70,24 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
                             normalSumX += normalX;
                             normalSumY += normalY;
                             contactCount++;
+
+                            if (normalY < -0.35) {
+                                hasFloorContact = true;
+                            }
+                            if (Math.abs(normalX) > 0.85 && normalY > -0.2) {
+                                hasWallContact = true;
+                                wallNormalSumX += normalX;
+                                wallContactCount++;
+                            }
                         }
                     }
+                }
+            }
+
+            if (hasFloorContact && hasWallContact) {
+                this.cornerLockTimer = 3;
+                if (wallContactCount > 0) {
+                    this.cornerWallNormalX = wallNormalSumX / wallContactCount;
                 }
             }
 
@@ -85,6 +107,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const WALL_STEEP_THRESHOLD = 0.8;
         const WALL_RIDE_MIN_SPEED = 3.5;
         const WALL_RELEASE_PUSH = 0.004;
+        const CORNER_WALL_NUDGE = 0.003;
         
         const DRAG_FLAT = 0.02;   
         const DRAG_RAMP = 0.0;    
@@ -94,6 +117,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         
         // --- TIMERS ---
         if (this.groundTimer > 0) this.groundTimer--;
+        if (this.cornerLockTimer > 0) this.cornerLockTimer--;
         const isGrounded = (this.groundTimer > 0);
         
         // [NEW] Update Visual Air Buffer
@@ -113,8 +137,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             (this.body.velocity.y * rawTangent.y);
         const tangentSpeedAbs = Math.abs(tangentVelocity);
         const wallSteepness = Math.abs(this.groundNormal.x);
+        const isCornerLocked = (this.cornerLockTimer > 0);
         const isSteepWall = isGrounded && (wallSteepness > WALL_STEEP_THRESHOLD);
-        const isWallStalled = isSteepWall && (tangentSpeedAbs < WALL_RIDE_MIN_SPEED);
+        const isWallStalled = !isCornerLocked && isSteepWall && (tangentSpeedAbs < WALL_RIDE_MIN_SPEED);
         const canUseGroundAssist = isGrounded && !isWallStalled;
 
         // --- 1. ROTATION ---
@@ -126,7 +151,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             this.smoothedNormal.y = Phaser.Math.Linear(this.smoothedNormal.y, -1, 0.05);
         }
 
-        const targetAngle = Math.atan2(this.smoothedNormal.y, this.smoothedNormal.x) + (Math.PI / 2);
+        const rotationNormalX = (this.cornerLockTimer > 0) ? 0 : this.smoothedNormal.x;
+        const rotationNormalY = (this.cornerLockTimer > 0) ? -1 : this.smoothedNormal.y;
+        const targetAngle = Math.atan2(rotationNormalY, rotationNormalX) + (Math.PI / 2);
         this.rotation = targetAngle;
 
 
@@ -160,7 +187,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
         // --- 3. STICKY FORCE ---
         if (isGrounded && !isJumping) {
-            if (isWallStalled) {
+            if (isCornerLocked) {
+                this.applyForce({
+                    x: this.cornerWallNormalX * CORNER_WALL_NUDGE,
+                    y: 0
+                });
+            }
+            else if (isWallStalled) {
                 this.applyForce({
                     x: this.groundNormal.x * WALL_RELEASE_PUSH,
                     y: this.groundNormal.y * WALL_RELEASE_PUSH

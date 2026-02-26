@@ -52,12 +52,13 @@ export default class Graffiti extends Phaser.Physics.Matter.Sprite {
         this.setTexture(this.keyColor);
         
         // Optional: slight pop effect
-        this.scene.tweens.add({
+        // Nah
+        /*this.scene.tweens.add({
             targets: this,
-            scale: 1.1,
+            scale: 1.10,
             duration: 100,
             yoyo: true
-        });
+        }); */
     }
 
     onExit() {
