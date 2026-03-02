@@ -9,7 +9,8 @@ export default class TextureFactory {
         if (body) {
             block.setRotation(body.angle);
             // Set depth so it renders behind the player (100) but in front of background (-10)
-            block.setDepth(-1);
+            const isGround = textureKey === 'ground';
+            block.setDepth(isGround ? 0 : -1);
         }
     }
 

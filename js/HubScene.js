@@ -17,8 +17,6 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("ground", "assets/backgrounds/ground.png");
         this.load.image("drop", "assets/backgrounds/drop.png");
 
-        this.load.image("chaos_monkey_bw", "assets/backgrounds/Chaos_monkey_graffiti_bw.png");
-        this.load.image("chaos_monkey", "assets/backgrounds/Chaos_monkey_graffiti.png");
         this.load.image("speedrun_bw", "assets/backgrounds/speedrun_bw.png");
         this.load.image("speedrun", "assets/backgrounds/speedrun.png");
 
@@ -33,7 +31,7 @@ export default class HubScene extends Phaser.Scene {
         this.bgmusic.play();
 
         // --- WORLD SETUP ---
-        const worldWidth = 9600;
+        const worldWidth = 6400;
         const worldHeight = 1800;
 
         // --- -1. COLLISION CATEGORIES ---
@@ -66,15 +64,11 @@ export default class HubScene extends Phaser.Scene {
         
  
         
-        this.portal1 = new Graffiti(this, 1100, 550, "chaos_monkey_bw", "chaos_monkey", this.cats.SENSOR);
+        this.portal1 = new Graffiti(this, 300, 1250, "speedrun_bw", "speedrun", this.cats.SENSOR);
         this.portal1.setScrollFactor(0.85, 0.85);
-    
-        this.portal2 = new Graffiti(this, 2400, 350, "speedrun_bw", "speedrun", this.cats.SENSOR);
-        this.portal2.setScrollFactor(0.85, 0.85);
 
 
-        // --- 2. THE PARK LAYOUT  ---
-        const rightEdgeShift = worldWidth - 3245;
+    // --- 2. THE PARK LAYOUT  ---
 
         // == A. THE FLOOR ==
         this.createPlatform(worldWidth / 2, worldHeight - 50, {
@@ -82,26 +76,26 @@ export default class HubScene extends Phaser.Scene {
         });
         
         // == B. HALF PIPE ==
-        this.createPlatform(2900 + rightEdgeShift, worldHeight - 350, {
+        this.createPlatform(6055, 1450, {
             type: 'CURVE', 
             width: 600, 
             height: 600, 
             friction: 0, 
             angle: 0 
         });
-        this.createPlatform(2000 + rightEdgeShift, worldHeight - 350, {
+        this.createPlatform(5155, 1450, {
             type: 'CURVE', 
             width: 600, 
             height: 600,
             friction: 0,  
             angle: 90 
         });
-        this.createPlatform(2450 + rightEdgeShift, worldHeight - 153, {
+        this.createPlatform(5605, 1647, {
             type: 'RECT', 
             width: 1190, 
             height: 108 // Start with 100, increase if the gap is bigger
         });
-        this.createPlatform(1755 + rightEdgeShift, worldHeight - 460, {
+        this.createPlatform(4910, 1340, {
             type: 'RECT', 
             width: 200, 
             height: 720 // Taller than ramp to hit the floor
@@ -110,47 +104,167 @@ export default class HubScene extends Phaser.Scene {
         // RIGHT TOWER
         // Position: 2900 (Ramp X) + 300 (Ramp Half) + 100 (Tower Half) = 3300
         // NOTE: This pushes slightly past your world width of 3200!
-        this.createPlatform(3145 + rightEdgeShift, worldHeight - 460, {
+        this.createPlatform(6300, 1340, {
             type: 'RECT', 
             width: 200, 
             height: 720 
         });
 
         // == C. FLOATING PLATFORMS ==
-        this.createPlatform(1600 + rightEdgeShift, worldHeight - 200, {
+        this.createPlatform(4755, 1600, {
             type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop'
         });
-        this.createPlatform(1300 + rightEdgeShift, worldHeight - 400, {
+        this.createPlatform(4455, 1400, {
             type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop' 
         });
-        this.createPlatform(1600 + rightEdgeShift, worldHeight - 600, {
+        this.createPlatform(4755, 1200, {
             type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop' 
         });
-        this.createPlatform(1300 + rightEdgeShift, worldHeight - 800, {
+        this.createPlatform(4455, 1000, {
             type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop' 
         });
 
-        // == D. AIR TRANSFER TRIANGLE ==
-        // Catch jump from right side of half-pipe and guide toward speedrun graffiti.
-        this.createPlatform(2640, worldHeight - 980, {
+        // == D. The bump ramp ==
+        // Left side: ramp left
+        this.createPlatform(2240, 1650, {
             type: 'RAMP_LEFT',
             width: 360,
             height: 160,
-            angle: 180,
+            angle: 0,
             friction: 0.0,
             texture: 'platform_texture'
         });
 
-        // == E. DEMO TEXTURED CIRCLE ==
-        this.createPlatform(900, worldHeight - 300, {
+        // Center: circle
+        this.createPlatform(2440, 1650, {
             type: 'CIRCLE',
-            radius: 90,
+            radius: 135,
             friction: 0.2,
             texture: 'platform_texture'
         });
 
+        // Right side: ramp right
+        this.createPlatform(2640, 1650, {
+            type: 'RAMP_RIGHT',
+            width: 360,
+            height: 160,
+            friction: 0.0,
+            texture: 'platform_texture'
+        });
+
+        // == E. UPPER FLOOR NETWORK ==
+        // Access route 1: left climb from ground to upper lanes
+        this.createPlatform(1100, 1610, {
+            type: 'RAMP_LEFT',
+            width: 420,
+            height: 180,
+            friction: 0.0,
+            texture: 'platform_texture'
+        });
+        this.createPlatform(1500, 1320, {
+            type: 'RECT',
+            width: 320,
+            height: 24,
+            isOneWay: true,
+            texture: 'drop'
+        });
+        this.createPlatform(1880, 1180, {
+            type: 'RAMP_RIGHT',
+            width: 360,
+            height: 160,
+            friction: 0.0,
+            texture: 'platform_texture'
+        });
+
+        // Access route 2: mid climb into central upper lane
+        this.createPlatform(3000, 1600, {
+            type: 'RAMP_LEFT',
+            width: 380,
+            height: 170,
+            friction: 0.0,
+            texture: 'platform_texture'
+        });
+        this.createPlatform(3330, 1360, {
+            type: 'RECT',
+            width: 260,
+            height: 24,
+            isOneWay: true,
+            texture: 'drop'
+        });
+        this.createPlatform(3660, 1210, {
+            type: 'RAMP_RIGHT',
+            width: 340,
+            height: 150,
+            friction: 0.0,
+            texture: 'platform_texture'
+        });
+
+        // Upper floor islands with intentional jump gaps between them
+        this.createPlatform(1700, 900, {
+            type: 'RECT',
+            width: 1200,
+            height: 40,
+            texture: 'platform_texture'
+        });
+        this.createPlatform(3200, 860, {
+            type: 'RECT',
+            width: 900,
+            height: 40,
+            texture: 'platform_texture'
+        });
+        this.createPlatform(4750, 820, {
+            type: 'RECT',
+            width: 1100,
+            height: 40,
+            texture: 'platform_texture'
+        });
+
+        // Transfer system 1 (island 1 -> island 2)
+        this.createPlatform(2440, 870, {
+            type: 'RAMP_RIGHT',
+            width: 260,
+            height: 120,
+            friction: 0.0,
+            texture: 'platform_texture'
+        });
+        this.createPlatform(2780, 825, {
+            type: 'CIRCLE',
+            radius: 70,
+            friction: 0.2,
+            texture: 'platform_texture'
+        });
+        this.createPlatform(2960, 830, {
+            type: 'RAMP_LEFT',
+            width: 240,
+            height: 110,
+            friction: 0.0,
+            texture: 'platform_texture'
+        });
+
+        // Transfer system 2 (island 2 -> island 3)
+        this.createPlatform(3560, 830, {
+            type: 'RAMP_RIGHT',
+            width: 260,
+            height: 120,
+            friction: 0.0,
+            texture: 'platform_texture'
+        });
+        this.createPlatform(3920, 790, {
+            type: 'CIRCLE',
+            radius: 68,
+            friction: 0.2,
+            texture: 'platform_texture'
+        });
+        this.createPlatform(4140, 770, {
+            type: 'RAMP_LEFT',
+            width: 280,
+            height: 120,
+            friction: 0.0,
+            texture: 'platform_texture'
+        });
+
         // --- 3. PLAYER SPAWN ---
-        this.player = new Player(this, 200, worldHeight - 850, this.cats);
+        this.player = new Player(this, 200, 950, this.cats);
         this.player.setDepth(10);
 
         // --- 4. CAMERA & ZONES ---
