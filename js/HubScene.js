@@ -16,6 +16,10 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("platform_texture", "assets/backgrounds/256x256.png");
         this.load.image("ground", "assets/backgrounds/ground.png");
         this.load.image("drop", "assets/backgrounds/drop.png");
+        this.load.spritesheet("graffiti", "assets/backgrounds/Atlas.png", {
+            frameWidth: 512,
+            frameHeight: 512
+        });
 
         this.load.image("speedrun_bw", "assets/backgrounds/speedrun_bw.png");
         this.load.image("speedrun", "assets/backgrounds/speedrun.png");
