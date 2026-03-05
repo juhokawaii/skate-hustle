@@ -272,11 +272,66 @@ export default class HubScene extends Phaser.Scene {
         this.player.setDepth(10);
 
         // --- 4. CAMERA & ZONES ---
-        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-        this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08); // Looser Lerp
+        this.cameras.main.setDeadzone(400, 200);                      // The Chill Box
+        this.cameras.main.setFollowOffset(0, 100);                    // Look Up
+        this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);   // World Limits
 
         this.setupAnims();
         this.setupZones(worldWidth, worldHeight);
+
+        // --- 5. DEBUG MAP VIEW (Press 'M' to toggle) ---
+
+        // 5.1. Create a custom Graphics grid with THICK lines so it survives the zoom
+        const debugGrid = this.add.graphics();
+        debugGrid.setDepth(1000);
+        debugGrid.setVisible(false);
+
+        // Draw vertical lines
+        for (let x = 0; x <= worldWidth; x += 100) {
+            const isMajor = x % 500 === 0; // Highlight every 500px
+            debugGrid.lineStyle(isMajor ? 10 : 4, 0x00ff00, isMajor ? 0.8 : 0.3);
+            debugGrid.beginPath();
+            debugGrid.moveTo(x, 0);
+            debugGrid.lineTo(x, worldHeight);
+            debugGrid.strokePath();
+        }
+
+        // Draw horizontal lines
+        for (let y = 0; y <= worldHeight; y += 100) {
+            const isMajor = y % 500 === 0;
+            debugGrid.lineStyle(isMajor ? 10 : 4, 0x00ff00, isMajor ? 0.8 : 0.3);
+            debugGrid.beginPath();
+            debugGrid.moveTo(0, y);
+            debugGrid.lineTo(worldWidth, y);
+            debugGrid.strokePath();
+        }
+
+        // 5.2. Wire up the 'M' key to toggle the view
+        let isMapMode = false;
+        this.input.keyboard.on('keydown-M', () => {
+            isMapMode = !isMapMode;
+            
+            if (isMapMode) {
+                // Turn ON Map Mode
+                this.cameras.main.stopFollow();
+                
+                // Calculate the exact zoom needed to fit 6400px into your game window width
+                const zoomLevel = this.scale.width / worldWidth; 
+                this.cameras.main.setZoom(zoomLevel);
+                
+                // Center the camera perfectly in the middle of the world
+                this.cameras.main.centerOn(worldWidth/2, worldHeight/2);
+                debugGrid.setVisible(true);
+            } else {
+                // Turn OFF Map Mode (Back to normal gameplay)
+                this.cameras.main.setZoom(1);
+                this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+                debugGrid.setVisible(false);
+            }
+        });
+
+
     }
 
     createPlatform(x, y, config) {
