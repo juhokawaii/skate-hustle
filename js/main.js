@@ -1,4 +1,5 @@
 import HubScene from './HubScene.js';
+import SillySpeedRunScene from './SillySpeedRunScene.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -16,7 +17,7 @@ const config = {
             enableSleeping: false
         }
     },
-    scene: [HubScene]
+    scene: [HubScene, SillySpeedRunScene]
 };
 
 new Phaser.Game(config);

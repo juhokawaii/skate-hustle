@@ -114,6 +114,11 @@ export default class HubScene extends Phaser.Scene {
             height: 720 
         });
 
+        // Top launch platform above half-pipe
+        this.createPlatform(5605, 1000, {
+            type: 'RECT', width: 320, height: 25, isOneWay: true, texture: 'drop'
+        });
+
         // == C. FLOATING PLATFORMS ==
         this.createPlatform(4755, 1600, {
             type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop'
@@ -471,6 +476,10 @@ export default class HubScene extends Phaser.Scene {
 
         if(this.portal1.isPlayerTouching) {
             this.hintText.setText("Press ENTER to enter the Portal");
+
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.scene.start('SillySpeedRunScene');
+            }
         }
     }
 }
