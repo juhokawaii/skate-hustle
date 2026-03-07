@@ -67,11 +67,18 @@ export default class SillySpeedRunScene extends Phaser.Scene {
             texture: 'ground'
         });
 
-        this.createPlatform(520, 5770, { type: 'CURVE', width: 300, height: 300, friction: 0, angle: 90 });
-        this.createPlatform(1080, 5770, { type: 'CURVE', width: 300, height: 300, friction: 0, angle: 0 });
-        this.createPlatform(800, 5870, { type: 'RECT', width: 640, height: 80, texture: 'platform_texture' });
+        this.createPlatform(470, 5760, { type: 'CURVE', width: 360, height: 360, friction: 0, angle: 90 });
+        this.createPlatform(1130, 5760, { type: 'CURVE', width: 360, height: 360, friction: 0, angle: 0 });
+        this.createPlatform(800, 5890, { type: 'RECT', width: 760, height: 120, texture: 'platform_texture' });
 
-        this.createPlatform(800, 5580, { type: 'RECT', width: 260, height: 28, isOneWay: true, texture: 'drop' });
+        // Bowl side walls
+        this.createPlatform(240, 5690, { type: 'RECT', width: 290, height: 420, texture: 'platform_texture' });
+        this.createPlatform(1310, 5660, { type: 'RECT', width: 120, height: 620, texture: 'platform_texture' });
+
+        // Side guides into bowl
+        this.createPlatform(390, 5810, { type: 'RAMP_RIGHT', width: 220, height: 120, friction: 0, texture: 'platform_texture' });
+        this.createPlatform(1210, 5810, { type: 'RAMP_LEFT', width: 220, height: 120, friction: 0, texture: 'platform_texture' });
+
         this.createPlatform(610, 5480, { type: 'RECT', width: 110, height: 30, bouncy: true });
         this.createPlatform(1020, 5430, { type: 'RAMP_RIGHT', width: 280, height: 120, friction: 0, texture: 'platform_texture' });
         this.createPlatform(740, 5310, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
@@ -121,7 +128,7 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         this.createPlatform(800, 680, { type: 'RECT', width: 320, height: 30, texture: 'platform_texture' });
 
         // Side practice lanes (easy recovery / mechanic training)
-        this.createPlatform(180, 5600, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
+        // this.createPlatform(180, 5600, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
         this.createPlatform(1420, 5450, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
         this.createPlatform(180, 5300, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
         this.createPlatform(1420, 5150, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
