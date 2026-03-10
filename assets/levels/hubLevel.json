@@ -1,0 +1,321 @@
+{
+  "worldWidth": 6400,
+  "worldHeight": 1800,
+  "spawn": {
+    "x": 200,
+    "y": 950
+  },
+  "portal1": {
+    "x": 300,
+    "y": 1250
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 1700,
+      "config": {
+        "type": "RECT",
+        "width": 6400,
+        "height": 100,
+        "texture": "ground"
+      }
+    },
+    {
+      "x": 5755,
+      "y": 1150,
+      "config": {
+        "type": "CURVE",
+        "width": 600,
+        "height": 600,
+        "friction": 0,
+        "angle": 0
+      }
+    },
+    {
+      "x": 4855,
+      "y": 1150,
+      "config": {
+        "type": "CURVE",
+        "width": 600,
+        "height": 600,
+        "friction": 0,
+        "angle": 90
+      }
+    },
+    {
+      "x": 5010,
+      "y": 1593,
+      "config": {
+        "type": "RECT",
+        "width": 1190,
+        "height": 108
+      }
+    },
+    {
+      "x": 4810,
+      "y": 980,
+      "config": {
+        "type": "RECT",
+        "width": 200,
+        "height": 720
+      }
+    },
+    {
+      "x": 6200,
+      "y": 980,
+      "config": {
+        "type": "RECT",
+        "width": 200,
+        "height": 720
+      }
+    },
+    {
+      "x": 5445,
+      "y": 987.5,
+      "config": {
+        "type": "RECT",
+        "width": 320,
+        "height": 25,
+        "isOneWay": true,
+        "texture": "drop"
+      }
+    },
+    {
+      "x": 4605,
+      "y": 1587.5,
+      "config": {
+        "type": "RECT",
+        "width": 300,
+        "height": 25,
+        "isOneWay": true,
+        "texture": "drop"
+      }
+    },
+    {
+      "x": 4305,
+      "y": 1387.5,
+      "config": {
+        "type": "RECT",
+        "width": 300,
+        "height": 25,
+        "isOneWay": true,
+        "texture": "drop"
+      }
+    },
+    {
+      "x": 4605,
+      "y": 1187.5,
+      "config": {
+        "type": "RECT",
+        "width": 300,
+        "height": 25,
+        "isOneWay": true,
+        "texture": "drop"
+      }
+    },
+    {
+      "x": 4305,
+      "y": 987.5,
+      "config": {
+        "type": "RECT",
+        "width": 300,
+        "height": 25,
+        "isOneWay": true,
+        "texture": "drop"
+      }
+    },
+    {
+      "x": 2060,
+      "y": 1570,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 360,
+        "height": 160,
+        "angle": 0,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 2305,
+      "y": 1515,
+      "config": {
+        "type": "CIRCLE",
+        "radius": 135,
+        "friction": 0.2,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 2460,
+      "y": 1570,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 360,
+        "height": 160,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 890,
+      "y": 1520,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 420,
+        "height": 180,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 1340,
+      "y": 1308,
+      "config": {
+        "type": "RECT",
+        "width": 320,
+        "height": 24,
+        "isOneWay": true,
+        "texture": "drop"
+      }
+    },
+    {
+      "x": 1700,
+      "y": 1100,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 360,
+        "height": 160,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 2810,
+      "y": 1515,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 380,
+        "height": 170,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 3200,
+      "y": 1348,
+      "config": {
+        "type": "RECT",
+        "width": 260,
+        "height": 24,
+        "isOneWay": true,
+        "texture": "drop"
+      }
+    },
+    {
+      "x": 3490,
+      "y": 1135,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 340,
+        "height": 150,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 1100,
+      "y": 880,
+      "config": {
+        "type": "RECT",
+        "width": 1200,
+        "height": 40,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 2750,
+      "y": 840,
+      "config": {
+        "type": "RECT",
+        "width": 900,
+        "height": 40,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 4200,
+      "y": 800,
+      "config": {
+        "type": "RECT",
+        "width": 1100,
+        "height": 40,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 2310,
+      "y": 810,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 260,
+        "height": 120,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 2710,
+      "y": 755,
+      "config": {
+        "type": "CIRCLE",
+        "radius": 70,
+        "friction": 0.2,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 2840,
+      "y": 775,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 240,
+        "height": 110,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 3430,
+      "y": 770,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 260,
+        "height": 120,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 3852,
+      "y": 722,
+      "config": {
+        "type": "CIRCLE",
+        "radius": 68,
+        "friction": 0.2,
+        "texture": "platform_texture"
+      }
+    },
+    {
+      "x": 4000,
+      "y": 710,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 280,
+        "height": 120,
+        "friction": 0.0,
+        "texture": "platform_texture"
+      }
+    }
+  ]
+}

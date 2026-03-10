@@ -20,6 +20,7 @@ export default class HubScene extends Phaser.Scene {
             frameWidth: 512,
             frameHeight: 512
         });
+        this.load.json('hub_level', 'assets/levels/hubLevel.json');
 
         this.load.image("speedrun_bw", "assets/backgrounds/speedrun_bw.png");
         this.load.image("speedrun", "assets/backgrounds/speedrun.png");
@@ -28,15 +29,39 @@ export default class HubScene extends Phaser.Scene {
         this.load.audio("title", "assets/music/ramp.mp3");
     }
 
-    create() {
+    create(data = {}) {
         // --- BACKGROUND MUSIC ---
         this.sound.stopAll();
         this.bgmusic = this.sound.add("title", { volume: 1.0, loop: true });
         this.bgmusic.play();
 
-        // --- WORLD SETUP ---
-        const worldWidth = 6400;
-        const worldHeight = 1800;
+        const cachedLevel = this.cache.json.get('hub_level');
+        const hasInjectedLevel = Array.isArray(data.levelPlatforms);
+        const hasCachedLevel = !!cachedLevel;
+
+        this.worldWidth = hasInjectedLevel
+            ? (data.worldWidth || 6400)
+            : (hasCachedLevel ? (cachedLevel.worldWidth || 6400) : 6400);
+        this.worldHeight = hasInjectedLevel
+            ? (data.worldHeight || 1800)
+            : (hasCachedLevel ? (cachedLevel.worldHeight || 1800) : 1800);
+        this.spawnPoint = hasInjectedLevel
+            ? (data.spawnPoint || { x: 200, y: 950 })
+            : (hasCachedLevel ? (cachedLevel.spawn || { x: 200, y: 950 }) : { x: 200, y: 950 });
+        this.portal1Pos = hasInjectedLevel
+            ? (data.portal1Pos || { x: 300, y: 1250 })
+            : (hasCachedLevel ? (cachedLevel.portal1 || { x: 300, y: 1250 }) : { x: 300, y: 1250 });
+
+        const sourcePlatforms = hasInjectedLevel
+            ? data.levelPlatforms
+            : (Array.isArray(cachedLevel?.platforms) ? cachedLevel.platforms : []);
+        this.levelPlatforms = sourcePlatforms.map((def) => ({ x: def.x, y: def.y, config: { ...def.config } }));
+
+        this.captureLevelData = false;
+        this.legacyCenteredInput = false;
+        this.isMapMode = false;
+        this.editorHandles = [];
+        this.editorHud = null;
 
         // --- -1. COLLISION CATEGORIES ---
         this.cats = {
@@ -48,7 +73,7 @@ export default class HubScene extends Phaser.Scene {
 
         // 0. CREATE THE WALLS
         // Create the invisible box around the world
-        this.matter.world.setBounds(0, 0, worldWidth, worldHeight, 1000, true, true, true, true);
+        this.matter.world.setBounds(0, 0, this.worldWidth, this.worldHeight, 1000, true, true, true, true);
 
         // Now we can use 'this.cats.GROUND' because we defined it in Step 1.
         Object.values(this.matter.world.walls).forEach(wall => {
@@ -59,7 +84,7 @@ export default class HubScene extends Phaser.Scene {
 
     
         // --- 1. BACKGROUND AND GRAFFITI---
-        const bg = this.add.tileSprite(0, 0, worldWidth, worldHeight, "concrete_bg");
+        const bg = this.add.tileSprite(0, 0, this.worldWidth, this.worldHeight, "concrete_bg");
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
@@ -68,222 +93,29 @@ export default class HubScene extends Phaser.Scene {
         
  
         
-        this.portal1 = new Graffiti(this, 300, 1250, "speedrun_bw", "speedrun", this.cats.SENSOR);
+        this.portal1 = new Graffiti(this, this.portal1Pos.x, this.portal1Pos.y, "speedrun_bw", "speedrun", this.cats.SENSOR);
         this.portal1.setScrollFactor(0.85, 0.85);
 
 
     // --- 2. THE PARK LAYOUT  ---
-
-        // == A. THE FLOOR ==
-        this.createPlatform(worldWidth / 2, worldHeight - 50, {
-            type: 'RECT', width: worldWidth, height: 100, texture: 'ground' // <--- Added texture
-        });
-        
-        // == B. HALF PIPE ==
-        this.createPlatform(6055, 1450, {
-            type: 'CURVE', 
-            width: 600, 
-            height: 600, 
-            friction: 0, 
-            angle: 0 
-        });
-        this.createPlatform(5155, 1450, {
-            type: 'CURVE', 
-            width: 600, 
-            height: 600,
-            friction: 0,  
-            angle: 90 
-        });
-        this.createPlatform(5605, 1647, {
-            type: 'RECT', 
-            width: 1190, 
-            height: 108 // Start with 100, increase if the gap is bigger
-        });
-        this.createPlatform(4910, 1340, {
-            type: 'RECT', 
-            width: 200, 
-            height: 720 // Taller than ramp to hit the floor
+        this.levelPlatforms.forEach((def) => {
+            this.createPlatform(def.x, def.y, def.config);
         });
 
-        // RIGHT TOWER
-        // Position: 2900 (Ramp X) + 300 (Ramp Half) + 100 (Tower Half) = 3300
-        // NOTE: This pushes slightly past your world width of 3200!
-        this.createPlatform(6300, 1340, {
-            type: 'RECT', 
-            width: 200, 
-            height: 720 
-        });
-
-        // Top launch platform above half-pipe
-        this.createPlatform(5605, 1000, {
-            type: 'RECT', width: 320, height: 25, isOneWay: true, texture: 'drop'
-        });
-
-        // == C. FLOATING PLATFORMS ==
-        this.createPlatform(4755, 1600, {
-            type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop'
-        });
-        this.createPlatform(4455, 1400, {
-            type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop' 
-        });
-        this.createPlatform(4755, 1200, {
-            type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop' 
-        });
-        this.createPlatform(4455, 1000, {
-            type: 'RECT', width: 300, height: 25, isOneWay: true, texture: 'drop' 
-        });
-
-        // == D. The bump ramp ==
-        // Left side: ramp left
-        this.createPlatform(2240, 1650, {
-            type: 'RAMP_LEFT',
-            width: 360,
-            height: 160,
-            angle: 0,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
-
-        // Center: circle
-        this.createPlatform(2440, 1650, {
-            type: 'CIRCLE',
-            radius: 135,
-            friction: 0.2,
-            texture: 'platform_texture'
-        });
-
-        // Right side: ramp right
-        this.createPlatform(2640, 1650, {
-            type: 'RAMP_RIGHT',
-            width: 360,
-            height: 160,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
-
-        // == E. UPPER FLOOR NETWORK ==
-        // Access route 1: left climb from ground to upper lanes
-        this.createPlatform(1100, 1610, {
-            type: 'RAMP_LEFT',
-            width: 420,
-            height: 180,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
-        this.createPlatform(1500, 1320, {
-            type: 'RECT',
-            width: 320,
-            height: 24,
-            isOneWay: true,
-            texture: 'drop'
-        });
-        this.createPlatform(1880, 1180, {
-            type: 'RAMP_RIGHT',
-            width: 360,
-            height: 160,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
-
-        // Access route 2: mid climb into central upper lane
-        this.createPlatform(3000, 1600, {
-            type: 'RAMP_LEFT',
-            width: 380,
-            height: 170,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
-        this.createPlatform(3330, 1360, {
-            type: 'RECT',
-            width: 260,
-            height: 24,
-            isOneWay: true,
-            texture: 'drop'
-        });
-        this.createPlatform(3660, 1210, {
-            type: 'RAMP_RIGHT',
-            width: 340,
-            height: 150,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
-
-        // Upper floor islands with intentional jump gaps between them
-        this.createPlatform(1700, 900, {
-            type: 'RECT',
-            width: 1200,
-            height: 40,
-            texture: 'platform_texture'
-        });
-        this.createPlatform(3200, 860, {
-            type: 'RECT',
-            width: 900,
-            height: 40,
-            texture: 'platform_texture'
-        });
-        this.createPlatform(4750, 820, {
-            type: 'RECT',
-            width: 1100,
-            height: 40,
-            texture: 'platform_texture'
-        });
-
-        // Transfer system 1 (island 1 -> island 2)
-        this.createPlatform(2440, 870, {
-            type: 'RAMP_RIGHT',
-            width: 260,
-            height: 120,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
-        this.createPlatform(2780, 825, {
-            type: 'CIRCLE',
-            radius: 70,
-            friction: 0.2,
-            texture: 'platform_texture'
-        });
-        this.createPlatform(2960, 830, {
-            type: 'RAMP_LEFT',
-            width: 240,
-            height: 110,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
-
-        // Transfer system 2 (island 2 -> island 3)
-        this.createPlatform(3560, 830, {
-            type: 'RAMP_RIGHT',
-            width: 260,
-            height: 120,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
-        this.createPlatform(3920, 790, {
-            type: 'CIRCLE',
-            radius: 68,
-            friction: 0.2,
-            texture: 'platform_texture'
-        });
-        this.createPlatform(4140, 770, {
-            type: 'RAMP_LEFT',
-            width: 280,
-            height: 120,
-            friction: 0.0,
-            texture: 'platform_texture'
-        });
+        this.captureLevelData = false;
 
         // --- 3. PLAYER SPAWN ---
-        this.player = new Player(this, 200, 950, this.cats);
+        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
         this.player.setDepth(10);
 
         // --- 4. CAMERA & ZONES ---
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08); // Looser Lerp
         this.cameras.main.setDeadzone(400, 200);                      // The Chill Box
         this.cameras.main.setFollowOffset(0, 100);                    // Look Up
-        this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);   // World Limits
+        this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);   // World Limits
 
         this.setupAnims();
-        this.setupZones(worldWidth, worldHeight);
+        this.setupZones(this.worldWidth, this.worldHeight);
 
         // --- 5. DEBUG MAP VIEW (Press 'M' to toggle) ---
 
@@ -293,46 +125,66 @@ export default class HubScene extends Phaser.Scene {
         debugGrid.setVisible(false);
 
         // Draw vertical lines
-        for (let x = 0; x <= worldWidth; x += 100) {
+        for (let x = 0; x <= this.worldWidth; x += 100) {
             const isMajor = x % 500 === 0; // Highlight every 500px
             debugGrid.lineStyle(isMajor ? 10 : 4, 0x00ff00, isMajor ? 0.8 : 0.3);
             debugGrid.beginPath();
             debugGrid.moveTo(x, 0);
-            debugGrid.lineTo(x, worldHeight);
+            debugGrid.lineTo(x, this.worldHeight);
             debugGrid.strokePath();
         }
 
         // Draw horizontal lines
-        for (let y = 0; y <= worldHeight; y += 100) {
+        for (let y = 0; y <= this.worldHeight; y += 100) {
             const isMajor = y % 500 === 0;
             debugGrid.lineStyle(isMajor ? 10 : 4, 0x00ff00, isMajor ? 0.8 : 0.3);
             debugGrid.beginPath();
             debugGrid.moveTo(0, y);
-            debugGrid.lineTo(worldWidth, y);
+            debugGrid.lineTo(this.worldWidth, y);
             debugGrid.strokePath();
         }
 
         // 5.2. Wire up the 'M' key to toggle the view
-        let isMapMode = false;
         this.input.keyboard.on('keydown-M', () => {
-            isMapMode = !isMapMode;
+            this.isMapMode = !this.isMapMode;
             
-            if (isMapMode) {
+            if (this.isMapMode) {
                 // Turn ON Map Mode
                 this.cameras.main.stopFollow();
                 
                 // Calculate the exact zoom needed to fit 6400px into your game window width
-                const zoomLevel = this.scale.width / worldWidth; 
+                const fitWidthZoom = this.scale.width / this.worldWidth;
+                const fitHeightZoom = this.scale.height / this.worldHeight;
+                const zoomLevel = Math.min(fitWidthZoom, fitHeightZoom);
                 this.cameras.main.setZoom(zoomLevel);
                 
                 // Center the camera perfectly in the middle of the world
-                this.cameras.main.centerOn(worldWidth/2, worldHeight/2);
+                this.cameras.main.centerOn(this.worldWidth / 2, this.worldHeight / 2);
                 debugGrid.setVisible(true);
+                this.enterMapEditorMode();
             } else {
                 // Turn OFF Map Mode (Back to normal gameplay)
+                this.exitMapEditorMode();
                 this.cameras.main.setZoom(1);
                 this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+                this.cameras.main.setDeadzone(400, 200);
+                this.cameras.main.setFollowOffset(0, 100);
+                this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
                 debugGrid.setVisible(false);
+
+                this.scene.restart({
+                    worldWidth: this.worldWidth,
+                    worldHeight: this.worldHeight,
+                    levelPlatforms: this.levelPlatforms,
+                    spawnPoint: this.spawnPoint,
+                    portal1Pos: this.portal1Pos
+                });
+            }
+        });
+
+        this.input.keyboard.on('keydown-S', () => {
+            if (this.isMapMode) {
+                this.exportLevelData();
             }
         });
 
@@ -352,6 +204,23 @@ export default class HubScene extends Phaser.Scene {
             texture = 'platform_texture'
         } = config;
 
+        const renderWidth = type === 'CIRCLE' ? radius * 2 : width;
+        const renderHeight = type === 'CIRCLE' ? radius * 2 : height;
+
+        const topLeftX = this.legacyCenteredInput ? (x - (renderWidth / 2)) : x;
+        const topLeftY = this.legacyCenteredInput ? (y - (renderHeight / 2)) : y;
+
+        if (this.captureLevelData) {
+            this.levelPlatforms.push({
+                x: topLeftX,
+                y: topLeftY,
+                config: { ...config }
+            });
+        }
+
+        const centerX = topLeftX + (renderWidth / 2);
+        const centerY = topLeftY + (renderHeight / 2);
+
         const bodyOptions = { 
             isStatic: true, 
             friction: friction,
@@ -362,7 +231,7 @@ export default class HubScene extends Phaser.Scene {
 
         // --- GENERATE PHYSICS SHAPE ---
         if (type === 'RECT') {
-            body = this.matter.add.rectangle(x, y, width, height, bodyOptions);
+            body = this.matter.add.rectangle(centerX, centerY, width, height, bodyOptions);
         }
         else if (type === 'RAMP_LEFT' || type === 'ramp_left') {
             const verts = [
@@ -370,7 +239,7 @@ export default class HubScene extends Phaser.Scene {
                 { x: -width/2, y: height/2 }, 
                 { x: width/2,  y: -height/2 }
             ];
-            body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
+            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
         }
         else if (type === 'RAMP_RIGHT' || type === 'ramp_right') {
             const verts = [
@@ -378,7 +247,7 @@ export default class HubScene extends Phaser.Scene {
                 { x: -width/2, y: height/2 },
                 { x: width/2, y: height/2 }
             ];
-            body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
+            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
         }
         else if (type === 'CURVE') {
             const segments = 32;
@@ -390,10 +259,10 @@ export default class HubScene extends Phaser.Scene {
                 verts.push({ x: px, y: py });
             }
             verts.push({ x: width/2, y: height/2 });
-            body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
+            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
         }
         else if (type === 'CIRCLE') {
-            body = this.matter.add.circle(x, y, radius, bodyOptions);
+            body = this.matter.add.circle(centerX, centerY, radius, bodyOptions);
         }
 
         if (body) {
@@ -401,7 +270,7 @@ export default class HubScene extends Phaser.Scene {
             this.matter.body.setAngle(body, Phaser.Math.DegToRad(angle));
             
             // Force Position
-            this.matter.body.setPosition(body, { x: x, y: y });
+            this.matter.body.setPosition(body, { x: centerX, y: centerY });
             
             // Assign Physics Category
             if (isOneWay) {
@@ -414,7 +283,7 @@ export default class HubScene extends Phaser.Scene {
             
             // 1. One-Way Platforms (the graphis previously known as the green bars)
             if (isOneWay || type === 'RECT') {
-                TextureFactory.styleRectangle(this, x, y, width, height, body, texture);
+                TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, texture);
 
 
                 //const graphics = this.add.graphics({ fillStyle: { color: 0x44AA44 } });
@@ -440,6 +309,119 @@ export default class HubScene extends Phaser.Scene {
                 TextureFactory.styleCircle(this, body, texture);
             }
         }
+    }
+
+    enterMapEditorMode() {
+        this.destroyEditorHandles();
+
+        this.editorHud = this.add.text(16, 16, 'Editor: drag platforms | S = export JSON | M = apply + exit', {
+            fontFamily: 'monospace',
+            fontSize: '16px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.editorHud.setScrollFactor(0);
+        this.editorHud.setDepth(3000);
+
+        this.levelPlatforms.forEach((def) => {
+            const cfg = def.config || {};
+            const width = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.width || 100);
+            const height = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.height || 100);
+
+            const handle = this.add.rectangle(def.x, def.y, width, height);
+            handle.setOrigin(0, 0);
+            handle.setStrokeStyle(6, 0xffcc00, 1);
+            handle.setFillStyle(0xffcc00, 0.15);
+            handle.setDepth(3500);
+            handle.setAngle(cfg.angle || 0);
+            handle.setInteractive({ cursor: 'move' });
+            this.input.setDraggable(handle);
+
+            handle.__defRef = def;
+            this.editorHandles.push(handle);
+        });
+
+        this.input.on('drag', this.onEditorDrag, this);
+    }
+
+    exitMapEditorMode() {
+        this.input.off('drag', this.onEditorDrag, this);
+        this.destroyEditorHandles();
+    }
+
+    destroyEditorHandles() {
+        if (this.editorHud) {
+            this.editorHud.destroy();
+            this.editorHud = null;
+        }
+
+        if (this.editorToast) {
+            this.editorToast.destroy();
+            this.editorToast = null;
+        }
+
+        if (this.editorHandles.length > 0) {
+            this.editorHandles.forEach((handle) => handle.destroy());
+            this.editorHandles = [];
+        }
+    }
+
+    onEditorDrag(pointer, gameObject, dragX, dragY) {
+        if (!this.isMapMode || !gameObject.__defRef) {
+            return;
+        }
+
+        const snappedX = Math.round(dragX / 10) * 10;
+        const snappedY = Math.round(dragY / 10) * 10;
+        gameObject.setPosition(snappedX, snappedY);
+        gameObject.__defRef.x = snappedX;
+        gameObject.__defRef.y = snappedY;
+    }
+
+    exportLevelData() {
+        const payload = {
+            worldWidth: this.worldWidth,
+            worldHeight: this.worldHeight,
+            spawn: this.spawnPoint,
+            portal1: this.portal1Pos,
+            platforms: this.levelPlatforms
+        };
+
+        const text = JSON.stringify(payload, null, 2);
+        console.log('Hub level JSON:\n', text);
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(() => this.showEditorToast('Hub JSON copied to clipboard'))
+                .catch(() => this.showEditorToast('Exported to console (clipboard blocked)'));
+        } else {
+            this.showEditorToast('Exported to console (clipboard unavailable)');
+        }
+    }
+
+    showEditorToast(message) {
+        if (this.editorToast) {
+            this.editorToast.destroy();
+            this.editorToast = null;
+        }
+
+        this.editorToast = this.add.text(16, 44, message, {
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.editorToast.setScrollFactor(0);
+        this.editorToast.setDepth(3001);
+
+        this.time.delayedCall(1600, () => {
+            if (this.editorToast) {
+                this.editorToast.destroy();
+                this.editorToast = null;
+            }
+        });
     }
     
     setupAnims() {

@@ -25,17 +25,43 @@ export default class SillySpeedRunScene extends Phaser.Scene {
 
         this.load.image('speedrun_bw', 'assets/backgrounds/speedrun_bw.png');
         this.load.image('speedrun', 'assets/backgrounds/speedrun.png');
+        this.load.json('silly_speedrun_level', 'assets/levels/sillySpeedRunLevel.json');
 
         this.load.audio('title', 'assets/music/ramp.mp3');
     }
 
-    create() {
+    create(data = {}) {
         this.sound.stopAll();
         this.bgmusic = this.sound.add('title', { volume: 0.9, loop: true });
         this.bgmusic.play();
 
-        const worldWidth = 1600;
-        const worldHeight = 6000;
+        const cachedLevel = this.cache.json.get('silly_speedrun_level');
+        const hasInjectedLevel = Array.isArray(data.levelPlatforms);
+        const hasCachedLevel = !!cachedLevel;
+
+        this.worldWidth = hasInjectedLevel
+            ? (data.worldWidth || 1600)
+            : (hasCachedLevel ? (cachedLevel.worldWidth || 1600) : 1600);
+        this.worldHeight = hasInjectedLevel
+            ? (data.worldHeight || 6000)
+            : (hasCachedLevel ? (cachedLevel.worldHeight || 6000) : 6000);
+
+        this.spawnPoint = hasInjectedLevel
+            ? (data.spawnPoint || { x: 800, y: 5830 })
+            : (hasCachedLevel ? (cachedLevel.spawn || { x: 800, y: 5830 }) : { x: 800, y: 5830 });
+        this.finishPortalPos = hasInjectedLevel
+            ? (data.finishPortalPos || { x: 800, y: 150 })
+            : (hasCachedLevel ? (cachedLevel.finishPortal || { x: 800, y: 150 }) : { x: 800, y: 150 });
+
+        const sourcePlatforms = hasInjectedLevel
+            ? data.levelPlatforms
+            : (Array.isArray(cachedLevel?.platforms) ? cachedLevel.platforms : []);
+        this.levelPlatforms = sourcePlatforms.map((def) => ({ x: def.x, y: def.y, config: { ...def.config } }));
+        this.legacyCenteredInput = false;
+        this.captureLevelData = false;
+        this.isMapMode = false;
+        this.editorHandles = [];
+        this.editorHud = null;
 
         this.cats = {
             GROUND: this.matter.world.nextCategory(),
@@ -44,131 +70,35 @@ export default class SillySpeedRunScene extends Phaser.Scene {
             SENSOR: this.matter.world.nextCategory()
         };
 
-        this.matter.world.setBounds(0, 0, worldWidth, worldHeight, 1000, true, true, true, true);
+        this.matter.world.setBounds(0, 0, this.worldWidth, this.worldHeight, 1000, true, true, true, true);
         Object.values(this.matter.world.walls).forEach((wall) => {
             if (wall) {
                 wall.collisionFilter.category = this.cats.GROUND;
             }
         });
 
-        const bg = this.add.tileSprite(0, 0, worldWidth, worldHeight, 'concrete_bg');
+        const bg = this.add.tileSprite(0, 0, this.worldWidth, this.worldHeight, 'concrete_bg');
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
 
-        this.finishPortal = new Graffiti(this, 800, 150, 'speedrun_bw', 'speedrun', this.cats.SENSOR);
+        this.finishPortal = new Graffiti(this, this.finishPortalPos.x, this.finishPortalPos.y, 'speedrun_bw', 'speedrun', this.cats.SENSOR);
         this.finishPortal.setScrollFactor(0.85, 0.85);
 
         // --- THE GAUNTLET ---
-        this.createPlatform(worldWidth / 2, 5950, {
-            type: 'RECT',
-            width: worldWidth,
-            height: 100,
-            texture: 'ground'
+        this.levelPlatforms.forEach((def) => {
+            this.createPlatform(def.x, def.y, def.config);
         });
 
-        this.createPlatform(470, 5760, { type: 'CURVE', width: 360, height: 360, friction: 0, angle: 90 });
-        this.createPlatform(1130, 5760, { type: 'CURVE', width: 360, height: 360, friction: 0, angle: 0 });
-        this.createPlatform(800, 5890, { type: 'RECT', width: 760, height: 120, texture: 'platform_texture' });
+        this.captureLevelData = false;
 
-        // Bowl side walls
-        this.createPlatform(240, 5690, { type: 'RECT', width: 290, height: 420, texture: 'platform_texture' });
-        this.createPlatform(1310, 5660, { type: 'RECT', width: 120, height: 620, texture: 'platform_texture' });
-
-        // Side guides into bowl
-        this.createPlatform(390, 5810, { type: 'RAMP_RIGHT', width: 220, height: 120, friction: 0, texture: 'platform_texture' });
-        this.createPlatform(1210, 5810, { type: 'RAMP_LEFT', width: 220, height: 120, friction: 0, texture: 'platform_texture' });
-
-        this.createPlatform(610, 5480, { type: 'RECT', width: 110, height: 30, bouncy: true });
-        this.createPlatform(1020, 5430, { type: 'RAMP_RIGHT', width: 280, height: 120, friction: 0, texture: 'platform_texture' });
-        this.createPlatform(740, 5310, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
-
-        this.createPlatform(980, 5130, { type: 'RECT', width: 180, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(620, 5030, { type: 'RECT', width: 120, height: 30, bouncy: true });
-        this.createPlatform(430, 4920, { type: 'RAMP_LEFT', width: 300, height: 130, friction: 0, texture: 'platform_texture' });
-        this.createPlatform(850, 4780, { type: 'RECT', width: 250, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1180, 4650, { type: 'RECT', width: 130, height: 30, bouncy: true });
-
-        this.createPlatform(500, 4470, { type: 'CURVE', width: 320, height: 320, friction: 0, angle: 90 });
-        this.createPlatform(1100, 4470, { type: 'CURVE', width: 320, height: 320, friction: 0, angle: 0 });
-        this.createPlatform(800, 4590, { type: 'RECT', width: 700, height: 80, texture: 'platform_texture' });
-
-        this.createPlatform(610, 4260, { type: 'RECT', width: 240, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1010, 4140, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(770, 4010, { type: 'RECT', width: 110, height: 28, bouncy: true });
-        this.createPlatform(1230, 3890, { type: 'RAMP_RIGHT', width: 260, height: 120, friction: 0, texture: 'platform_texture' });
-        this.createPlatform(900, 3770, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(480, 3670, { type: 'RECT', width: 140, height: 30, bouncy: true });
-
-        this.createPlatform(350, 3480, { type: 'RAMP_LEFT', width: 260, height: 120, friction: 0, texture: 'platform_texture' });
-        this.createPlatform(690, 3340, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1050, 3220, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(780, 3100, { type: 'RECT', width: 130, height: 30, bouncy: true });
-        this.createPlatform(1160, 2980, { type: 'RAMP_RIGHT', width: 260, height: 120, friction: 0, texture: 'platform_texture' });
-
-        this.createPlatform(900, 2780, { type: 'CURVE', width: 300, height: 300, friction: 0, angle: 0 });
-        this.createPlatform(520, 2670, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(960, 2540, { type: 'RECT', width: 240, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(640, 2420, { type: 'RECT', width: 130, height: 30, bouncy: true });
-        this.createPlatform(370, 2300, { type: 'RAMP_LEFT', width: 250, height: 110, friction: 0, texture: 'platform_texture' });
-
-        this.createPlatform(840, 2140, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1200, 2020, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(980, 1890, { type: 'RECT', width: 130, height: 30, bouncy: true });
-
-        this.createPlatform(610, 1710, { type: 'CURVE', width: 260, height: 260, friction: 0, angle: 90 });
-        this.createPlatform(960, 1710, { type: 'CURVE', width: 260, height: 260, friction: 0, angle: 0 });
-        this.createPlatform(790, 1810, { type: 'RECT', width: 420, height: 60, texture: 'platform_texture' });
-
-        this.createPlatform(760, 1510, { type: 'RECT', width: 220, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(970, 1360, { type: 'RECT', width: 120, height: 30, bouncy: true });
-        this.createPlatform(800, 1200, { type: 'RECT', width: 300, height: 30, texture: 'platform_texture' });
-        this.createPlatform(650, 980, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(950, 840, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(800, 680, { type: 'RECT', width: 320, height: 30, texture: 'platform_texture' });
-
-        // Side practice lanes (easy recovery / mechanic training)
-        // this.createPlatform(180, 5600, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 5450, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 5300, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 5150, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 5000, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 4850, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 4700, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 4550, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 4400, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 4250, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 4100, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 3950, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 3800, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 3650, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 3500, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 3350, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 3200, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 3050, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 2900, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 2750, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 2600, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 2450, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 2300, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 2150, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 2000, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 1850, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 1700, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 1550, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 1400, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 1250, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(180, 1100, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(1420, 950, { type: 'RECT', width: 200, height: 24, isOneWay: true, texture: 'drop' });
-        this.createPlatform(800, 520, { type: 'RECT', width: 260, height: 24, isOneWay: true, texture: 'drop' });
-
-        this.player = new Player(this, 800, 5830, this.cats);
+        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
         this.player.setDepth(10);
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setDeadzone(400, 200);
         this.cameras.main.setFollowOffset(0, 100);
-        this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+        this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
 
         this.setupAnims();
 
@@ -192,45 +122,60 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         debugGrid.setDepth(1000);
         debugGrid.setVisible(false);
 
-        for (let x = 0; x <= worldWidth; x += 100) {
+        for (let x = 0; x <= this.worldWidth; x += 100) {
             const isMajor = x % 500 === 0;
             debugGrid.lineStyle(isMajor ? 10 : 4, 0x00ff00, isMajor ? 0.8 : 0.3);
             debugGrid.beginPath();
             debugGrid.moveTo(x, 0);
-            debugGrid.lineTo(x, worldHeight);
+            debugGrid.lineTo(x, this.worldHeight);
             debugGrid.strokePath();
         }
 
-        for (let y = 0; y <= worldHeight; y += 100) {
+        for (let y = 0; y <= this.worldHeight; y += 100) {
             const isMajor = y % 500 === 0;
             debugGrid.lineStyle(isMajor ? 10 : 4, 0x00ff00, isMajor ? 0.8 : 0.3);
             debugGrid.beginPath();
             debugGrid.moveTo(0, y);
-            debugGrid.lineTo(worldWidth, y);
+            debugGrid.lineTo(this.worldWidth, y);
             debugGrid.strokePath();
         }
 
-        let isMapMode = false;
         this.input.keyboard.on('keydown-M', () => {
-            isMapMode = !isMapMode;
+            this.isMapMode = !this.isMapMode;
 
-            if (isMapMode) {
+            if (this.isMapMode) {
                 this.cameras.main.stopFollow();
 
-                const fitWidthZoom = this.scale.width / worldWidth;
-                const fitHeightZoom = this.scale.height / worldHeight;
+                const fitWidthZoom = this.scale.width / this.worldWidth;
+                const fitHeightZoom = this.scale.height / this.worldHeight;
                 const zoomLevel = Math.min(fitWidthZoom, fitHeightZoom);
                 this.cameras.main.setZoom(zoomLevel);
 
-                this.cameras.main.centerOn(worldWidth / 2, worldHeight / 2);
+                this.cameras.main.centerOn(this.worldWidth / 2, this.worldHeight / 2);
                 debugGrid.setVisible(true);
+                this.enterMapEditorMode();
             } else {
+                this.exitMapEditorMode();
                 this.cameras.main.setZoom(1);
                 this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
                 this.cameras.main.setDeadzone(400, 200);
                 this.cameras.main.setFollowOffset(0, 100);
-                this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+                this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
                 debugGrid.setVisible(false);
+
+                this.scene.restart({
+                    worldWidth: this.worldWidth,
+                    worldHeight: this.worldHeight,
+                    levelPlatforms: this.levelPlatforms,
+                    spawnPoint: this.spawnPoint,
+                    finishPortalPos: this.finishPortalPos
+                });
+            }
+        });
+
+        this.input.keyboard.on('keydown-S', () => {
+            if (this.isMapMode) {
+                this.exportLevelData();
             }
         });
     }
@@ -249,6 +194,27 @@ export default class SillySpeedRunScene extends Phaser.Scene {
             texture = 'platform_texture'
         } = config;
 
+        const renderWidth = type === 'CIRCLE' ? radius * 2 : width;
+        const renderHeight = type === 'CIRCLE' ? radius * 2 : height;
+
+        let topLeftX = x;
+        let topLeftY = y;
+        if (this.legacyCenteredInput) {
+            topLeftX = x - (renderWidth / 2);
+            topLeftY = y - (renderHeight / 2);
+        }
+
+        if (this.captureLevelData) {
+            this.levelPlatforms.push({
+                x: topLeftX,
+                y: topLeftY,
+                config: { ...config }
+            });
+        }
+
+        const centerX = topLeftX + (renderWidth / 2);
+        const centerY = topLeftY + (renderHeight / 2);
+
         const bodyOptions = {
             isStatic: true,
             friction,
@@ -259,7 +225,7 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         let body;
 
         if (type === 'RECT') {
-            body = this.matter.add.rectangle(x, y, width, height, bodyOptions);
+            body = this.matter.add.rectangle(centerX, centerY, width, height, bodyOptions);
         }
         else if (type === 'RAMP_LEFT' || type === 'ramp_left') {
             const verts = [
@@ -267,7 +233,7 @@ export default class SillySpeedRunScene extends Phaser.Scene {
                 { x: -width / 2, y: height / 2 },
                 { x: width / 2, y: -height / 2 }
             ];
-            body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
+            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
         }
         else if (type === 'RAMP_RIGHT' || type === 'ramp_right') {
             const verts = [
@@ -275,7 +241,7 @@ export default class SillySpeedRunScene extends Phaser.Scene {
                 { x: -width / 2, y: height / 2 },
                 { x: width / 2, y: height / 2 }
             ];
-            body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
+            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
         }
         else if (type === 'CURVE') {
             const segments = 32;
@@ -287,10 +253,10 @@ export default class SillySpeedRunScene extends Phaser.Scene {
                 verts.push({ x: px, y: py });
             }
             verts.push({ x: width / 2, y: height / 2 });
-            body = this.matter.add.fromVertices(x, y, verts, bodyOptions);
+            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
         }
         else if (type === 'CIRCLE') {
-            body = this.matter.add.circle(x, y, radius, bodyOptions);
+            body = this.matter.add.circle(centerX, centerY, radius, bodyOptions);
         }
 
         if (!body) {
@@ -298,7 +264,7 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         }
 
         this.matter.body.setAngle(body, Phaser.Math.DegToRad(angle));
-        this.matter.body.setPosition(body, { x, y });
+        this.matter.body.setPosition(body, { x: centerX, y: centerY });
 
         if (isOneWay) {
             body.collisionFilter.category = this.cats.ONE_WAY;
@@ -307,16 +273,14 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         }
 
         if (bouncy) {
-            const bouncyWidth = type === 'CIRCLE' ? radius * 2 : width;
-            const bouncyHeight = type === 'CIRCLE' ? radius * 2 : height;
-            const bumper = this.add.rectangle(x, y, bouncyWidth, bouncyHeight, 0xff2ebd, 1.0);
+            const bumper = this.add.rectangle(centerX, centerY, renderWidth, renderHeight, 0xff2ebd, 1.0);
             bumper.setDepth(-0.8);
             bumper.setAngle(angle);
             return;
         }
 
         if (isOneWay || type === 'RECT') {
-            TextureFactory.styleRectangle(this, x, y, width, height, body, texture);
+            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, texture);
         }
         else if (
             type === 'CURVE' ||
@@ -328,6 +292,119 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         else if (type === 'CIRCLE') {
             TextureFactory.styleCircle(this, body, texture);
         }
+    }
+
+    enterMapEditorMode() {
+        this.destroyEditorHandles();
+
+        this.editorHud = this.add.text(16, 16, 'Editor: drag platforms | S = export JSON | M = apply + exit', {
+            fontFamily: 'monospace',
+            fontSize: '16px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.editorHud.setScrollFactor(0);
+        this.editorHud.setDepth(3000);
+
+        this.levelPlatforms.forEach((def) => {
+            const cfg = def.config || {};
+            const width = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.width || 100);
+            const height = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.height || 100);
+
+            const handle = this.add.rectangle(def.x, def.y, width, height);
+            handle.setOrigin(0, 0);
+            handle.setStrokeStyle(3, 0xffcc00, 1);
+            handle.setFillStyle(0x000000, 0.001);
+            handle.setDepth(2500);
+            handle.setAngle(cfg.angle || 0);
+            handle.setInteractive({ cursor: 'move' });
+            this.input.setDraggable(handle);
+
+            handle.__defRef = def;
+            this.editorHandles.push(handle);
+        });
+
+        this.input.on('drag', this.onEditorDrag, this);
+    }
+
+    exitMapEditorMode() {
+        this.input.off('drag', this.onEditorDrag, this);
+        this.destroyEditorHandles();
+    }
+
+    destroyEditorHandles() {
+        if (this.editorHud) {
+            this.editorHud.destroy();
+            this.editorHud = null;
+        }
+
+        if (this.editorToast) {
+            this.editorToast.destroy();
+            this.editorToast = null;
+        }
+
+        if (this.editorHandles.length > 0) {
+            this.editorHandles.forEach((handle) => handle.destroy());
+            this.editorHandles = [];
+        }
+    }
+
+    onEditorDrag(pointer, gameObject, dragX, dragY) {
+        if (!this.isMapMode || !gameObject.__defRef) {
+            return;
+        }
+
+        const snappedX = Math.round(dragX / 10) * 10;
+        const snappedY = Math.round(dragY / 10) * 10;
+        gameObject.setPosition(snappedX, snappedY);
+        gameObject.__defRef.x = snappedX;
+        gameObject.__defRef.y = snappedY;
+    }
+
+    exportLevelData() {
+        const payload = {
+            worldWidth: this.worldWidth,
+            worldHeight: this.worldHeight,
+            spawn: this.spawnPoint,
+            finishPortal: this.finishPortalPos,
+            platforms: this.levelPlatforms
+        };
+
+        const text = JSON.stringify(payload, null, 2);
+        console.log('SillySpeedRun level JSON:\n', text);
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(() => this.showEditorToast('Silly JSON copied to clipboard'))
+                .catch(() => this.showEditorToast('Exported to console (clipboard blocked)'));
+        } else {
+            this.showEditorToast('Exported to console (clipboard unavailable)');
+        }
+    }
+
+    showEditorToast(message) {
+        if (this.editorToast) {
+            this.editorToast.destroy();
+            this.editorToast = null;
+        }
+
+        this.editorToast = this.add.text(16, 44, message, {
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.editorToast.setScrollFactor(0);
+        this.editorToast.setDepth(3001);
+
+        this.time.delayedCall(1600, () => {
+            if (this.editorToast) {
+                this.editorToast.destroy();
+                this.editorToast = null;
+            }
+        });
     }
 
     setupAnims() {
