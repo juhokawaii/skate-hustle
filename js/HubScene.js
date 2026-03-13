@@ -11,6 +11,7 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("player3", "assets/player_sprites/player3.png");
         this.load.image("player4", "assets/player_sprites/player4.png");
         this.load.image("player5", "assets/player_sprites/player5.png");
+        this.load.image("player6", "assets/player_sprites/player6.png");
 
         this.load.image("concrete_bg", "assets/backgrounds/hubworld_background.png");
         this.load.image("platform_texture", "assets/backgrounds/256x256.png");
@@ -55,13 +56,19 @@ export default class HubScene extends Phaser.Scene {
         const sourcePlatforms = hasInjectedLevel
             ? data.levelPlatforms
             : (Array.isArray(cachedLevel?.platforms) ? cachedLevel.platforms : []);
-        this.levelPlatforms = sourcePlatforms.map((def) => ({ x: def.x, y: def.y, config: { ...def.config } }));
+        this.levelPlatforms = sourcePlatforms.map((def) => ({
+            ...def,
+            x: def.x,
+            y: def.y,
+            config: { ...def.config }
+        }));
 
         this.captureLevelData = false;
         this.legacyCenteredInput = false;
         this.isMapMode = false;
         this.editorHandles = [];
         this.editorHud = null;
+        this.editorInspect = null;
 
         // --- -1. COLLISION CATEGORIES ---
         this.cats = {
@@ -99,7 +106,7 @@ export default class HubScene extends Phaser.Scene {
 
     // --- 2. THE PARK LAYOUT  ---
         this.levelPlatforms.forEach((def) => {
-            this.createPlatform(def.x, def.y, def.config);
+            this.createPlatform(def.x, def.y, def.config, def);
         });
 
         this.captureLevelData = false;
@@ -191,7 +198,7 @@ export default class HubScene extends Phaser.Scene {
 
     }
 
-    createPlatform(x, y, config) {
+    createPlatform(x, y, config, defRef = null) {
         const { 
             type = 'RECT', 
             width = 100, 
@@ -271,6 +278,19 @@ export default class HubScene extends Phaser.Scene {
             
             // Force Position
             this.matter.body.setPosition(body, { x: centerX, y: centerY });
+
+            if (defRef) {
+                const minX = body.bounds.min.x;
+                const minY = body.bounds.min.y;
+                const boundsWidth = body.bounds.max.x - body.bounds.min.x;
+                const boundsHeight = body.bounds.max.y - body.bounds.min.y;
+                defRef.__editorBounds = {
+                    x: minX,
+                    y: minY,
+                    width: boundsWidth,
+                    height: boundsHeight
+                };
+            }
             
             // Assign Physics Category
             if (isOneWay) {
@@ -314,31 +334,59 @@ export default class HubScene extends Phaser.Scene {
     enterMapEditorMode() {
         this.destroyEditorHandles();
 
-        this.editorHud = this.add.text(16, 16, 'Editor: drag platforms | S = export JSON | M = apply + exit', {
+        this.editorHud = this.add.text(16, 16, 'Editor: drag platforms | hover = inspect | S = export JSON | M = apply + exit', {
             fontFamily: 'monospace',
-            fontSize: '16px',
+            fontSize: '20px',
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 4
         });
         this.editorHud.setScrollFactor(0);
         this.editorHud.setDepth(3000);
+        this.refreshEditorHudScale();
 
-        this.levelPlatforms.forEach((def) => {
+        this.editorInspect = this.add.text(16, 44, '', {
+            fontFamily: 'monospace',
+            fontSize: '20px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.editorInspect.setBackgroundColor('rgba(0, 0, 0, 0.75)');
+        this.editorInspect.setPadding(8, 6, 8, 6);
+        this.editorInspect.setVisible(false);
+        this.editorInspect.setScrollFactor(0);
+        this.editorInspect.setDepth(3501);
+
+        this.levelPlatforms.forEach((def, index) => {
             const cfg = def.config || {};
-            const width = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.width || 100);
-            const height = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.height || 100);
+            const fallbackWidth = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.width || 100);
+            const fallbackHeight = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.height || 100);
+            const hasBodyBounds = !!def.__editorBounds;
+            const handleX = hasBodyBounds ? def.__editorBounds.x : def.x;
+            const handleY = hasBodyBounds ? def.__editorBounds.y : def.y;
+            const handleWidth = hasBodyBounds ? def.__editorBounds.width : fallbackWidth;
+            const handleHeight = hasBodyBounds ? def.__editorBounds.height : fallbackHeight;
 
-            const handle = this.add.rectangle(def.x, def.y, width, height);
+            const handle = this.add.rectangle(handleX, handleY, handleWidth, handleHeight);
             handle.setOrigin(0, 0);
             handle.setStrokeStyle(6, 0xffcc00, 1);
             handle.setFillStyle(0xffcc00, 0.15);
             handle.setDepth(3500);
-            handle.setAngle(cfg.angle || 0);
+            handle.setAngle(hasBodyBounds ? 0 : (cfg.angle || 0));
             handle.setInteractive({ cursor: 'move' });
             this.input.setDraggable(handle);
 
             handle.__defRef = def;
+            handle.__platformIndex = index;
+            handle.__xOffset = def.x - handleX;
+            handle.__yOffset = def.y - handleY;
+            handle.on('pointerover', () => {
+                this.showHandleInspect(handle.__defRef, handle.__platformIndex);
+            });
+            handle.on('pointerout', () => {
+                this.hideHandleInspect();
+            });
             this.editorHandles.push(handle);
         });
 
@@ -354,6 +402,11 @@ export default class HubScene extends Phaser.Scene {
         if (this.editorHud) {
             this.editorHud.destroy();
             this.editorHud = null;
+        }
+
+        if (this.editorInspect) {
+            this.editorInspect.destroy();
+            this.editorInspect = null;
         }
 
         if (this.editorToast) {
@@ -375,17 +428,99 @@ export default class HubScene extends Phaser.Scene {
         const snappedX = Math.round(dragX / 10) * 10;
         const snappedY = Math.round(dragY / 10) * 10;
         gameObject.setPosition(snappedX, snappedY);
-        gameObject.__defRef.x = snappedX;
-        gameObject.__defRef.y = snappedY;
+        const offsetX = gameObject.__xOffset || 0;
+        const offsetY = gameObject.__yOffset || 0;
+        gameObject.__defRef.x = snappedX + offsetX;
+        gameObject.__defRef.y = snappedY + offsetY;
+
+        gameObject.__defRef.__editorBounds = {
+            x: snappedX,
+            y: snappedY,
+            width: gameObject.width,
+            height: gameObject.height
+        };
+        this.showHandleInspect(gameObject.__defRef, gameObject.__platformIndex);
+    }
+
+    showHandleInspect(def, index) {
+        if (!this.editorInspect) {
+            return;
+        }
+
+        const cfg = def?.config || {};
+        const idText = def?.id != null ? String(def.id) : String((index || 0) + 1);
+        const remark = def?.remark || cfg?.remark || '-';
+        this.editorInspect.setText(`Object #${(index || 0) + 1} | id: ${idText} | type: ${cfg.type || 'RECT'} | remark: ${remark}`);
+        this.editorInspect.setVisible(true);
+        this.refreshInspectScale();
+        this.positionInspectFixed();
+    }
+
+    hideHandleInspect() {
+        if (this.editorInspect) {
+            this.editorInspect.setVisible(false);
+            this.editorInspect.setText('');
+        }
+    }
+
+    positionInspectFixed() {
+        if (!this.editorInspect) {
+            return;
+        }
+
+        this.refreshInspectScale();
+
+        const zoom = this.cameras.main.zoom || 1;
+        const fixedX = 16;
+        const fixedY = 54;
+        this.editorInspect.setPosition(fixedX / zoom, fixedY / zoom);
+    }
+
+    refreshInspectScale() {
+        if (!this.editorInspect) {
+            return;
+        }
+
+        const zoom = this.cameras.main.zoom || 1;
+        this.editorInspect.setScale(1 / zoom);
+    }
+
+    refreshEditorHudScale() {
+        if (!this.editorHud) {
+            return;
+        }
+
+        const zoom = this.cameras.main.zoom || 1;
+        this.editorHud.setScale(1 / zoom);
+        this.editorHud.setPosition(16 / zoom, 16 / zoom);
+    }
+
+    positionEditorToastFixed() {
+        if (!this.editorToast) {
+            return;
+        }
+
+        const zoom = this.cameras.main.zoom || 1;
+        this.editorToast.setScale(1 / zoom);
+        this.editorToast.setPosition(16 / zoom, 98 / zoom);
     }
 
     exportLevelData() {
+        const exportPlatforms = this.levelPlatforms.map((def, index) => {
+            const existingRemark = def?.remark ?? def?.config?.remark;
+            return {
+                ...def,
+                id: def?.id ?? (index + 1),
+                remark: existingRemark ?? ''
+            };
+        });
+
         const payload = {
             worldWidth: this.worldWidth,
             worldHeight: this.worldHeight,
             spawn: this.spawnPoint,
             portal1: this.portal1Pos,
-            platforms: this.levelPlatforms
+            platforms: exportPlatforms
         };
 
         const text = JSON.stringify(payload, null, 2);
@@ -408,13 +543,16 @@ export default class HubScene extends Phaser.Scene {
 
         this.editorToast = this.add.text(16, 44, message, {
             fontFamily: 'monospace',
-            fontSize: '14px',
+            fontSize: '20px',
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 4
         });
+        this.editorToast.setBackgroundColor('rgba(0, 0, 0, 0.75)');
+        this.editorToast.setPadding(8, 6, 8, 6);
         this.editorToast.setScrollFactor(0);
-        this.editorToast.setDepth(3001);
+        this.editorToast.setDepth(3502);
+        this.positionEditorToastFixed();
 
         this.time.delayedCall(1600, () => {
             if (this.editorToast) {

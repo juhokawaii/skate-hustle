@@ -23,6 +23,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY, this.cats.SENSOR]);
 
         this.cursors = scene.input.keyboard.createCursorKeys();
+        this.jetpackKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J);
+        this.jetpackState = 'off'; // off | fly | drop
 
         // State & Vectors
         this.groundNormal = new Phaser.Math.Vector2(0, -1);
@@ -100,6 +102,27 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     }
 
     update() {
+        if (this.groundTimer > 0) this.groundTimer--;
+        if (this.cornerLockTimer > 0) this.cornerLockTimer--;
+
+        if (Phaser.Input.Keyboard.JustDown(this.jetpackKey)) {
+            if (this.jetpackState === 'fly') {
+                this.enterJetpackDrop();
+            } else {
+                this.enterJetpackFly();
+            }
+        }
+
+        if (this.jetpackState === 'fly') {
+            this.updateJetpackFly();
+            return;
+        }
+
+        if (this.jetpackState === 'drop') {
+            this.updateJetpackDrop();
+            return;
+        }
+
         // --- TUNING KNOBS ---
         const PADDLE_FORCE = 0.02;   
         const JUMP_FORCE = 15.0;     
@@ -116,8 +139,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const MAX_SPEED = 20;        
         
         // --- TIMERS ---
-        if (this.groundTimer > 0) this.groundTimer--;
-        if (this.cornerLockTimer > 0) this.cornerLockTimer--;
         const isGrounded = (this.groundTimer > 0);
         
         // [NEW] Update Visual Air Buffer
@@ -261,6 +282,88 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
 
         this.handleAnimations(isGrounded);
+    }
+
+    enterJetpackFly() {
+        this.jetpackState = 'fly';
+        this.groundTimer = 0;
+        this.cornerLockTimer = 0;
+        this.rampDragGraceTimer = 0;
+        this.airFrameBuffer = 0;
+        this.setIgnoreGravity(true);
+        this.setCollidesWith([this.cats.SENSOR]);
+        // Kill carried momentum so jetpack starts in true hover.
+        this.setVelocity(0, 0);
+        this.setTexture('player6');
+        this.anims.stop();
+        this.setRotation(0);
+    }
+
+    enterJetpackDrop() {
+        this.jetpackState = 'drop';
+        this.setIgnoreGravity(false);
+        this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY, this.cats.SENSOR]);
+        this.setTexture('player6');
+        this.anims.stop();
+    }
+
+    updateJetpackFly() {
+        const JETPACK_ACCEL = 0.55;
+        const JETPACK_MAX_H_SPEED = 12;
+        const JETPACK_MAX_V_SPEED = 10;
+        const JETPACK_DRAG = 0.88;
+
+        let vx = this.body.velocity.x;
+        let vy = this.body.velocity.y;
+
+        if (this.cursors.left.isDown) {
+            vx -= JETPACK_ACCEL;
+            this.setFlipX(true);
+        }
+        if (this.cursors.right.isDown) {
+            vx += JETPACK_ACCEL;
+            this.setFlipX(false);
+        }
+        if (this.cursors.up.isDown) {
+            vy -= JETPACK_ACCEL;
+        }
+        if (this.cursors.down.isDown) {
+            vy += JETPACK_ACCEL;
+        }
+
+        if (!this.cursors.left.isDown && !this.cursors.right.isDown) {
+            vx = 0;
+        }
+        if (!this.cursors.up.isDown && !this.cursors.down.isDown) {
+            vy = 0;
+        }
+
+        vx = Phaser.Math.Clamp(vx, -JETPACK_MAX_H_SPEED, JETPACK_MAX_H_SPEED);
+        vy = Phaser.Math.Clamp(vy, -JETPACK_MAX_V_SPEED, JETPACK_MAX_V_SPEED);
+        this.setVelocity(vx, vy);
+        this.setRotation(0);
+        this.setTexture('player6');
+    }
+
+    updateJetpackDrop() {
+        const DROP_ACCEL = 0.45;
+        const DROP_TERMINAL_VELOCITY = 18;
+        const DROP_HORIZONTAL_DAMP = 0.86;
+
+        const isGrounded = (this.groundTimer > 0);
+        if (isGrounded && this.body.velocity.y >= -0.5) {
+            this.jetpackState = 'off';
+            this.setIgnoreGravity(false);
+            this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY, this.cats.SENSOR]);
+            this.setTexture('player1');
+            return;
+        }
+
+        const vx = this.body.velocity.x * DROP_HORIZONTAL_DAMP;
+        const vy = Math.min(this.body.velocity.y + DROP_ACCEL, DROP_TERMINAL_VELOCITY);
+        this.setVelocity(vx, vy);
+        this.setRotation(0);
+        this.setTexture('player6');
     }
     
     handleAnimations(isGrounded) {

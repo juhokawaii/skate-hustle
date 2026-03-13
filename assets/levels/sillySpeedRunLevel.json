@@ -18,6 +18,14 @@
         "width": 1600,
         "height": 100,
         "texture": "ground"
+      },
+      "id": 1,
+      "remark": "",
+      "__editorBounds": {
+        "x": 0,
+        "y": 5900,
+        "width": 1600,
+        "height": 100
       }
     },
     {
@@ -29,6 +37,14 @@
         "height": 360,
         "friction": 0,
         "angle": 90
+      },
+      "id": 2,
+      "remark": "",
+      "__editorBounds": {
+        "x": 382.75806452031156,
+        "y": 5487.2419354796875,
+        "width": 360,
+        "height": 360
       }
     },
     {
@@ -40,101 +56,199 @@
         "height": 360,
         "friction": 0,
         "angle": 0
+      },
+      "id": 3,
+      "remark": "",
+      "__editorBounds": {
+        "x": 857.2419354796875,
+        "y": 5487.241935479688,
+        "width": 360,
+        "height": 360
       }
     },
     {
-      "x": 420,
-      "y": 5830,
+      "x": 390,
+      "y": 5840,
       "config": {
         "type": "RECT",
-        "width": 760,
+        "width": 820,
         "height": 120,
         "texture": "platform_texture"
+      },
+      "id": 4,
+      "remark": "",
+      "__editorBounds": {
+        "x": 390,
+        "y": 5840,
+        "width": 820,
+        "height": 120
       }
     },
     {
-      "x": 95,
+      "x": 0,
       "y": 5480,
       "config": {
         "type": "RECT",
-        "width": 290,
+        "width": 390,
         "height": 420,
         "texture": "platform_texture"
+      },
+      "id": 5,
+      "remark": "",
+      "__editorBounds": {
+        "x": 0,
+        "y": 5480,
+        "width": 390,
+        "height": 420
       }
     },
     {
-      "x": 1250,
-      "y": 5350,
+      "x": 1320,
+      "y": 5270,
+      "config": {
+        "type": "RECT",
+        "width": 390,
+        "height": 630,
+        "texture": "platform_texture"
+      },
+      "id": 80,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1320,
+        "y": 5270,
+        "width": 390,
+        "height": 630
+      }
+    },
+    {
+      "x": 1210,
+      "y": 5270,
       "config": {
         "type": "RECT",
         "width": 120,
-        "height": 620,
+        "height": 1120,
         "texture": "platform_texture"
+      },
+      "id": 6,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1210,
+        "y": 5270,
+        "width": 120,
+        "height": 1120
       }
     },
     {
-      "x": 280,
-      "y": 5750,
+      "x": -30,
+      "y": 5380,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 220,
         "height": 120,
         "friction": 0,
         "texture": "platform_texture"
+      },
+      "id": 7,
+      "remark": "",
+      "__editorBounds": {
+        "x": 6.666666666666657,
+        "y": 5360,
+        "width": 220,
+        "height": 120
       }
     },
     {
-      "x": 1100,
-      "y": 5750,
+      "x": 1340,
+      "y": 5170,
       "config": {
         "type": "RAMP_LEFT",
-        "width": 220,
+        "width": 440,
         "height": 120,
         "friction": 0,
         "texture": "platform_texture"
+      },
+      "id": 8,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1266.6666666666667,
+        "y": 5150,
+        "width": 440,
+        "height": 120
       }
     },
     {
-      "x": 555,
-      "y": 5465,
+      "x": 1350,
+      "y": 2650,
       "config": {
         "type": "RECT",
         "width": 110,
         "height": 30,
         "bouncy": true
+      },
+      "id": 9,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1350,
+        "y": 2650,
+        "width": 110,
+        "height": 30
       }
     },
     {
-      "x": 1010,
-      "y": 5160,
+      "x": -168,
+      "y": 3080,
       "config": {
         "type": "RAMP_RIGHT",
-        "width": 280,
+        "width": 1008,
         "height": 120,
         "friction": 0,
         "texture": "platform_texture"
+      },
+      "id": 10,
+      "remark": "",
+      "__editorBounds": {
+        "x": 0,
+        "y": 3060,
+        "width": 1008,
+        "height": 120
       }
     },
     {
-      "x": 630,
-      "y": 5298,
+      "x": 800,
+      "y": 5540,
       "config": {
         "type": "RECT",
         "width": 220,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 11,
+      "remark": "",
+      "__editorBounds": {
+        "x": 800,
+        "y": 5540,
+        "width": 220,
+        "height": 24
       }
     },
     {
-      "x": 890,
-      "y": 5118,
+      "x": 820,
+      "y": 5160,
       "config": {
         "type": "RECT",
         "width": 180,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 12,
+      "remark": "",
+      "__editorBounds": {
+        "x": 820,
+        "y": 5160,
+        "width": 180,
+        "height": 24
       }
     },
     {
@@ -145,6 +259,14 @@
         "width": 120,
         "height": 30,
         "bouncy": true
+      },
+      "id": 13,
+      "remark": "",
+      "__editorBounds": {
+        "x": 560,
+        "y": 5015,
+        "width": 120,
+        "height": 30
       }
     },
     {
@@ -156,6 +278,14 @@
         "height": 130,
         "friction": 0,
         "texture": "platform_texture"
+      },
+      "id": 14,
+      "remark": "",
+      "__editorBounds": {
+        "x": 230,
+        "y": 4833.333333333333,
+        "width": 300,
+        "height": 130
       }
     },
     {
@@ -167,48 +297,88 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 15,
+      "remark": "",
+      "__editorBounds": {
+        "x": 725,
+        "y": 4768,
+        "width": 250,
+        "height": 24
       }
     },
     {
-      "x": 1115,
-      "y": 4635,
+      "x": 940,
+      "y": 2320,
       "config": {
         "type": "RECT",
         "width": 130,
         "height": 30,
         "bouncy": true
+      },
+      "id": 16,
+      "remark": "",
+      "__editorBounds": {
+        "x": 940,
+        "y": 2320,
+        "width": 130,
+        "height": 30
       }
     },
     {
-      "x": 340,
-      "y": 4310,
+      "x": 267.5483870930557,
+      "y": 4282.451612906944,
       "config": {
         "type": "CURVE",
         "width": 320,
         "height": 320,
         "friction": 0,
         "angle": 90
+      },
+      "id": 17,
+      "remark": "",
+      "__editorBounds": {
+        "x": 350,
+        "y": 4200,
+        "width": 320,
+        "height": 320
       }
     },
     {
-      "x": 940,
-      "y": 4310,
+      "x": 1122.4516129069445,
+      "y": 3882.451612906944,
       "config": {
         "type": "CURVE",
         "width": 320,
         "height": 320,
         "friction": 0,
         "angle": 0
+      },
+      "id": 18,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1040,
+        "y": 3800,
+        "width": 320,
+        "height": 320
       }
     },
     {
-      "x": 450,
-      "y": 4550,
+      "x": 350,
+      "y": 4500,
       "config": {
         "type": "RECT",
         "width": 700,
         "height": 80,
         "texture": "platform_texture"
+      },
+      "id": 19,
+      "remark": "",
+      "__editorBounds": {
+        "x": 350,
+        "y": 4500,
+        "width": 700,
+        "height": 80
       }
     },
     {
@@ -220,49 +390,89 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 20,
+      "remark": "",
+      "__editorBounds": {
+        "x": 490,
+        "y": 4248,
+        "width": 240,
+        "height": 24
       }
     },
     {
-      "x": 900,
-      "y": 4128,
+      "x": 880,
+      "y": 4120,
       "config": {
         "type": "RECT",
         "width": 220,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 21,
+      "remark": "",
+      "__editorBounds": {
+        "x": 880,
+        "y": 4120,
+        "width": 220,
+        "height": 24
       }
     },
     {
-      "x": 715,
-      "y": 3996,
+      "x": 680,
+      "y": 3590,
       "config": {
         "type": "RECT",
         "width": 110,
         "height": 28,
         "bouncy": true
+      },
+      "id": 22,
+      "remark": "",
+      "__editorBounds": {
+        "x": 680,
+        "y": 3590,
+        "width": 110,
+        "height": 28
       }
     },
     {
-      "x": 1100,
-      "y": 3830,
+      "x": 926.6666666666666,
+      "y": 4790,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 260,
         "height": 120,
         "friction": 0,
         "texture": "platform_texture"
+      },
+      "id": 23,
+      "remark": "",
+      "__editorBounds": {
+        "x": 969.9999999999999,
+        "y": 4770,
+        "width": 259.9999999999999,
+        "height": 120
       }
     },
     {
-      "x": 790,
-      "y": 3758,
+      "x": 860,
+      "y": 3830,
       "config": {
         "type": "RECT",
         "width": 220,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 24,
+      "remark": "",
+      "__editorBounds": {
+        "x": 860,
+        "y": 3830,
+        "width": 220,
+        "height": 24
       }
     },
     {
@@ -273,10 +483,18 @@
         "width": 140,
         "height": 30,
         "bouncy": true
+      },
+      "id": 25,
+      "remark": "",
+      "__editorBounds": {
+        "x": 410,
+        "y": 3655,
+        "width": 140,
+        "height": 30
       }
     },
     {
-      "x": 220,
+      "x": 243.33333333333334,
       "y": 3420,
       "config": {
         "type": "RAMP_LEFT",
@@ -284,125 +502,221 @@
         "height": 120,
         "friction": 0,
         "texture": "platform_texture"
+      },
+      "id": 26,
+      "remark": "",
+      "__editorBounds": {
+        "x": 200.00000000000003,
+        "y": 3400,
+        "width": 260,
+        "height": 120
       }
     },
     {
-      "x": 580,
-      "y": 3328,
+      "x": 160,
+      "y": 2580,
       "config": {
         "type": "RECT",
         "width": 220,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 27,
+      "remark": "",
+      "__editorBounds": {
+        "x": 160,
+        "y": 2580,
+        "width": 220,
+        "height": 24
       }
     },
     {
-      "x": 940,
-      "y": 3208,
+      "x": 1110,
+      "y": 3150,
       "config": {
         "type": "RECT",
         "width": 220,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 28,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1110,
+        "y": 3150,
+        "width": 220,
+        "height": 24
       }
     },
     {
-      "x": 715,
-      "y": 3085,
+      "x": 110,
+      "y": 1500,
       "config": {
         "type": "RECT",
         "width": 130,
         "height": 30,
         "bouncy": true
+      },
+      "id": 29,
+      "remark": "",
+      "__editorBounds": {
+        "x": 110,
+        "y": 1500,
+        "width": 130,
+        "height": 30
       }
     },
     {
-      "x": 1030,
-      "y": 2920,
+      "x": 1106.6666666666667,
+      "y": 2230,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 260,
         "height": 120,
         "friction": 0,
         "texture": "platform_texture"
+      },
+      "id": 30,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1150,
+        "y": 2210,
+        "width": 260,
+        "height": 120
       }
     },
     {
-      "x": 750,
-      "y": 2630,
+      "x": 387.29838710026036,
+      "y": 2737.2983871002602,
       "config": {
         "type": "CURVE",
         "width": 300,
         "height": 300,
         "friction": 0,
         "angle": 0
+      },
+      "id": 31,
+      "remark": "",
+      "__editorBounds": {
+        "x": 310.0000000000001,
+        "y": 2660,
+        "width": 299.9999999999999,
+        "height": 300
       }
     },
     {
-      "x": 410,
-      "y": 2658,
+      "x": 170,
+      "y": 2770,
       "config": {
         "type": "RECT",
         "width": 220,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 32,
+      "remark": "",
+      "__editorBounds": {
+        "x": 170,
+        "y": 2770,
+        "width": 220,
+        "height": 24
       }
     },
     {
-      "x": 840,
-      "y": 2528,
+      "x": 760,
+      "y": 2490,
       "config": {
         "type": "RECT",
         "width": 240,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 33,
+      "remark": "",
+      "__editorBounds": {
+        "x": 760,
+        "y": 2490,
+        "width": 240,
+        "height": 24
       }
     },
     {
-      "x": 575,
-      "y": 2405,
+      "x": 700,
+      "y": 2350,
       "config": {
         "type": "RECT",
         "width": 130,
         "height": 30,
         "bouncy": true
+      },
+      "id": 34,
+      "remark": "",
+      "__editorBounds": {
+        "x": 700,
+        "y": 2350,
+        "width": 130,
+        "height": 30
       }
     },
     {
-      "x": 245,
-      "y": 2245,
+      "x": 411.66666666666663,
+      "y": 2498.3333333333335,
       "config": {
         "type": "RAMP_LEFT",
         "width": 250,
         "height": 110,
         "friction": 0,
         "texture": "platform_texture"
+      },
+      "id": 35,
+      "remark": "",
+      "__editorBounds": {
+        "x": 370,
+        "y": 2480,
+        "width": 250,
+        "height": 110
       }
     },
     {
-      "x": 730,
-      "y": 2128,
+      "x": 1280,
+      "y": 1760,
       "config": {
         "type": "RECT",
         "width": 220,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 36,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1280,
+        "y": 1760,
+        "width": 220,
+        "height": 24
       }
     },
     {
-      "x": 1090,
-      "y": 2008,
+      "x": 1290,
+      "y": 2010,
       "config": {
         "type": "RECT",
         "width": 220,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 37,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1290,
+        "y": 2010,
+        "width": 220,
+        "height": 24
       }
     },
     {
@@ -413,6 +727,14 @@
         "width": 130,
         "height": 30,
         "bouncy": true
+      },
+      "id": 38,
+      "remark": "",
+      "__editorBounds": {
+        "x": 915,
+        "y": 1875,
+        "width": 130,
+        "height": 30
       }
     },
     {
@@ -424,6 +746,14 @@
         "height": 260,
         "friction": 0,
         "angle": 90
+      },
+      "id": 39,
+      "remark": "",
+      "__editorBounds": {
+        "x": 546.9919354868923,
+        "y": 1513.0080645131075,
+        "width": 260,
+        "height": 260.0000000000002
       }
     },
     {
@@ -435,16 +765,32 @@
         "height": 260,
         "friction": 0,
         "angle": 0
+      },
+      "id": 40,
+      "remark": "",
+      "__editorBounds": {
+        "x": 763.0080645131076,
+        "y": 1513.0080645131077,
+        "width": 260,
+        "height": 260
       }
     },
     {
-      "x": 580,
+      "x": 540,
       "y": 1780,
       "config": {
         "type": "RECT",
         "width": 420,
         "height": 60,
         "texture": "platform_texture"
+      },
+      "id": 41,
+      "remark": "",
+      "__editorBounds": {
+        "x": 540,
+        "y": 1780,
+        "width": 420,
+        "height": 60
       }
     },
     {
@@ -456,6 +802,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 42,
+      "remark": "",
+      "__editorBounds": {
+        "x": 650,
+        "y": 1498,
+        "width": 220,
+        "height": 24
       }
     },
     {
@@ -466,6 +820,14 @@
         "width": 120,
         "height": 30,
         "bouncy": true
+      },
+      "id": 43,
+      "remark": "",
+      "__editorBounds": {
+        "x": 910,
+        "y": 1345,
+        "width": 120,
+        "height": 30
       }
     },
     {
@@ -476,6 +838,14 @@
         "width": 300,
         "height": 30,
         "texture": "platform_texture"
+      },
+      "id": 44,
+      "remark": "",
+      "__editorBounds": {
+        "x": 650,
+        "y": 1185,
+        "width": 300,
+        "height": 30
       }
     },
     {
@@ -487,6 +857,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 45,
+      "remark": "",
+      "__editorBounds": {
+        "x": 550,
+        "y": 968,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -498,6 +876,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 46,
+      "remark": "",
+      "__editorBounds": {
+        "x": 850,
+        "y": 828,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -508,61 +894,109 @@
         "width": 320,
         "height": 30,
         "texture": "platform_texture"
+      },
+      "id": 47,
+      "remark": "",
+      "__editorBounds": {
+        "x": 640,
+        "y": 665,
+        "width": 320,
+        "height": 30
       }
     },
     {
-      "x": 1320,
-      "y": 5438,
+      "x": 480,
+      "y": 5350,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 48,
+      "remark": "",
+      "__editorBounds": {
+        "x": 480,
+        "y": 5350,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 80,
-      "y": 5288,
+      "x": 150,
+      "y": 750,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 49,
+      "remark": "",
+      "__editorBounds": {
+        "x": 150,
+        "y": 750,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 5138,
+      "x": 840,
+      "y": 3550,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 50,
+      "remark": "",
+      "__editorBounds": {
+        "x": 840,
+        "y": 3550,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 80,
-      "y": 4988,
+      "x": 210,
+      "y": 2130,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 51,
+      "remark": "",
+      "__editorBounds": {
+        "x": 210,
+        "y": 2130,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 4838,
+      "x": 1280,
+      "y": 4700,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 52,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1280,
+        "y": 4700,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -574,28 +1008,52 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 53,
+      "remark": "",
+      "__editorBounds": {
+        "x": 80,
+        "y": 4688,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 4538,
+      "x": 1240,
+      "y": 4520,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 54,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1240,
+        "y": 4520,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 80,
-      "y": 4388,
+      "x": 130,
+      "y": 1920,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 55,
+      "remark": "",
+      "__editorBounds": {
+        "x": 130,
+        "y": 1920,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -607,17 +1065,33 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 56,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1320,
+        "y": 4238,
+        "width": 200,
+        "height": 24
       }
     },
     {
       "x": 80,
-      "y": 4088,
+      "y": 1610,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 57,
+      "remark": "",
+      "__editorBounds": {
+        "x": 80,
+        "y": 1610,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -629,6 +1103,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 58,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1320,
+        "y": 3938,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -640,6 +1122,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 59,
+      "remark": "",
+      "__editorBounds": {
+        "x": 80,
+        "y": 3788,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -651,6 +1141,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 60,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1320,
+        "y": 3638,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -662,6 +1160,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 61,
+      "remark": "",
+      "__editorBounds": {
+        "x": 80,
+        "y": 3488,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -673,94 +1179,166 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 62,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1320,
+        "y": 3338,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 80,
-      "y": 3188,
+      "x": 160,
+      "y": 1830,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 63,
+      "remark": "",
+      "__editorBounds": {
+        "x": 160,
+        "y": 1830,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 3038,
+      "x": 1240,
+      "y": 1350,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 64,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1240,
+        "y": 1350,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 80,
-      "y": 2888,
+      "x": 130,
+      "y": 2060,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 65,
+      "remark": "",
+      "__editorBounds": {
+        "x": 130,
+        "y": 2060,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 2738,
+      "x": 1180,
+      "y": 2780,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 66,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1180,
+        "y": 2780,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 80,
-      "y": 2588,
+      "x": 120,
+      "y": 1770,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 67,
+      "remark": "",
+      "__editorBounds": {
+        "x": 120,
+        "y": 1770,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 2438,
+      "x": 1130,
+      "y": 2570,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 68,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1130,
+        "y": 2570,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 80,
-      "y": 2288,
+      "x": 70,
+      "y": 2200,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 69,
+      "remark": "",
+      "__editorBounds": {
+        "x": 70,
+        "y": 2200,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 2138,
+      "x": 1290,
+      "y": 2140,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 70,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1290,
+        "y": 2140,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -772,17 +1350,33 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 71,
+      "remark": "",
+      "__editorBounds": {
+        "x": 80,
+        "y": 1988,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 1838,
+      "x": 1290,
+      "y": 1890,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 72,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1290,
+        "y": 1890,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -794,17 +1388,33 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 73,
+      "remark": "",
+      "__editorBounds": {
+        "x": 80,
+        "y": 1688,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 1538,
+      "x": 1300,
+      "y": 1640,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 74,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1300,
+        "y": 1640,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -816,17 +1426,33 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 75,
+      "remark": "",
+      "__editorBounds": {
+        "x": 80,
+        "y": 1388,
+        "width": 200,
+        "height": 24
       }
     },
     {
-      "x": 1320,
-      "y": 1238,
+      "x": 1290,
+      "y": 1500,
       "config": {
         "type": "RECT",
         "width": 200,
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 76,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1290,
+        "y": 1500,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -838,6 +1464,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 77,
+      "remark": "",
+      "__editorBounds": {
+        "x": 80,
+        "y": 1088,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -849,6 +1483,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 78,
+      "remark": "",
+      "__editorBounds": {
+        "x": 1320,
+        "y": 938,
+        "width": 200,
+        "height": 24
       }
     },
     {
@@ -860,6 +1502,14 @@
         "height": 24,
         "isOneWay": true,
         "texture": "drop"
+      },
+      "id": 79,
+      "remark": "",
+      "__editorBounds": {
+        "x": 670,
+        "y": 508,
+        "width": 260,
+        "height": 24
       }
     }
   ]
