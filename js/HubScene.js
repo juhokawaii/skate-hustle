@@ -25,6 +25,8 @@ export default class HubScene extends Phaser.Scene {
 
         this.load.image("speedrun_bw", "assets/backgrounds/speedrun_bw.png");
         this.load.image("speedrun", "assets/backgrounds/speedrun.png");
+        this.load.image("crypto_bw", "assets/backgrounds/crypto_bw.png");
+        this.load.image("crypto", "assets/backgrounds/crypto.png");
 
         this.load.audio("secret", "assets/music/title.mp3");
         this.load.audio("title", "assets/music/ramp.mp3");
@@ -100,14 +102,31 @@ export default class HubScene extends Phaser.Scene {
         
  
         
-        this.portal1 = new Graffiti(this, this.portal1Pos.x, this.portal1Pos.y, "speedrun_bw", "speedrun", this.cats.SENSOR);
-        this.portal1.setScrollFactor(0.85, 0.85);
+        this.portal1 = new Graffiti(this, this.portal1Pos.x, this.portal1Pos.y + 100, "speedrun_bw", "speedrun", this.cats.SENSOR);
+        this.portal1.setScrollFactor(1, 1);
+
+        const defaultCryptoPos = this.getCryptoPortalPosition();
+        this.cryptoPortalPos = {
+            x: Phaser.Math.Clamp(defaultCryptoPos.x + 100, 120, this.worldWidth - 120),
+            y: Phaser.Math.Clamp(defaultCryptoPos.y - 100, 120, this.worldHeight - 120)
+        };
+        this.cryptoPortal = new Graffiti(this, this.cryptoPortalPos.x, this.cryptoPortalPos.y, "crypto_bw", "crypto", this.cats.SENSOR);
+        this.cryptoPortal.setScrollFactor(1, 1);
 
 
     // --- 2. THE PARK LAYOUT  ---
         this.levelPlatforms.forEach((def) => {
             this.createPlatform(def.x, def.y, def.config, def);
         });
+
+        this.totalCoins = 100;
+        this.requiredCoinsToUnlockPortal = 20;
+        this.collectedCoins = 0;
+        this.coinsActivated = false;
+        this.coinsDropping = false;
+        this.portalUnlocked = false;
+        this.coins = [];
+        this.coinTargets = this.buildCoinTargets(this.totalCoins);
 
         this.captureLevelData = false;
 
@@ -196,6 +215,46 @@ export default class HubScene extends Phaser.Scene {
         });
 
 
+    }
+
+    getCryptoPortalPosition() {
+        const platformRects = this.levelPlatforms.map((def) => {
+            const cfg = def?.config || {};
+            const width = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.width || 100);
+            const height = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.height || 100);
+            return {
+                x: def.x,
+                y: def.y,
+                width,
+                height
+            };
+        }).filter((rect) => rect.width >= 200 && rect.height <= 80);
+
+        if (platformRects.length === 0) {
+            return {
+                x: this.worldWidth * 0.75,
+                y: this.worldHeight * 0.35
+            };
+        }
+
+        const minY = Math.min(...platformRects.map((rect) => rect.y));
+        const upperFloorPlatforms = platformRects.filter((rect) => rect.y <= (minY + 140));
+        const worldMidX = this.worldWidth * 0.5;
+
+        const sorted = upperFloorPlatforms.sort((a, b) => {
+            if (b.width !== a.width) {
+                return b.width - a.width;
+            }
+            const aMidX = a.x + (a.width * 0.5);
+            const bMidX = b.x + (b.width * 0.5);
+            return Math.abs(aMidX - worldMidX) - Math.abs(bMidX - worldMidX);
+        });
+
+        const pick = sorted[0] || platformRects[0];
+        return {
+            x: pick.x + (pick.width * 0.5),
+            y: Math.max(140, pick.y - 120)
+        };
     }
 
     createPlatform(x, y, config, defRef = null) {
@@ -587,14 +646,230 @@ export default class HubScene extends Phaser.Scene {
 
     setupZones(worldWidth, worldHeight) {
         this.hintText = this.add.text(16, 16, "", { fontFamily: "monospace", fontSize: "18px" }).setScrollFactor(0);
+        this.coinText = this.add.text(16, 40, "Coins: 0", {
+            fontFamily: "monospace",
+            fontSize: "18px",
+            color: "#ffd54a",
+            stroke: "#000000",
+            strokeThickness: 3
+        }).setScrollFactor(0);
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+    }
+
+    buildCoinTargets(totalCoins) {
+        const coinRadius = 9;
+        const coinClearance = 12;
+        const targets = [];
+
+        const eligiblePlatforms = this.levelPlatforms.filter((def) => {
+            const cfg = def?.config || {};
+            const width = def?.__editorBounds?.width || cfg.width || ((cfg.radius || 0) * 2);
+            const height = def?.__editorBounds?.height || cfg.height || ((cfg.radius || 0) * 2);
+            return width >= 60 && height >= 20;
+        });
+
+        if (eligiblePlatforms.length === 0) {
+            return targets;
+        }
+
+        const counts = new Array(eligiblePlatforms.length).fill(Math.floor(totalCoins / eligiblePlatforms.length));
+        let remainder = totalCoins % eligiblePlatforms.length;
+        for (let i = 0; i < counts.length && remainder > 0; i += 1) {
+            counts[i] += 1;
+            remainder -= 1;
+        }
+
+        eligiblePlatforms.forEach((def, platformIndex) => {
+            const cfg = def.config || {};
+            const countForPlatform = counts[platformIndex];
+            if (countForPlatform <= 0) {
+                return;
+            }
+
+            const boundsX = def?.__editorBounds?.x ?? def.x;
+            const boundsY = def?.__editorBounds?.y ?? def.y;
+            const width = def?.__editorBounds?.width || cfg.width || 100;
+            const coinY = boundsY - coinRadius - coinClearance;
+            const margin = 18;
+            const usableWidth = Math.max(10, width - (margin * 2));
+
+            for (let i = 0; i < countForPlatform; i += 1) {
+                const t = (i + 1) / (countForPlatform + 1);
+                const x = boundsX + margin + (usableWidth * t);
+                let safeY = coinY;
+                let pushUp = 0;
+                const maxPushUp = 260;
+                while (this.isCoinInsideAnyPlatform(x, safeY, coinRadius) && pushUp <= maxPushUp) {
+                    safeY -= 12;
+                    pushUp += 12;
+                }
+
+                if (this.isCoinInsideAnyPlatform(x, safeY, coinRadius)) {
+                    continue;
+                }
+
+                targets.push({ x, y: safeY, radius: coinRadius });
+            }
+        });
+
+        return targets;
+    }
+
+    activateCoinAirdrop() {
+        if (this.coinsActivated || this.coinsDropping) {
+            return;
+        }
+
+        if (!Array.isArray(this.coinTargets) || this.coinTargets.length === 0) {
+            this.showEditorToast('No coin targets available');
+            return;
+        }
+
+        this.coinsActivated = true;
+        this.coinsDropping = true;
+
+        if (this.cryptoPortal) {
+            this.cryptoPortal.setTexture('crypto');
+            this.cryptoPortal.keyBW = 'crypto';
+        }
+
+        this.coinTargets.forEach((target, index) => {
+            const coin = this.add.circle(target.x, -40, target.radius, 0xb87333, 1);
+            coin.setStrokeStyle(3, 0xfff2a8, 1);
+            coin.setDepth(12);
+            coin.__collected = false;
+            coin.__airdropping = true;
+            this.coins.push(coin);
+
+            const dropDistance = target.y + 40;
+            const duration = 320 + Math.min(900, dropDistance * 0.35);
+            this.tweens.add({
+                targets: coin,
+                y: target.y,
+                duration,
+                ease: 'Cubic.easeIn',
+                delay: (index % 15) * 22,
+                onComplete: () => {
+                    coin.__airdropping = false;
+                }
+            });
+        });
+
+        this.time.delayedCall(1300, () => {
+            this.coinsDropping = false;
+            this.showEditorToast('Airdrop complete');
+        });
+
+        this.time.addEvent({
+            delay: 650,
+            loop: true,
+            callback: () => {
+                this.coins.forEach((coin, index) => {
+                    if (!coin.active || coin.__collected || coin.__airdropping) {
+                        return;
+                    }
+                    this.tweens.add({
+                        targets: coin,
+                        y: coin.y - 5,
+                        duration: 220,
+                        yoyo: true,
+                        ease: 'Sine.easeInOut',
+                        delay: (index % 8) * 18
+                    });
+                });
+            }
+        });
+    }
+
+    isCoinInsideAnyPlatform(x, y, radius) {
+        const MatterLib = Phaser.Physics.Matter.Matter;
+        const bodies = this.matter.world.localWorld.bodies.filter((body) => {
+            if (!body.isStatic || body.isSensor) {
+                return false;
+            }
+            const category = body.collisionFilter?.category;
+            return category === this.cats.GROUND || category === this.cats.ONE_WAY;
+        });
+
+        if (bodies.length === 0) {
+            return false;
+        }
+
+        const samplePoints = [
+            { x, y },
+            { x: x - radius, y },
+            { x: x + radius, y },
+            { x, y: y - radius },
+            { x, y: y + radius }
+        ];
+
+        return samplePoints.some((point) => MatterLib.Query.point(bodies, point).length > 0);
+    }
+
+    collectNearbyCoins() {
+        if (!this.coinsActivated) {
+            return;
+        }
+
+        const pickupRadius = 28;
+        const pickupRadiusSq = pickupRadius * pickupRadius;
+
+        this.coins.forEach((coin) => {
+            if (!coin.active || coin.__collected) {
+                return;
+            }
+
+            if (coin.__airdropping) {
+                return;
+            }
+
+            const dx = this.player.x - coin.x;
+            const dy = this.player.y - coin.y;
+            if ((dx * dx) + (dy * dy) > pickupRadiusSq) {
+                return;
+            }
+
+            coin.__collected = true;
+            this.collectedCoins += 1;
+            this.coinText.setText(`Coins: ${this.collectedCoins}`);
+
+            this.tweens.add({
+                targets: coin,
+                scale: 1.8,
+                alpha: 0,
+                duration: 110,
+                onComplete: () => coin.destroy()
+            });
+        });
+
+        if (!this.portalUnlocked && this.collectedCoins >= this.requiredCoinsToUnlockPortal) {
+            this.portalUnlocked = true;
+            if (this.portal1.isPlayerTouching) {
+                this.portal1.setTexture('speedrun');
+            }
+            this.showEditorToast('Portal unlocked');
+        }
     }
 
     update() {
         this.player.update();
+        this.collectNearbyCoins();
         this.hintText.setText("");
 
+        if (this.cryptoPortal && this.cryptoPortal.isPlayerTouching && !this.coinsActivated) {
+            this.hintText.setText('Press ENTER for an airdrop');
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.activateCoinAirdrop();
+            }
+        }
+
         if(this.portal1.isPlayerTouching) {
+            if (!this.portalUnlocked) {
+                this.portal1.setTexture('speedrun_bw');
+                this.hintText.setText(`Collect ${this.requiredCoinsToUnlockPortal} coins first (${this.collectedCoins}/${this.requiredCoinsToUnlockPortal})`);
+                return;
+            }
+
             this.hintText.setText("Press ENTER to enter the Portal");
 
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
