@@ -1,6 +1,7 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
+import { getHubProgress, saveHubProgress } from './GameState.js';
 
 export default class HubScene extends Phaser.Scene {
     constructor() { super("HubScene"); }
@@ -126,7 +127,11 @@ export default class HubScene extends Phaser.Scene {
         this.coinsDropping = false;
         this.portalUnlocked = false;
         this.coins = [];
+        this.collectedCoinIndices = new Set();
         this.coinTargets = this.buildCoinTargets(this.totalCoins);
+        this.spawnedCoinTotal = this.coinTargets.length;
+        this.cryptoHintUntil = 0;
+        this.cryptoHintMessage = '';
 
         this.captureLevelData = false;
 
@@ -142,6 +147,7 @@ export default class HubScene extends Phaser.Scene {
 
         this.setupAnims();
         this.setupZones(this.worldWidth, this.worldHeight);
+        this.restoreHubProgress();
 
         // --- 5. DEBUG MAP VIEW (Press 'M' to toggle) ---
 
@@ -646,6 +652,13 @@ export default class HubScene extends Phaser.Scene {
 
     setupZones(worldWidth, worldHeight) {
         this.hintText = this.add.text(16, 16, "", { fontFamily: "monospace", fontSize: "18px" }).setScrollFactor(0);
+        this.cryptoStatusText = this.add.text(16, 40, "", {
+            fontFamily: "monospace",
+            fontSize: "18px",
+            color: "#9fe8ff",
+            stroke: "#000000",
+            strokeThickness: 3
+        }).setScrollFactor(0);
         this.coinText = this.add.text(16, 40, "Coins: 0", {
             fontFamily: "monospace",
             fontSize: "18px",
@@ -653,6 +666,7 @@ export default class HubScene extends Phaser.Scene {
             stroke: "#000000",
             strokeThickness: 3
         }).setScrollFactor(0);
+        this.coinText.setPosition(16, 64);
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     }
 
@@ -715,6 +729,59 @@ export default class HubScene extends Phaser.Scene {
         return targets;
     }
 
+    persistHubProgress() {
+        saveHubProgress({
+            coinsActivated: this.coinsActivated,
+            collectedCoinIndices: Array.from(this.collectedCoinIndices),
+            portalUnlocked: this.portalUnlocked,
+            spawnedCoinTotal: this.spawnedCoinTotal
+        });
+    }
+
+    spawnRemainingCoinsFromProgress() {
+        this.coins.forEach((coin) => {
+            if (coin?.active) {
+                coin.destroy();
+            }
+        });
+        this.coins = [];
+
+        this.coinTargets.forEach((target, index) => {
+            if (this.collectedCoinIndices.has(index)) {
+                return;
+            }
+
+            const coin = this.add.circle(target.x, target.y, target.radius, 0xb87333, 1);
+            coin.setStrokeStyle(3, 0xfff2a8, 1);
+            coin.setDepth(12);
+            coin.__collected = false;
+            coin.__airdropping = false;
+            coin.__coinIndex = index;
+            this.coins.push(coin);
+        });
+    }
+
+    restoreHubProgress() {
+        const hubProgress = getHubProgress() || {};
+        const savedIndices = Array.isArray(hubProgress.collectedCoinIndices)
+            ? hubProgress.collectedCoinIndices
+            : [];
+
+        const validIndices = savedIndices.filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < this.spawnedCoinTotal);
+        this.collectedCoinIndices = new Set(validIndices);
+        this.collectedCoins = this.collectedCoinIndices.size;
+        this.coinsActivated = !!hubProgress.coinsActivated;
+        this.portalUnlocked = this.collectedCoins >= this.requiredCoinsToUnlockPortal || !!hubProgress.portalUnlocked;
+
+        this.coinText.setText(`Coins: ${this.collectedCoins}`);
+
+        if (this.coinsActivated) {
+            this.spawnRemainingCoinsFromProgress();
+        }
+
+        this.persistHubProgress();
+    }
+
     activateCoinAirdrop() {
         if (this.coinsActivated || this.coinsDropping) {
             return;
@@ -727,11 +794,10 @@ export default class HubScene extends Phaser.Scene {
 
         this.coinsActivated = true;
         this.coinsDropping = true;
-
-        if (this.cryptoPortal) {
-            this.cryptoPortal.setTexture('crypto');
-            this.cryptoPortal.keyBW = 'crypto';
-        }
+        this.collectedCoinIndices.clear();
+        this.collectedCoins = 0;
+        this.coinText.setText('Coins: 0');
+        this.persistHubProgress();
 
         this.coinTargets.forEach((target, index) => {
             const coin = this.add.circle(target.x, -40, target.radius, 0xb87333, 1);
@@ -739,6 +805,7 @@ export default class HubScene extends Phaser.Scene {
             coin.setDepth(12);
             coin.__collected = false;
             coin.__airdropping = true;
+            coin.__coinIndex = index;
             this.coins.push(coin);
 
             const dropDistance = target.y + 40;
@@ -757,7 +824,7 @@ export default class HubScene extends Phaser.Scene {
 
         this.time.delayedCall(1300, () => {
             this.coinsDropping = false;
-            this.showEditorToast('Airdrop complete');
+            this.showEditorToast(`Airdrop complete (${this.spawnedCoinTotal} coins)`);
         });
 
         this.time.addEvent({
@@ -813,6 +880,7 @@ export default class HubScene extends Phaser.Scene {
 
         const pickupRadius = 28;
         const pickupRadiusSq = pickupRadius * pickupRadius;
+        let progressChanged = false;
 
         this.coins.forEach((coin) => {
             if (!coin.active || coin.__collected) {
@@ -831,7 +899,11 @@ export default class HubScene extends Phaser.Scene {
 
             coin.__collected = true;
             this.collectedCoins += 1;
+            if (Number.isInteger(coin.__coinIndex)) {
+                this.collectedCoinIndices.add(coin.__coinIndex);
+            }
             this.coinText.setText(`Coins: ${this.collectedCoins}`);
+            progressChanged = true;
 
             this.tweens.add({
                 targets: coin,
@@ -848,6 +920,11 @@ export default class HubScene extends Phaser.Scene {
                 this.portal1.setTexture('speedrun');
             }
             this.showEditorToast('Portal unlocked');
+            progressChanged = true;
+        }
+
+        if (progressChanged) {
+            this.persistHubProgress();
         }
     }
 
@@ -855,12 +932,30 @@ export default class HubScene extends Phaser.Scene {
         this.player.update();
         this.collectNearbyCoins();
         this.hintText.setText("");
+        this.cryptoStatusText.setText('');
 
-        if (this.cryptoPortal && this.cryptoPortal.isPlayerTouching && !this.coinsActivated) {
-            this.hintText.setText('Press ENTER for an airdrop');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-                this.activateCoinAirdrop();
+        if (this.cryptoHintUntil > this.time.now) {
+            this.cryptoStatusText.setText(this.cryptoHintMessage);
+        }
+
+        if (this.cryptoPortal && this.cryptoPortal.isPlayerTouching) {
+            if (!this.coinsActivated) {
+                this.hintText.setText('Press ENTER for an airdrop');
+            } else {
+                this.hintText.setText('Press ENTER to check coins left');
             }
+
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                if (!this.coinsActivated) {
+                    this.activateCoinAirdrop();
+                } else {
+                    const coinsLeft = Math.max(0, this.spawnedCoinTotal - this.collectedCoins);
+                    this.cryptoHintMessage = `Coins left: ${coinsLeft}`;
+                    this.cryptoHintUntil = this.time.now + 1600;
+                }
+            }
+        } else if (this.cryptoHintUntil > this.time.now) {
+            this.hintText.setText(this.cryptoHintMessage);
         }
 
         if(this.portal1.isPlayerTouching) {
@@ -873,6 +968,7 @@ export default class HubScene extends Phaser.Scene {
             this.hintText.setText("Press ENTER to enter the Portal");
 
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.persistHubProgress();
                 this.scene.start('SillySpeedRunScene');
             }
         }
