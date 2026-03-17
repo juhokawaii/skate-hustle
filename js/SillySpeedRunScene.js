@@ -56,8 +56,8 @@ export default class SillySpeedRunScene extends Phaser.Scene {
             ? (data.finishPortalPos || { x: 800, y: 150 })
             : (hasCachedLevel ? (cachedLevel.finishPortal || { x: 800, y: 150 }) : { x: 800, y: 150 });
         this.returnPortalPos = hasInjectedLevel
-            ? (data.returnPortalPos || { x: this.spawnPoint.x - 200, y: this.worldHeight - 265 })
-            : (hasCachedLevel ? (cachedLevel.returnPortal || { x: this.spawnPoint.x - 200, y: this.worldHeight - 295 }) : { x: this.spawnPoint.x - 200, y: this.worldHeight - 295 });
+            ? (data.returnPortalPos || { x: 600, y: 5705 })
+            : (hasCachedLevel ? (cachedLevel.returnPortal || { x: 600, y: 5705 }) : { x: 600, y: 5705 });
 
         const sourcePlatforms = hasInjectedLevel
             ? data.levelPlatforms
@@ -96,9 +96,10 @@ export default class SillySpeedRunScene extends Phaser.Scene {
 
         this.finishPortal = new Graffiti(this, this.finishPortalPos.x, this.finishPortalPos.y, 'silly_top_bw', 'silly_top', this.cats.SENSOR);
         this.finishPortal.setScrollFactor(1, 1);
+        this.finishPortal.enableParallaxVisual(0.85, 0.85);
         this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
         this.returnPortal.setScrollFactor(1, 1);
-        this.returnPortal.setDepth(-5);
+        this.returnPortal.setDepth(-0.9);
         this.returnPortal.setAlpha(0.62);
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);

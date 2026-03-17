@@ -7,6 +7,7 @@ export default class Graffiti extends Phaser.Physics.Matter.Sprite {
         this.scene = scene;
         this.keyBW = keyBW;
         this.keyColor = keyColor;
+        this.visualProxy = null;
         
 
         // 1. PHYSICS SETUP
@@ -45,11 +46,39 @@ export default class Graffiti extends Phaser.Physics.Matter.Sprite {
         });
     }
 
+    enableParallaxVisual(scrollX = 0.85, scrollY = 0.85, options = {}) {
+        const visualX = options.x ?? this.x;
+        const visualY = options.y ?? this.y;
+        const visualDepth = options.depth ?? this.depth;
+        const visualAlpha = options.alpha ?? this.alpha;
+
+        if (this.visualProxy) {
+            this.visualProxy.destroy();
+            this.visualProxy = null;
+        }
+
+        this._parallaxScrollX = scrollX;
+        this._parallaxScrollY = scrollY;
+
+        this.visualProxy = this.scene.add.image(visualX, visualY, this.texture.key);
+        this.visualProxy.setOrigin(this.originX, this.originY);
+        this.visualProxy.setDepth(visualDepth);
+        this.visualProxy.setAlpha(visualAlpha);
+        this.visualProxy.setScrollFactor(scrollX, scrollY);
+
+        // Hide the world-locked sprite; sensor body will track the visual each frame.
+        this.setVisible(false);
+        return this;
+    }
+
     onEnter() {
         if (this.isPlayerTouching) return;
         
         this.isPlayerTouching = true;
         this.setTexture(this.keyColor);
+        if (this.visualProxy) {
+            this.visualProxy.setTexture(this.keyColor);
+        }
         
         // Optional: slight pop effect
         // Nah
@@ -64,6 +93,34 @@ export default class Graffiti extends Phaser.Physics.Matter.Sprite {
     onExit() {
         this.isPlayerTouching = false;
         this.setTexture(this.keyBW);
+        if (this.visualProxy) {
+            this.visualProxy.setTexture(this.keyBW);
+        }
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        if (this.visualProxy && this._parallaxScrollX != null) {
+            // Move the sensor body to match where the parallax visual actually appears
+            // in world space.  A parallax object at (vx, vy) with scrollFactor s renders
+            // at the same screen position as a world-locked object at:
+            //   worldX = vx + camera.scrollX * (1 - s)
+            const cam = this.scene.cameras.main;
+            const worldX = this.visualProxy.x + cam.scrollX * (1 - this._parallaxScrollX);
+            const worldY = this.visualProxy.y + cam.scrollY * (1 - this._parallaxScrollY);
+            this.setPosition(worldX, worldY);
+
+            this.visualProxy.setRotation(this.rotation);
+            this.visualProxy.setScale(this.scaleX, this.scaleY);
+        }
+    }
+
+    preDestroy() {
+        if (this.visualProxy) {
+            this.visualProxy.destroy();
+            this.visualProxy = null;
+        }
+        super.preDestroy();
     }
     
     // Call this in your Scene's update() loop if you want to check for interaction

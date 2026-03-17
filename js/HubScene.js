@@ -26,6 +26,8 @@ export default class HubScene extends Phaser.Scene {
 
         this.load.image("speedrun_bw", "assets/backgrounds/speedrun_bw.png");
         this.load.image("speedrun", "assets/backgrounds/speedrun.png");
+        this.load.image("race_bottom_bw", "assets/backgrounds/race-to-the-bottom-bw.png");
+        this.load.image("race_bottom", "assets/backgrounds/race-to-the-bottom.png");
         this.load.image("crypto_bw", "assets/backgrounds/crypto_bw.png");
         this.load.image("crypto", "assets/backgrounds/crypto.png");
 
@@ -53,8 +55,20 @@ export default class HubScene extends Phaser.Scene {
             ? (data.spawnPoint || { x: 200, y: 950 })
             : (hasCachedLevel ? (cachedLevel.spawn || { x: 200, y: 950 }) : { x: 200, y: 950 });
         this.portal1Pos = hasInjectedLevel
-            ? (data.portal1Pos || { x: 300, y: 1250 })
-            : (hasCachedLevel ? (cachedLevel.portal1 || { x: 300, y: 1250 }) : { x: 300, y: 1250 });
+            ? (data.portal1Pos || { x: 300, y: 1350 })
+            : (hasCachedLevel ? (cachedLevel.portal1 || { x: 300, y: 1350 }) : { x: 300, y: 1350 });
+        this.racePortalPos = hasInjectedLevel
+            ? (data.racePortalPos || { x: 1880, y: 1500 })
+            : (hasCachedLevel ? (cachedLevel.racePortal || { x: 1880, y: 1500 }) : { x: 1880, y: 1500 });
+
+        this.portal1Pos = {
+            x: this.portal1Pos.x,
+            y: this.portal1Pos.y - 100
+        };
+        this.racePortalPos = {
+            x: this.racePortalPos.x,
+            y: this.racePortalPos.y - 130
+        };
 
         const sourcePlatforms = hasInjectedLevel
             ? data.levelPlatforms
@@ -103,16 +117,25 @@ export default class HubScene extends Phaser.Scene {
         
  
         
-        this.portal1 = new Graffiti(this, this.portal1Pos.x, this.portal1Pos.y + 100, "speedrun_bw", "speedrun", this.cats.SENSOR);
+        this.portal1 = new Graffiti(this, this.portal1Pos.x, this.portal1Pos.y, "speedrun_bw", "speedrun", this.cats.SENSOR);
         this.portal1.setScrollFactor(1, 1);
+        this.portal1.enableParallaxVisual(0.85, 0.85);
+
+        this.racePortal = new Graffiti(this, this.racePortalPos.x, this.racePortalPos.y, "race_bottom_bw", "race_bottom", this.cats.SENSOR);
+        this.racePortal.setScrollFactor(1, 1);
+        this.racePortal.enableParallaxVisual(0.85, 0.85, {
+            depth: -2,
+            alpha: 0.70
+        });
 
         const defaultCryptoPos = this.getCryptoPortalPosition();
         this.cryptoPortalPos = {
-            x: Phaser.Math.Clamp(defaultCryptoPos.x + 100, 120, this.worldWidth - 120),
-            y: Phaser.Math.Clamp(defaultCryptoPos.y - 100, 120, this.worldHeight - 120)
+            x: Phaser.Math.Clamp(defaultCryptoPos.x - 600, 120, this.worldWidth - 120),
+            y: Phaser.Math.Clamp(defaultCryptoPos.y - 150, 120, this.worldHeight - 120)
         };
         this.cryptoPortal = new Graffiti(this, this.cryptoPortalPos.x, this.cryptoPortalPos.y, "crypto_bw", "crypto", this.cats.SENSOR);
         this.cryptoPortal.setScrollFactor(1, 1);
+        this.cryptoPortal.enableParallaxVisual(0.85, 0.85);
 
 
     // --- 2. THE PARK LAYOUT  ---
@@ -209,7 +232,8 @@ export default class HubScene extends Phaser.Scene {
                     worldHeight: this.worldHeight,
                     levelPlatforms: this.levelPlatforms,
                     spawnPoint: this.spawnPoint,
-                    portal1Pos: this.portal1Pos
+                    portal1Pos: this.portal1Pos,
+                    racePortalPos: this.racePortalPos
                 });
             }
         });
@@ -585,6 +609,7 @@ export default class HubScene extends Phaser.Scene {
             worldHeight: this.worldHeight,
             spawn: this.spawnPoint,
             portal1: this.portal1Pos,
+            racePortal: this.racePortalPos,
             platforms: exportPlatforms
         };
 
@@ -956,6 +981,15 @@ export default class HubScene extends Phaser.Scene {
             }
         } else if (this.cryptoHintUntil > this.time.now) {
             this.hintText.setText(this.cryptoHintMessage);
+        }
+
+        if (this.racePortal && this.racePortal.isPlayerTouching) {
+            this.hintText.setText('Press ENTER for BottomRace');
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.persistHubProgress();
+                this.scene.start('BottomRaceScene');
+                return;
+            }
         }
 
         if(this.portal1.isPlayerTouching) {
