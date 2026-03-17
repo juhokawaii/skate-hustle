@@ -96,16 +96,20 @@ export default class SillySpeedRunScene extends Phaser.Scene {
 
         this.finishPortal = new Graffiti(this, this.finishPortalPos.x, this.finishPortalPos.y, 'silly_top_bw', 'silly_top', this.cats.SENSOR);
         this.finishPortal.setScrollFactor(1, 1);
-        this.finishPortal.enableParallaxVisual(0.85, 0.85);
         this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
         this.returnPortal.setScrollFactor(1, 1);
-        this.returnPortal.enableParallaxVisual(0.85, 0.85, { depth: -5, alpha: 0.62 });
+        this.returnPortal.setDepth(-5);
+        this.returnPortal.setAlpha(0.62);
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
         // --- THE GAUNTLET ---
         this.levelPlatforms.forEach((def) => {
-            this.createPlatform(def.x, def.y, def.config, def);
+            try {
+                this.createPlatform(def.x, def.y, def.config, def);
+            } catch (err) {
+                console.error('Failed to create silly platform:', def, err);
+            }
         });
 
         this.captureLevelData = false;
@@ -200,6 +204,10 @@ export default class SillySpeedRunScene extends Phaser.Scene {
     }
 
     createPlatform(x, y, config, defRef = null) {
+        if (!config || typeof config !== 'object') {
+            return;
+        }
+
         const {
             type = 'RECT',
             width = 100,
@@ -276,6 +284,10 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         }
         else if (type === 'CIRCLE') {
             body = this.matter.add.circle(centerX, centerY, radius, bodyOptions);
+        }
+
+        if (Array.isArray(body)) {
+            body = body[0] || null;
         }
 
         if (!body) {
