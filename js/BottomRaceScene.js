@@ -15,10 +15,11 @@ export default class BottomRaceScene extends Phaser.Scene {
         this.load.image('player5', 'assets/player_sprites/player5.png');
         this.load.image('player6', 'assets/player_sprites/player6.png');
 
-        this.load.image('concrete_bg', 'assets/backgrounds/hubworld_background.png');
-        this.load.image('platform_texture', 'assets/backgrounds/256x256.png');
+        this.load.image('bottomrace_wall_texture', 'assets/backgrounds/256x256.png');
+        this.load.image('bottomrace_platform_texture', 'assets/backgrounds/hubworld_background.png');
         this.load.image('ground', 'assets/backgrounds/ground.png');
         this.load.image('drop', 'assets/backgrounds/drop.png');
+        this.load.image('bottomrace_drop_light', 'assets/backgrounds/drop-light.png');
         this.load.spritesheet('graffiti', 'assets/backgrounds/Atlas.png', {
             frameWidth: 512,
             frameHeight: 512
@@ -68,7 +69,7 @@ export default class BottomRaceScene extends Phaser.Scene {
             }
         });
 
-        const bg = this.add.tileSprite(0, 0, this.worldWidth, this.worldHeight, 'concrete_bg');
+        const bg = this.add.tileSprite(0, 0, this.worldWidth, this.worldHeight, 'bottomrace_wall_texture');
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
@@ -166,7 +167,7 @@ export default class BottomRaceScene extends Phaser.Scene {
             friction = 0.5,
             isOneWay = false,
             bouncy = false,
-            texture = 'platform_texture'
+            texture = 'bottomrace_platform_texture'
         } = config;
 
         const renderWidth = type === 'CIRCLE' ? radius * 2 : width;
@@ -223,20 +224,24 @@ export default class BottomRaceScene extends Phaser.Scene {
         body.collisionFilter.category = isOneWay ? this.cats.ONE_WAY : this.cats.GROUND;
 
         if (bouncy) {
-            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, 'ground');
+            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, 'bottomrace_platform_texture');
             return;
         }
 
+        const renderTexture = texture === 'platform_texture'
+            ? 'bottomrace_platform_texture'
+            : (texture === 'drop' ? 'bottomrace_drop_light' : texture);
+
         if (isOneWay || type === 'RECT') {
-            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, texture);
+            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, renderTexture);
         } else if (
             type === 'CURVE' ||
             type === 'RAMP_LEFT' || type === 'ramp_left' ||
             type === 'RAMP_RIGHT' || type === 'ramp_right'
         ) {
-            TextureFactory.styleCurve(this, body, texture);
+            TextureFactory.styleCurve(this, body, renderTexture);
         } else if (type === 'CIRCLE') {
-            TextureFactory.styleCircle(this, body, texture);
+            TextureFactory.styleCircle(this, body, renderTexture);
         }
     }
 

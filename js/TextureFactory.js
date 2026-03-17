@@ -33,7 +33,7 @@ export default class TextureFactory {
     }
 
     static isConcreteTexture(textureKey) {
-        return textureKey === 'platform_texture';
+        return textureKey === 'platform_texture' || textureKey === 'bottomrace_platform_texture';
     }
 
     static getGraffitiTagCount(width, height) {

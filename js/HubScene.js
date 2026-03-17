@@ -244,17 +244,39 @@ export default class HubScene extends Phaser.Scene {
             }
         });
 
-        // Cheat code: type "silly" to jump to SillySpeedRunScene
+        // Cheat codes: type "silly" or "bottom" to jump to scenes
         this._cheatBuffer = '';
+        const cheatCodes = {
+            silly: 'SillySpeedRunScene',
+            bottom: 'BottomRaceScene'
+        };
+        const cheatWords = Object.keys(cheatCodes);
+        const maxCheatLen = cheatWords.reduce((m, word) => Math.max(m, word.length), 0);
         this.input.keyboard.on('keydown', (event) => {
-            this._cheatBuffer += event.key.toLowerCase();
-            if (this._cheatBuffer.length > 5) {
-                this._cheatBuffer = this._cheatBuffer.slice(-5);
+            const key = (event.key || '').toLowerCase();
+            if (!/^[a-z]$/.test(key)) {
+                this._cheatBuffer = '';
+                return;
             }
-            if (this._cheatBuffer === 'silly') {
+
+            this._cheatBuffer += key;
+            if (this._cheatBuffer.length > maxCheatLen) {
+                this._cheatBuffer = this._cheatBuffer.slice(-maxCheatLen);
+            }
+
+            if (cheatCodes[this._cheatBuffer]) {
+                const targetScene = cheatCodes[this._cheatBuffer];
                 this._cheatBuffer = '';
                 this.persistHubProgress();
-                this.scene.start('SillySpeedRunScene');
+                this.scene.start(targetScene);
+                return;
+            }
+
+            if (!cheatWords.some((word) => word.startsWith(this._cheatBuffer))) {
+                this._cheatBuffer = key;
+                if (!cheatWords.some((word) => word.startsWith(this._cheatBuffer))) {
+                    this._cheatBuffer = '';
+                }
             }
         });
 
