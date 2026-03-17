@@ -26,6 +26,8 @@ export default class SillySpeedRunScene extends Phaser.Scene {
 
         this.load.image('silly_top_bw', 'assets/backgrounds/silly_top_bw.png');
         this.load.image('silly_top', 'assets/backgrounds/silly_top.png');
+        this.load.image('logo_portal_bw', 'assets/backgrounds/logo-bw.png');
+        this.load.image('logo_portal', 'assets/backgrounds/logo.png');
         this.load.json('silly_speedrun_level', 'assets/levels/sillySpeedRunLevel.json');
 
         this.load.audio('title', 'assets/music/ramp.mp3');
@@ -53,6 +55,9 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         this.finishPortalPos = hasInjectedLevel
             ? (data.finishPortalPos || { x: 800, y: 150 })
             : (hasCachedLevel ? (cachedLevel.finishPortal || { x: 800, y: 150 }) : { x: 800, y: 150 });
+        this.returnPortalPos = hasInjectedLevel
+            ? (data.returnPortalPos || { x: this.spawnPoint.x - 200, y: this.worldHeight - 265 })
+            : (hasCachedLevel ? (cachedLevel.returnPortal || { x: this.spawnPoint.x - 200, y: this.worldHeight - 295 }) : { x: this.spawnPoint.x - 200, y: this.worldHeight - 295 });
 
         const sourcePlatforms = hasInjectedLevel
             ? data.levelPlatforms
@@ -90,7 +95,11 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         bg.setDepth(-10);
 
         this.finishPortal = new Graffiti(this, this.finishPortalPos.x, this.finishPortalPos.y, 'silly_top_bw', 'silly_top', this.cats.SENSOR);
-        this.finishPortal.setScrollFactor(0.85, 0.85);
+        this.finishPortal.setScrollFactor(1, 1);
+        this.finishPortal.enableParallaxVisual(0.85, 0.85);
+        this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
+        this.returnPortal.setScrollFactor(1, 1);
+        this.returnPortal.enableParallaxVisual(0.85, 0.85, { depth: -5, alpha: 0.62 });
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
@@ -177,7 +186,8 @@ export default class SillySpeedRunScene extends Phaser.Scene {
                     worldHeight: this.worldHeight,
                     levelPlatforms: this.levelPlatforms,
                     spawnPoint: this.spawnPoint,
-                    finishPortalPos: this.finishPortalPos
+                    finishPortalPos: this.finishPortalPos,
+                    returnPortalPos: this.returnPortalPos
                 });
             }
         });
@@ -503,6 +513,7 @@ export default class SillySpeedRunScene extends Phaser.Scene {
             worldHeight: this.worldHeight,
             spawn: this.spawnPoint,
             finishPortal: this.finishPortalPos,
+            returnPortal: this.returnPortalPos,
             platforms: exportPlatforms
         };
 
@@ -567,6 +578,11 @@ export default class SillySpeedRunScene extends Phaser.Scene {
 
     update() {
         this.player.update();
+
+        if (this.returnPortal.isPlayerTouching && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            this.scene.start('HubScene');
+            return;
+        }
 
         if (!this.timerStopped && this.finishPortal.isPlayerTouching) {
             this.timerStopped = true;
