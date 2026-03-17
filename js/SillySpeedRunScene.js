@@ -94,13 +94,34 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
 
+        // Compensate visual proxy positions for parallax in tall world
+        const viewW = this.scale.width;
+        const viewH = this.scale.height;
+        const pxFactor = 0.85;
+        const followOffY = 100;
+
+        const finCamX = Phaser.Math.Clamp(this.finishPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
+        const finCamY = Phaser.Math.Clamp(this.finishPortalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
+
         this.finishPortal = new Graffiti(this, this.finishPortalPos.x, this.finishPortalPos.y, 'silly_top_bw', 'silly_top', this.cats.SENSOR);
         this.finishPortal.setScrollFactor(1, 1);
-        this.finishPortal.enableParallaxVisual(0.85, 0.85);
+        this.finishPortal.enableParallaxVisual(pxFactor, pxFactor, {
+            x: this.finishPortalPos.x - finCamX * (1 - pxFactor),
+            y: this.finishPortalPos.y - finCamY * (1 - pxFactor),
+            depth: -2
+        });
+
+        const retCamX = Phaser.Math.Clamp(this.returnPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
+        const retCamY = Phaser.Math.Clamp(this.returnPortalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
+
         this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
         this.returnPortal.setScrollFactor(1, 1);
-        this.returnPortal.setDepth(-0.9);
-        this.returnPortal.setAlpha(0.62);
+        this.returnPortal.enableParallaxVisual(pxFactor, pxFactor, {
+            x: this.returnPortalPos.x - retCamX * (1 - pxFactor),
+            y: this.returnPortalPos.y - retCamY * (1 - pxFactor),
+            depth: -2,
+            alpha: 0.62
+        });
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 

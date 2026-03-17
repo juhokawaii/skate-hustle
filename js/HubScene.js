@@ -244,6 +244,20 @@ export default class HubScene extends Phaser.Scene {
             }
         });
 
+        // Cheat code: type "silly" to jump to SillySpeedRunScene
+        this._cheatBuffer = '';
+        this.input.keyboard.on('keydown', (event) => {
+            this._cheatBuffer += event.key.toLowerCase();
+            if (this._cheatBuffer.length > 5) {
+                this._cheatBuffer = this._cheatBuffer.slice(-5);
+            }
+            if (this._cheatBuffer === 'silly') {
+                this._cheatBuffer = '';
+                this.persistHubProgress();
+                this.scene.start('SillySpeedRunScene');
+            }
+        });
+
 
     }
 
