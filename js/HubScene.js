@@ -119,7 +119,9 @@ export default class HubScene extends Phaser.Scene {
         
         this.portal1 = new Graffiti(this, this.portal1Pos.x, this.portal1Pos.y, "speedrun_bw", "speedrun", this.cats.SENSOR);
         this.portal1.setScrollFactor(1, 1);
-        this.portal1.enableParallaxVisual(0.85, 0.85);
+        this.portal1.enableParallaxVisual(0.85, 0.85, {
+            alpha: 0.85
+        });
 
         this.racePortal = new Graffiti(this, this.racePortalPos.x, this.racePortalPos.y, "race_bottom_bw", "race_bottom", this.cats.SENSOR);
         this.racePortal.setScrollFactor(1, 1);
@@ -145,10 +147,13 @@ export default class HubScene extends Phaser.Scene {
 
         this.totalCoins = 100;
         this.requiredCoinsToUnlockPortal = 20;
+        this.requiredCoinsToUnlockRacePortal = 40;
         this.collectedCoins = 0;
         this.coinsActivated = false;
         this.coinsDropping = false;
         this.portalUnlocked = false;
+        this.racePortalUnlocked = false;
+        this.sillyCompleted = false;
         this.coins = [];
         this.collectedCoinIndices = new Set();
         this.coinTargets = this.buildCoinTargets(this.totalCoins);
@@ -795,7 +800,8 @@ export default class HubScene extends Phaser.Scene {
             coinsActivated: this.coinsActivated,
             collectedCoinIndices: Array.from(this.collectedCoinIndices),
             portalUnlocked: this.portalUnlocked,
-            spawnedCoinTotal: this.spawnedCoinTotal
+            spawnedCoinTotal: this.spawnedCoinTotal,
+            sillyCompleted: this.sillyCompleted
         });
     }
 
@@ -832,7 +838,9 @@ export default class HubScene extends Phaser.Scene {
         this.collectedCoinIndices = new Set(validIndices);
         this.collectedCoins = this.collectedCoinIndices.size;
         this.coinsActivated = !!hubProgress.coinsActivated;
+        this.sillyCompleted = !!hubProgress.sillyCompleted;
         this.portalUnlocked = this.collectedCoins >= this.requiredCoinsToUnlockPortal || !!hubProgress.portalUnlocked;
+        this.racePortalUnlocked = this.sillyCompleted && this.collectedCoins >= this.requiredCoinsToUnlockRacePortal;
 
         this.coinText.setText(`Coins: ${this.collectedCoins}`);
 
@@ -978,9 +986,15 @@ export default class HubScene extends Phaser.Scene {
         if (!this.portalUnlocked && this.collectedCoins >= this.requiredCoinsToUnlockPortal) {
             this.portalUnlocked = true;
             if (this.portal1.isPlayerTouching) {
-                this.portal1.setTexture('speedrun');
+                this.setPortalTexture(this.portal1, 'speedrun');
             }
             this.showEditorToast('Portal unlocked');
+            progressChanged = true;
+        }
+
+        if (!this.racePortalUnlocked && this.sillyCompleted && this.collectedCoins >= this.requiredCoinsToUnlockRacePortal) {
+            this.racePortalUnlocked = true;
+            this.showEditorToast('Race to the Bottom unlocked');
             progressChanged = true;
         }
 
@@ -989,11 +1003,33 @@ export default class HubScene extends Phaser.Scene {
         }
     }
 
+    setPortalTexture(portal, textureKey) {
+        if (!portal) {
+            return;
+        }
+        portal.setTexture(textureKey);
+        if (portal.visualProxy) {
+            portal.visualProxy.setTexture(textureKey);
+        }
+    }
+
     update() {
         this.player.update();
         this.collectNearbyCoins();
         this.hintText.setText("");
         this.cryptoStatusText.setText('');
+
+        if (!this.portalUnlocked) {
+            this.setPortalTexture(this.portal1, 'speedrun_bw');
+        } else if (this.portal1.isPlayerTouching) {
+            this.setPortalTexture(this.portal1, 'speedrun');
+        }
+
+        if (!this.racePortalUnlocked) {
+            this.setPortalTexture(this.racePortal, 'race_bottom_bw');
+        } else if (this.racePortal.isPlayerTouching) {
+            this.setPortalTexture(this.racePortal, 'race_bottom');
+        }
 
         if (this.cryptoHintUntil > this.time.now) {
             this.cryptoStatusText.setText(this.cryptoHintMessage);
@@ -1020,7 +1056,14 @@ export default class HubScene extends Phaser.Scene {
         }
 
         if (this.racePortal && this.racePortal.isPlayerTouching) {
-            this.hintText.setText('Press ENTER for BottomRace');
+            if (!this.racePortalUnlocked) {
+                const raceReq = this.requiredCoinsToUnlockRacePortal;
+                const sillyReq = this.sillyCompleted ? 'done' : 'not done';
+                this.hintText.setText(`Race to the Bottom needs ${raceReq} coins (${this.collectedCoins}/${raceReq}) + Silly Speed Run ${sillyReq}`);
+                return;
+            }
+
+            this.hintText.setText('Press ENTER for Race to the Bottom');
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
                 this.persistHubProgress();
                 this.scene.start('BottomRaceScene');
@@ -1030,7 +1073,6 @@ export default class HubScene extends Phaser.Scene {
 
         if(this.portal1.isPlayerTouching) {
             if (!this.portalUnlocked) {
-                this.portal1.setTexture('speedrun_bw');
                 this.hintText.setText(`Collect ${this.requiredCoinsToUnlockPortal} coins first (${this.collectedCoins}/${this.requiredCoinsToUnlockPortal})`);
                 return;
             }

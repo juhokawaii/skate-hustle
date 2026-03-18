@@ -3,7 +3,8 @@ const gameState = {
         coinsActivated: false,
         collectedCoinIndices: [],
         portalUnlocked: false,
-        spawnedCoinTotal: 0
+        spawnedCoinTotal: 0,
+        sillyCompleted: false
     }
 };
 
@@ -24,6 +25,7 @@ export function resetHubProgress() {
         coinsActivated: false,
         collectedCoinIndices: [],
         portalUnlocked: false,
-        spawnedCoinTotal: 0
+        spawnedCoinTotal: 0,
+        sillyCompleted: false
     };
 }

@@ -1,6 +1,7 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
+import { saveHubProgress } from './GameState.js';
 
 export default class SillySpeedRunScene extends Phaser.Scene {
     constructor() {
@@ -622,6 +623,7 @@ export default class SillySpeedRunScene extends Phaser.Scene {
             this.timerStopped = true;
             this.finalTimeMs = this.time.now - this.timerStartedAt;
             this.timerText.setColor('#5dff8b');
+            saveHubProgress({ sillyCompleted: true });
         }
 
         if (this.finishPortal.isPlayerTouching && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
