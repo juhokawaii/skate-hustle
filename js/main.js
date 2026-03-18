@@ -1,3 +1,4 @@
+import SplashScene from './SplashScene.js';
 import HubScene from './HubScene.js';
 import SillySpeedRunScene from './SillySpeedRunScene.js';
 import BottomRaceScene from './BottomRaceScene.js';
@@ -18,7 +19,7 @@ const config = {
             enableSleeping: false
         }
     },
-    scene: [HubScene, SillySpeedRunScene, BottomRaceScene]
+    scene: [SplashScene, HubScene, SillySpeedRunScene, BottomRaceScene]
 };
 
 new Phaser.Game(config);
