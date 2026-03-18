@@ -1,0 +1,52 @@
+#consent-banner {
+    position: absolute; /* Keeps it relative to the game container */
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(10, 10, 10, 0.95);
+    border-bottom: 3px solid #ff0055;
+    color: #fff;
+    font-family: monospace;
+    text-align: center;
+    z-index: 9999;
+    
+    /* The Slide Magic */
+    transform: translateY(-100%); /* Hidden above the screen by default */
+    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Snappy, skater-like bounce */
+}
+
+/* When this class is added, the banner slides down */
+#consent-banner.visible {
+    transform: translateY(0); 
+}
+
+.consent-content {
+    padding: 20px;
+}
+
+.button-row {
+    margin-top: 15px;
+}
+
+.btn-neon {
+    background-color: #ff0055;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: bold;
+    font-family: monospace;
+    margin-right: 10px;
+}
+
+.btn-ghost {
+    background-color: transparent;
+    color: #888;
+    border: 1px solid #888;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: monospace;
+}
+
+.btn-neon:hover { background-color: #cc0044; }
+.btn-ghost:hover { color: #fff; border-color: #fff; }

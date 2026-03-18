@@ -4,10 +4,71 @@
 
 <head>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
 <body>
+    <div id="consent-banner">
+    <div class="consent-content">
+        <h2>SYSTEM UPLINK</h2>
+        <p>We use cookies to count our skaters. <br>Do you want to run dark, or count yourself in?</p>
+        <div class="button-row">
+            <button id="btn-accept" class="btn-neon">COUNT ME IN</button>
+            <button id="btn-reject" class="btn-ghost">RUN DARK</button>
+        </div>
+    </div>
+    </div>
     <div id="game-container"></div>
     <script type="module" src="js/main.js"></script>
+    <script>
+        const GA_MEASUREMENT_ID = 'G-DGMM7X2BYK'; // <-- Pasted the ID here
+        const banner = document.getElementById('consent-banner');
+        const btnAccept = document.getElementById('btn-accept');
+        const btnReject = document.getElementById('btn-reject');
+
+        function injectGA() {
+            const script1 = document.createElement('script');
+            script1.async = true;
+            script1.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+            document.head.appendChild(script1);
+
+            const script2 = document.createElement('script');
+            script2.innerHTML = `
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}');
+            `;
+            document.head.appendChild(script2);
+            console.log("System: Tracking Online.");
+        }
+
+        // Check Local Storage
+        const consentStatus = localStorage.getItem('sudo_tracking_consent');
+
+        if (consentStatus === 'true') {
+            injectGA();
+        } else if (consentStatus === 'false') {
+            console.log("System: Running Off the Grid.");
+        } else {
+            // Trigger the slide-down animation!
+            setTimeout(() => {
+                banner.classList.add('visible');
+            }, 500); // 500ms delay so the game boots up first
+        }
+
+        // Handle Clicks (Slide the banner back up)
+        btnAccept.addEventListener('click', () => {
+            localStorage.setItem('sudo_tracking_consent', 'true');
+            banner.classList.remove('visible'); // Slides it up
+            injectGA();
+        });
+
+        btnReject.addEventListener('click', () => {
+            localStorage.setItem('sudo_tracking_consent', 'false');
+            banner.classList.remove('visible'); // Slides it up
+            console.log("System: Running Off the Grid.");
+        });
+    </script>
 </body>
 </html>
