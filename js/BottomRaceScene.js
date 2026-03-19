@@ -1,6 +1,7 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
+import { CATS } from './CollisionCategories.js';
 
 export default class BottomRaceScene extends Phaser.Scene {
     constructor() {
@@ -77,12 +78,7 @@ export default class BottomRaceScene extends Phaser.Scene {
         this.editorInspect = null;
         this.editorToast = null;
 
-        this.cats = {
-            GROUND: this.matter.world.nextCategory(),
-            ONE_WAY: this.matter.world.nextCategory(),
-            PLAYER: this.matter.world.nextCategory(),
-            SENSOR: this.matter.world.nextCategory()
-        };
+        this.cats = CATS;
 
         this.matter.world.setBounds(0, 0, this.worldWidth, this.worldHeight, 1000, true, true, true, true);
         Object.values(this.matter.world.walls).forEach((wall) => {

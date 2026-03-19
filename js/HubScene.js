@@ -2,6 +2,7 @@ import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
 import { getHubProgress, saveHubProgress } from './GameState.js';
+import { CATS } from './CollisionCategories.js';
 
 export default class HubScene extends Phaser.Scene {
     constructor() { super("HubScene"); }
@@ -88,12 +89,7 @@ export default class HubScene extends Phaser.Scene {
         this.editorInspect = null;
 
         // --- -1. COLLISION CATEGORIES ---
-        this.cats = {
-            GROUND: this.matter.world.nextCategory(),
-            ONE_WAY: this.matter.world.nextCategory(),
-            PLAYER: this.matter.world.nextCategory(), 
-            SENSOR: this.matter.world.nextCategory()
-        };
+        this.cats = CATS;
 
         // 0. CREATE THE WALLS
         // Create the invisible box around the world
