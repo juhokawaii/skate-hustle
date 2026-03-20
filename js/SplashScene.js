@@ -24,8 +24,8 @@ export default class SplashScene extends Phaser.Scene {
             frameHeight: 512
         });
 
-        this.load.image('logo_portal_bw', 'assets/backgrounds/logo-full-bw.png');
-        this.load.image('logo_portal', 'assets/backgrounds/logo-full.png');
+        this.load.image('logo_full_portal_bw', 'assets/backgrounds/logo-full-bw.png');
+        this.load.image('logo_full_portal', 'assets/backgrounds/logo-full.png');
     }
 
     create() {
@@ -46,7 +46,7 @@ export default class SplashScene extends Phaser.Scene {
 
         this.createPlatform(0, this.worldHeight - 60, this.worldWidth, 60);
 
-        this.portal = new Graffiti(this, 1170, 390, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
+        this.portal = new Graffiti(this, 1170, 390, 'logo_full_portal_bw', 'logo_full_portal', this.cats.SENSOR);
         this.portal.setScrollFactor(1, 1);
         this.portal.enableParallaxVisual(1, 1, {
             depth: -2,
@@ -55,7 +55,7 @@ export default class SplashScene extends Phaser.Scene {
         this.portal.setScale(0.9);
 
         this.portalActivated = false;
-        this.setPortalTexture('logo_portal_bw');
+        this.setPortalTexture('logo_full_portal_bw');
 
         this.player = new Player(this, 180, 560, this.cats);
         this.player.setDepth(10);
@@ -298,7 +298,7 @@ export default class SplashScene extends Phaser.Scene {
             this.spawnTutorialCoinB();
         } else if (this.tutorialStep === 3) {
             this.portalActivated = true;
-            this.setPortalTexture('logo_portal');
+            this.setPortalTexture('logo_full_portal');
         }
     }
 
@@ -321,9 +321,9 @@ export default class SplashScene extends Phaser.Scene {
         this.player.update();
 
         if (!this.portalActivated) {
-            this.setPortalTexture('logo_portal_bw');
+            this.setPortalTexture('logo_full_portal_bw');
         } else {
-            this.setPortalTexture(this.portal.isPlayerTouching ? 'logo_portal' : 'logo_portal_bw');
+            this.setPortalTexture(this.portal.isPlayerTouching ? 'logo_full_portal' : 'logo_full_portal_bw');
         }
 
         if (this.portal.isPlayerTouching) {
