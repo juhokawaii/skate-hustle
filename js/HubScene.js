@@ -33,13 +33,13 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("crypto", "assets/backgrounds/crypto.png");
 
         this.load.audio("secret", "assets/music/title.mp3");
-        this.load.audio("title", "assets/music/ramp.mp3");
+        this.load.audio("ramp", "assets/music/ramp.mp3");
     }
 
     create(data = {}) {
         // --- BACKGROUND MUSIC ---
         this.sound.stopAll();
-        this.bgmusic = this.sound.add("title", { volume: 1.0, loop: true });
+        this.bgmusic = this.sound.add("ramp", { volume: 1.0, loop: true });
         this.bgmusic.play();
 
         const cachedLevel = this.cache.json.get('hub_level');
