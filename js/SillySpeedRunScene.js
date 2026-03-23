@@ -32,12 +32,12 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         this.load.image('logo_portal', 'assets/backgrounds/logo.png');
         this.load.json('silly_speedrun_level', 'assets/levels/sillySpeedRunLevel.json');
 
-        this.load.audio('title', 'assets/music/ramp.mp3');
+        this.load.audio('run_track', 'assets/music/run.mp3');
     }
 
     create(data = {}) {
         this.sound.stopAll();
-        this.bgmusic = this.sound.add('title', { volume: 0.9, loop: true });
+        this.bgmusic = this.sound.add('run_track', { volume: 0.9, loop: true });
         this.bgmusic.play();
 
         const cachedLevel = this.cache.json.get('silly_speedrun_level');

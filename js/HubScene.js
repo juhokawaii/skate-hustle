@@ -31,6 +31,7 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("race_bottom", "assets/backgrounds/race-to-the-bottom.png");
         this.load.image("crypto_bw", "assets/backgrounds/crypto_bw.png");
         this.load.image("crypto", "assets/backgrounds/crypto.png");
+        this.load.image("dealwithit", "assets/backgrounds/dealwithit.png");
 
         this.load.audio("secret", "assets/music/title.mp3");
         this.load.audio("ramp", "assets/music/ramp.mp3");
@@ -134,6 +135,21 @@ export default class HubScene extends Phaser.Scene {
         this.cryptoPortal = new Graffiti(this, this.cryptoPortalPos.x, this.cryptoPortalPos.y, "crypto_bw", "crypto", this.cats.SENSOR);
         this.cryptoPortal.setScrollFactor(1, 1);
         this.cryptoPortal.enableParallaxVisual(0.85, 0.85);
+
+        // Decorative unlock graffiti on the center ramp wall.
+        this.dealWithItGraffiti = this.add.image(4680, 1030, 'dealwithit');
+        this.dealWithItGraffiti.setScrollFactor(0.85, 0.85);
+        this.dealWithItGraffiti.setDepth(-3);
+        this.dealWithItGraffiti.setScale(0.56);
+        this.dealWithItGraffiti.setAlpha(0);
+        this.dealWithItGraffiti.setVisible(false);
+        this.dealWithItGraffitiShown = false;
+        this.dealWithItCheatEnabled = false;
+        this.dealWithItCheatBuffer = '';
+        this.input.keyboard.on('keydown', this.handleDealWithItCheatInput, this);
+        this.events.once('shutdown', () => {
+            this.input.keyboard.off('keydown', this.handleDealWithItCheatInput, this);
+        });
 
 
     // --- 2. THE PARK LAYOUT  ---
@@ -801,6 +817,61 @@ export default class HubScene extends Phaser.Scene {
         });
     }
 
+    updateDealWithItGraffitiVisibility() {
+        if (!this.dealWithItGraffiti) {
+            return;
+        }
+
+        const shouldShow = this.collectedCoins >= 90 || this.dealWithItCheatEnabled;
+        if (!shouldShow) {
+            this.dealWithItGraffiti.setVisible(false);
+            this.dealWithItGraffiti.setAlpha(0);
+            this.dealWithItGraffitiShown = false;
+            return;
+        }
+
+        this.dealWithItGraffiti.setVisible(true);
+        if (this.dealWithItGraffitiShown) {
+            this.dealWithItGraffiti.setAlpha(1);
+            return;
+        }
+
+        this.dealWithItGraffiti.setAlpha(0);
+        this.tweens.add({
+            targets: this.dealWithItGraffiti,
+            alpha: 1,
+            duration: 720,
+            ease: 'Sine.easeOut'
+        });
+        this.dealWithItGraffitiShown = true;
+    }
+
+    handleDealWithItCheatInput(event) {
+        const key = typeof event?.key === 'string' ? event.key.toUpperCase() : '';
+        if (!key) {
+            return;
+        }
+
+        if (key === 'BACKSPACE') {
+            this.dealWithItCheatBuffer = this.dealWithItCheatBuffer.slice(0, -1);
+            return;
+        }
+
+        if (!/^[A-Z]$/.test(key)) {
+            return;
+        }
+
+        const target = 'DEALWITHIT';
+        this.dealWithItCheatBuffer = (this.dealWithItCheatBuffer + key).slice(-target.length);
+        if (this.dealWithItCheatBuffer !== target) {
+            return;
+        }
+
+        this.dealWithItCheatEnabled = true;
+        this.updateDealWithItGraffitiVisibility();
+        this.showEditorToast('DEALWITHIT cheat activated');
+    }
+
     spawnRemainingCoinsFromProgress() {
         this.coins.forEach((coin) => {
             if (coin?.active) {
@@ -839,6 +910,7 @@ export default class HubScene extends Phaser.Scene {
         this.racePortalUnlocked = this.sillyCompleted && this.collectedCoins >= this.requiredCoinsToUnlockRacePortal;
 
         this.coinText.setText(`Coins: ${this.collectedCoins}`);
+        this.updateDealWithItGraffitiVisibility();
 
         if (this.coinsActivated) {
             this.spawnRemainingCoinsFromProgress();
@@ -968,6 +1040,7 @@ export default class HubScene extends Phaser.Scene {
                 this.collectedCoinIndices.add(coin.__coinIndex);
             }
             this.coinText.setText(`Coins: ${this.collectedCoins}`);
+            this.updateDealWithItGraffitiVisibility();
             progressChanged = true;
 
             this.tweens.add({
@@ -1012,6 +1085,7 @@ export default class HubScene extends Phaser.Scene {
     update() {
         this.player.update();
         this.collectNearbyCoins();
+        this.updateDealWithItGraffitiVisibility();
         this.hintText.setText("");
         this.cryptoStatusText.setText('');
 
