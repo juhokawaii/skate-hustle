@@ -9,6 +9,11 @@ const config = {
     height: 720,
     parent: "game-container",
     pixelArt: true,
+    scale: {
+        mode: Phaser.Scale.NONE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        fullscreenTarget: 'game-container'
+    },
     physics: {
         default: "matter", // Use Matter physics
         matter: {
@@ -22,4 +27,27 @@ const config = {
     scene: [SplashScene, HubScene, SillySpeedRunScene, BottomRaceScene]
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+
+game.scale.on('enterfullscreen', () => {
+    game.scale.scaleMode = Phaser.Scale.FIT;
+    game.scale.refresh();
+});
+
+game.scale.on('leavefullscreen', () => {
+    game.scale.scaleMode = Phaser.Scale.NONE;
+    game.scale.resize(1280, 720);
+    game.canvas.style.width = '1280px';
+    game.canvas.style.height = '720px';
+    game.scale.refresh();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyF') {
+        if (game.scale.isFullscreen) {
+            game.scale.stopFullscreen();
+        } else {
+            game.scale.startFullscreen();
+        }
+    }
+});
