@@ -1,7 +1,7 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
-import { getHubProgress, saveHubProgress } from './GameState.js';
+import { getHubProgress, saveHubProgress, isDebugMode, setDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 
 export default class HubScene extends Phaser.Scene {
@@ -189,6 +189,51 @@ export default class HubScene extends Phaser.Scene {
         this.setupZones(this.worldWidth, this.worldHeight);
         this.restoreHubProgress();
 
+        // --- BREADCRUMB ARROWS (first-time guidance to Crypto Chase) ---
+        this.guidanceArrows = [];
+        if (!this.coinsActivated) {
+            const arrowDefs = [
+                { x: 650,  y: 1640, char: '>' },
+                { x: 1065, y: 1490, char: '>' },
+                { x: 1440, y: 1400, char: '>' },
+                { x: 1925, y: 1490, char: '>' },
+                { x: 2540, y: 1400, char: '>' },
+                { x: 3090, y: 1640, char: '>' },
+                { x: 3735, y: 1485, char: '>' },
+                { x: 4280, y: 1640, char: '>' },
+                { x: 4705, y: 1530, char: '<' },
+                { x: 4455, y: 1325, char: '>' },
+                { x: 4730, y: 1125, char: '>' },
+                { x: 4950, y: 905,  char: '>' },
+                { x: 5600, y: 1480, char: '>' },
+                { x: 6280, y: 920,  char: '<' },
+                { x: 6025, y: 705,  char: '<' },
+                { x: 5775, y: 575,  char: '<' },
+                { x: 4960, y: 575,  char: '<' },
+            ];
+            arrowDefs.forEach((def) => {
+                const arrow = this.add.text(def.x, def.y, def.char, {
+                    fontFamily: 'monospace',
+                    fontSize: '108px',
+                    color: '#00ff66',
+                    stroke: '#003300',
+                    strokeThickness: 8
+                });
+                arrow.setOrigin(0.5, 1);
+                arrow.setDepth(15);
+                arrow.__reached = false;
+                this.tweens.add({
+                    targets: arrow,
+                    alpha: { from: 1, to: 0.3 },
+                    duration: 800,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+                this.guidanceArrows.push(arrow);
+            });
+        }
+
         // --- 5. DEBUG MAP VIEW (Press 'M' to toggle) ---
 
         // 5.1. Create a custom Graphics grid with THICK lines so it survives the zoom
@@ -261,14 +306,16 @@ export default class HubScene extends Phaser.Scene {
             }
         });
 
-        // Cheat codes: type "silly" or "bottom" to jump to scenes
+        // Cheat codes: type "debug" to enable debug mode, then "silly" or "bottom" to jump to scenes
         this._cheatBuffer = '';
         const cheatCodes = {
             silly: 'SillySpeedRunScene',
             bottom: 'BottomRaceScene'
         };
+        const debugWord = 'debug';
         const cheatWords = Object.keys(cheatCodes);
-        const maxCheatLen = cheatWords.reduce((m, word) => Math.max(m, word.length), 0);
+        const allWords = [debugWord, ...cheatWords];
+        const maxCheatLen = allWords.reduce((m, word) => Math.max(m, word.length), 0);
         this.input.keyboard.on('keydown', (event) => {
             const key = (event.key || '').toLowerCase();
             if (!/^[a-z]$/.test(key)) {
@@ -281,7 +328,20 @@ export default class HubScene extends Phaser.Scene {
                 this._cheatBuffer = this._cheatBuffer.slice(-maxCheatLen);
             }
 
-            if (cheatCodes[this._cheatBuffer]) {
+            // DEBUG toggle
+            if (this._cheatBuffer === debugWord) {
+                const newMode = !isDebugMode();
+                setDebugMode(newMode);
+                this._cheatBuffer = '';
+                if (this.debugLabel) {
+                    this.debugLabel.setVisible(newMode);
+                }
+                this.showEditorToast(newMode ? 'Debug mode ON' : 'Debug mode OFF');
+                return;
+            }
+
+            // Scene-jump cheats (debug mode only)
+            if (isDebugMode() && cheatCodes[this._cheatBuffer]) {
                 const targetScene = cheatCodes[this._cheatBuffer];
                 this._cheatBuffer = '';
                 this.persistHubProgress();
@@ -289,9 +349,9 @@ export default class HubScene extends Phaser.Scene {
                 return;
             }
 
-            if (!cheatWords.some((word) => word.startsWith(this._cheatBuffer))) {
+            if (!allWords.some((word) => word.startsWith(this._cheatBuffer))) {
                 this._cheatBuffer = key;
-                if (!cheatWords.some((word) => word.startsWith(this._cheatBuffer))) {
+                if (!allWords.some((word) => word.startsWith(this._cheatBuffer))) {
                     this._cheatBuffer = '';
                 }
             }
@@ -487,7 +547,27 @@ export default class HubScene extends Phaser.Scene {
         this.editorHud.setDepth(3000);
         this.refreshEditorHudScale();
 
-        this.editorInspect = this.add.text(16, 44, '', {
+        this.editorCoords = this.add.text(16, 44, 'World: 0, 0', {
+            fontFamily: 'monospace',
+            fontSize: '20px',
+            color: '#ffff00',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.editorCoords.setScrollFactor(0);
+        this.editorCoords.setDepth(3000);
+
+        this._editorPointerMove = (pointer) => {
+            const cam = this.cameras.main;
+            const worldX = Math.round((pointer.x / cam.zoom) + cam.worldView.x);
+            const worldY = Math.round((pointer.y / cam.zoom) + cam.worldView.y);
+            if (this.editorCoords) {
+                this.editorCoords.setText(`World: ${worldX}, ${worldY}`);
+            }
+        };
+        this.input.on('pointermove', this._editorPointerMove);
+
+        this.editorInspect = this.add.text(16, 72, '', {
             fontFamily: 'monospace',
             fontSize: '20px',
             color: '#ffffff',
@@ -499,6 +579,8 @@ export default class HubScene extends Phaser.Scene {
         this.editorInspect.setVisible(false);
         this.editorInspect.setScrollFactor(0);
         this.editorInspect.setDepth(3501);
+
+        this.refreshEditorHudScale();
 
         this.levelPlatforms.forEach((def, index) => {
             const cfg = def.config || {};
@@ -549,6 +631,15 @@ export default class HubScene extends Phaser.Scene {
         if (this.editorInspect) {
             this.editorInspect.destroy();
             this.editorInspect = null;
+        }
+
+        if (this.editorCoords) {
+            this.editorCoords.destroy();
+            this.editorCoords = null;
+        }
+        if (this._editorPointerMove) {
+            this.input.off('pointermove', this._editorPointerMove);
+            this._editorPointerMove = null;
         }
 
         if (this.editorToast) {
@@ -635,6 +726,16 @@ export default class HubScene extends Phaser.Scene {
         const zoom = this.cameras.main.zoom || 1;
         this.editorHud.setScale(1 / zoom);
         this.editorHud.setPosition(16 / zoom, 16 / zoom);
+
+        if (this.editorCoords) {
+            this.editorCoords.setScale(1 / zoom);
+            this.editorCoords.setPosition(16 / zoom, 50 / zoom);
+        }
+
+        if (this.editorInspect) {
+            this.editorInspect.setScale(1 / zoom);
+            this.editorInspect.setPosition(16 / zoom, 84 / zoom);
+        }
     }
 
     positionEditorToastFixed() {
@@ -730,6 +831,13 @@ export default class HubScene extends Phaser.Scene {
 
     setupZones(worldWidth, worldHeight) {
         this.hintText = this.add.text(16, 16, "", { fontFamily: "monospace", fontSize: "18px" }).setScrollFactor(0);
+        this.debugLabel = this.add.text(16, 700, 'Debug mode', {
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            color: '#ff4444',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setScrollFactor(0).setDepth(2000).setVisible(isDebugMode());
         this.cryptoStatusText = this.add.text(16, 40, "", {
             fontFamily: "monospace",
             fontSize: "18px",
@@ -847,6 +955,9 @@ export default class HubScene extends Phaser.Scene {
     }
 
     handleDealWithItCheatInput(event) {
+        if (!isDebugMode()) {
+            return;
+        }
         const key = typeof event?.key === 'string' ? event.key.toUpperCase() : '';
         if (!key) {
             return;
@@ -1072,6 +1183,32 @@ export default class HubScene extends Phaser.Scene {
         }
     }
 
+    updateGuidanceArrows() {
+        if (!this.guidanceArrows || this.guidanceArrows.length === 0) return;
+        if (this.coinsActivated) {
+            this.guidanceArrows.forEach((a) => {
+                this.tweens.killTweensOf(a);
+                a.destroy();
+            });
+            this.guidanceArrows = [];
+            return;
+        }
+        const px = this.player.x;
+        const py = this.player.y;
+        this.guidanceArrows.forEach((arrow) => {
+            if (arrow.__reached) return;
+            const dx = px - arrow.x;
+            const dy = py - arrow.y;
+            if (dx * dx + dy * dy < 120 * 120) {
+                arrow.__reached = true;
+                this.tweens.killTweensOf(arrow);
+                arrow.setAlpha(1);
+                arrow.setColor('#333333');
+                arrow.setStroke('#111111', 8);
+            }
+        });
+    }
+
     setPortalTexture(portal, textureKey) {
         if (!portal) {
             return;
@@ -1086,6 +1223,7 @@ export default class HubScene extends Phaser.Scene {
         this.player.update();
         this.collectNearbyCoins();
         this.updateDealWithItGraffitiVisibility();
+        this.updateGuidanceArrows();
         this.hintText.setText("");
         this.cryptoStatusText.setText('');
 

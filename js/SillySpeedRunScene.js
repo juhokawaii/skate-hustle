@@ -1,7 +1,7 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
-import { saveHubProgress } from './GameState.js';
+import { saveHubProgress, isDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 
 export default class SillySpeedRunScene extends Phaser.Scene {
@@ -157,6 +157,14 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         this.timerText.setOrigin(0.5, 0);
         this.timerText.setScrollFactor(0);
         this.timerText.setDepth(2000);
+
+        this.debugLabel = this.add.text(16, 700, 'Debug mode', {
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            color: '#ff4444',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setScrollFactor(0).setDepth(2000).setVisible(isDebugMode());
 
         // --- DEBUG MAP VIEW (Press 'M' to toggle) ---
         const debugGrid = this.add.graphics();

@@ -1,3 +1,5 @@
+import { isDebugMode } from './GameState.js';
+
 export default class Player extends Phaser.Physics.Matter.Sprite {
     constructor(scene, x, y, cats) {
         // 1. CONFIGURATION
@@ -105,7 +107,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         if (this.groundTimer > 0) this.groundTimer--;
         if (this.cornerLockTimer > 0) this.cornerLockTimer--;
 
-        if (Phaser.Input.Keyboard.JustDown(this.jetpackKey)) {
+        if (isDebugMode() && Phaser.Input.Keyboard.JustDown(this.jetpackKey)) {
             if (this.jetpackState === 'fly') {
                 this.enterJetpackDrop();
             } else {
