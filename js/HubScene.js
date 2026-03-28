@@ -32,6 +32,7 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("crypto_bw", "assets/backgrounds/crypto_bw.png");
         this.load.image("crypto", "assets/backgrounds/crypto.png");
         this.load.image("dealwithit", "assets/backgrounds/dealwithit.png");
+        this.load.image("arrow_right", "assets/backgrounds/arrow-light.png");
 
         this.load.audio("secret", "assets/music/title.mp3");
         this.load.audio("ramp", "assets/music/ramp.mp3");
@@ -190,35 +191,43 @@ export default class HubScene extends Phaser.Scene {
         this.restoreHubProgress();
 
         // --- BREADCRUMB ARROWS (first-time guidance to Crypto Chase) ---
+        // Create flipped arrow texture once
+        if (!this.textures.exists('arrow_left')) {
+            const source = this.textures.get('arrow_right').getSourceImage();
+            const canvas = document.createElement('canvas');
+            canvas.width = source.width;
+            canvas.height = source.height;
+            const ctx = canvas.getContext('2d');
+            ctx.translate(source.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(source, 0, 0);
+            this.textures.addCanvas('arrow_left', canvas);
+        }
+
         this.guidanceArrows = [];
         if (!this.coinsActivated) {
             const arrowDefs = [
-                { x: 650,  y: 1640, char: '>' },
-                { x: 1065, y: 1490, char: '>' },
-                { x: 1440, y: 1400, char: '>' },
-                { x: 1925, y: 1490, char: '>' },
-                { x: 2540, y: 1400, char: '>' },
-                { x: 3090, y: 1640, char: '>' },
-                { x: 3735, y: 1485, char: '>' },
-                { x: 4280, y: 1640, char: '>' },
-                { x: 4705, y: 1530, char: '<' },
-                { x: 4455, y: 1325, char: '>' },
-                { x: 4730, y: 1125, char: '>' },
-                { x: 4950, y: 905,  char: '>' },
-                { x: 5600, y: 1480, char: '>' },
-                { x: 6280, y: 920,  char: '<' },
-                { x: 6025, y: 705,  char: '<' },
-                { x: 5775, y: 575,  char: '<' },
-                { x: 4960, y: 575,  char: '<' },
+                { x: 650,  y: 1640, dir: 'right' },
+                { x: 1065, y: 1490, dir: 'right' },
+                { x: 1440, y: 1400, dir: 'right' },
+                { x: 1925, y: 1490, dir: 'right' },
+                { x: 2540, y: 1400, dir: 'right' },
+                { x: 3090, y: 1640, dir: 'right' },
+                { x: 3735, y: 1485, dir: 'right' },
+                { x: 4280, y: 1640, dir: 'right' },
+                { x: 4705, y: 1530, dir: 'left' },
+                { x: 4455, y: 1325, dir: 'right' },
+                { x: 4730, y: 1125, dir: 'right' },
+                { x: 4950, y: 905,  dir: 'right' },
+                { x: 5600, y: 1480, dir: 'right' },
+                { x: 6280, y: 920,  dir: 'left' },
+                { x: 6025, y: 705,  dir: 'left' },
+                { x: 5775, y: 575,  dir: 'left' },
+                { x: 4960, y: 575,  dir: 'left' },
             ];
             arrowDefs.forEach((def) => {
-                const arrow = this.add.text(def.x, def.y, def.char, {
-                    fontFamily: 'monospace',
-                    fontSize: '108px',
-                    color: '#00ff66',
-                    stroke: '#003300',
-                    strokeThickness: 8
-                });
+                const tex = def.dir === 'left' ? 'arrow_left' : 'arrow_right';
+                const arrow = this.add.image(def.x, def.y, tex);
                 arrow.setOrigin(0.5, 1);
                 arrow.setDepth(15);
                 arrow.__reached = false;
@@ -1202,9 +1211,14 @@ export default class HubScene extends Phaser.Scene {
             if (dx * dx + dy * dy < 120 * 120) {
                 arrow.__reached = true;
                 this.tweens.killTweensOf(arrow);
-                arrow.setAlpha(1);
-                arrow.setColor('#333333');
-                arrow.setStroke('#111111', 8);
+                arrow.setAlpha(0.3);
+                arrow.setTint(0x333333);
+                this.tweens.add({
+                    targets: arrow,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => arrow.destroy()
+                });
             }
         });
     }
