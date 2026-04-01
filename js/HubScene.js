@@ -207,29 +207,21 @@ export default class HubScene extends Phaser.Scene {
         this.guidanceArrows = [];
         if (!this.coinsActivated) {
             const arrowDefs = [
-                { x: 650,  y: 1640, dir: 'right' },
                 { x: 1065, y: 1490, dir: 'right' },
-                { x: 1440, y: 1400, dir: 'right' },
                 { x: 1925, y: 1490, dir: 'right' },
-                { x: 2540, y: 1400, dir: 'right' },
                 { x: 3090, y: 1640, dir: 'right' },
-                { x: 3735, y: 1485, dir: 'right' },
-                { x: 4280, y: 1640, dir: 'right' },
-                { x: 4705, y: 1530, dir: 'left' },
-                { x: 4455, y: 1325, dir: 'right' },
-                { x: 4730, y: 1125, dir: 'right' },
-                { x: 4950, y: 905,  dir: 'right' },
-                { x: 5600, y: 1480, dir: 'right' },
-                { x: 6280, y: 920,  dir: 'left' },
+                { x: 4455, y: 1325, dir: 'right', angle: -40 },
+                { x: 5600, y: 1480, dir: 'right', flipY: true, angle: -15 },
                 { x: 6025, y: 705,  dir: 'left' },
-                { x: 5775, y: 575,  dir: 'left' },
-                { x: 4960, y: 575,  dir: 'left' },
+                { x: 5160, y: 575,  dir: 'left' },
             ];
             arrowDefs.forEach((def) => {
                 const tex = def.dir === 'left' ? 'arrow_left' : 'arrow_right';
                 const arrow = this.add.image(def.x, def.y, tex);
                 arrow.setOrigin(0.5, 1);
                 arrow.setDepth(15);
+                if (typeof def.angle === 'number') arrow.setAngle(def.angle);
+                if (def.flipY) arrow.setFlipY(true);
                 arrow.__reached = false;
                 this.tweens.add({
                     targets: arrow,
