@@ -61,6 +61,10 @@ export default class BottomRaceScene extends Phaser.Scene {
         this.goalPortalPos = hasInjectedLevel
             ? (data.goalPortalPos || { x: 800, y: 5750 })
             : (hasCachedLevel ? (cachedLevel.goalPortal || { x: 800, y: 5750 }) : { x: 800, y: 5750 });
+        this.goalPortalPos = {
+            x: this.goalPortalPos.x,
+            y: this.goalPortalPos.y + 120
+        };
 
         const sourcePlatforms = hasInjectedLevel
             ? data.levelPlatforms

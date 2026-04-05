@@ -64,6 +64,7 @@ export default class Graffiti extends Phaser.Physics.Matter.Sprite {
         this.visualProxy.setOrigin(this.originX, this.originY);
         this.visualProxy.setDepth(visualDepth);
         this.visualProxy.setAlpha(visualAlpha);
+        this.visualProxy.setScale(this.scaleX, this.scaleY);
         this.visualProxy.setScrollFactor(scrollX, scrollY);
 
         // Hide the world-locked sprite; sensor body will track the visual each frame.
