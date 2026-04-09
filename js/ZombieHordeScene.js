@@ -1,4 +1,5 @@
 import Player from './Player.js';
+import Zombie from './Zombie.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
 import { isDebugMode } from './GameState.js';
@@ -33,6 +34,13 @@ export default class ZombieHordeScene extends Phaser.Scene {
         this.load.image('logo_portal_bw', 'assets/backgrounds/logo-bw.png');
         this.load.image('logo_portal', 'assets/backgrounds/logo.png');
         this.load.json('zombie_horde_level', 'assets/levels/zombieHordeLevel.json');
+
+        this.load.image('zombie_standing', 'assets/player_sprites/zombie-standing.png');
+        this.load.image('zombie_walking1', 'assets/player_sprites/zombie-walking1.png');
+        this.load.image('zombie_walking2', 'assets/player_sprites/zombie-walking2.png');
+        this.load.image('zombie_sitting1', 'assets/player_sprites/zombie-sitting1.png');
+        this.load.image('zombie_sitting2', 'assets/player_sprites/zombie-sitting2.png');
+        this.load.image('zombie_lying', 'assets/player_sprites/zombie-lying-down.png');
 
         this.load.audio('run_track', 'assets/music/run.mp3');
     }
@@ -113,6 +121,16 @@ export default class ZombieHordeScene extends Phaser.Scene {
 
         this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
         this.player.setDepth(10);
+
+        // Spawn 5 zombies spread across the level
+        this.zombies = [];
+        const zombieSpacing = (this.worldWidth - 600) / 5;
+        for (let i = 0; i < 5; i++) {
+            const zx = 300 + (i * zombieSpacing) + Phaser.Math.RND.between(-80, 80);
+            const zy = this.spawnPoint.y;
+            const z = new Zombie(this, zx, zy);
+            this.zombies.push(z);
+        }
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setDeadzone(400, 200);
@@ -706,8 +724,13 @@ export default class ZombieHordeScene extends Phaser.Scene {
         }
     }
 
-    update() {
+    update(time, delta) {
         this.player.update();
+        if (this.zombies) {
+            for (const z of this.zombies) {
+                z.update(time, delta);
+            }
+        }
         this.hintText.setText('');
 
         if (this.returnPortal.isPlayerTouching) {
