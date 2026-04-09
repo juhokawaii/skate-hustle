@@ -31,6 +31,7 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("race_bottom", "assets/backgrounds/race-to-the-bottom.png");
         this.load.image("crypto_bw", "assets/backgrounds/crypto_bw.png");
         this.load.image("crypto", "assets/backgrounds/crypto.png");
+        this.load.image("zombies", "assets/backgrounds/zombies.png");
         this.load.image("dealwithit", "assets/backgrounds/dealwithit.png");
         this.load.image("arrow_right", "assets/backgrounds/arrow-light.png");
 
@@ -63,6 +64,13 @@ export default class HubScene extends Phaser.Scene {
         this.racePortalPos = hasInjectedLevel
             ? (data.racePortalPos || { x: 1880, y: 1500 })
             : (hasCachedLevel ? (cachedLevel.racePortal || { x: 1880, y: 1500 }) : { x: 1880, y: 1500 });
+        const defaultZombiesPos = {
+            x: Math.round((this.portal1Pos.x + this.racePortalPos.x) * 0.5),
+            y: Math.round((this.portal1Pos.y + this.racePortalPos.y) * 0.5)
+        };
+        this.zombiesPortalPos = hasInjectedLevel
+            ? (data.zombiesPortalPos || defaultZombiesPos)
+            : (hasCachedLevel ? (cachedLevel.zombiesPortal || defaultZombiesPos) : defaultZombiesPos);
 
         this.portal1Pos = {
             x: this.portal1Pos.x,
@@ -71,6 +79,10 @@ export default class HubScene extends Phaser.Scene {
         this.racePortalPos = {
             x: this.racePortalPos.x,
             y: this.racePortalPos.y - 130
+        };
+        this.zombiesPortalPos = {
+            x: this.zombiesPortalPos.x,
+            y: this.zombiesPortalPos.y - 115
         };
 
         const sourcePlatforms = hasInjectedLevel
@@ -126,6 +138,14 @@ export default class HubScene extends Phaser.Scene {
         this.racePortal.enableParallaxVisual(0.85, 0.85, {
             depth: -2,
             alpha: 0.70
+        });
+
+        this.ensureGrayscaleTexture('zombies', 'zombies_bw');
+        this.zombiesPortal = new Graffiti(this, this.zombiesPortalPos.x, this.zombiesPortalPos.y, 'zombies_bw', 'zombies', this.cats.SENSOR);
+        this.zombiesPortal.setScrollFactor(1, 1);
+        this.zombiesPortal.enableParallaxVisual(0.85, 0.85, {
+            depth: -2,
+            alpha: 0.74
         });
 
         const defaultCryptoPos = this.getCryptoPortalPosition();
@@ -296,7 +316,8 @@ export default class HubScene extends Phaser.Scene {
                     levelPlatforms: this.levelPlatforms,
                     spawnPoint: this.spawnPoint,
                     portal1Pos: this.portal1Pos,
-                    racePortalPos: this.racePortalPos
+                    racePortalPos: this.racePortalPos,
+                    zombiesPortalPos: this.zombiesPortalPos
                 });
             }
         });
@@ -311,7 +332,8 @@ export default class HubScene extends Phaser.Scene {
         this._cheatBuffer = '';
         const cheatCodes = {
             silly: 'SillySpeedRunScene',
-            bottom: 'BottomRaceScene'
+            bottom: 'BottomRaceScene',
+            zombie: 'ZombieHordeScene'
         };
         const debugWord = 'debug';
         const cheatWords = Object.keys(cheatCodes);
@@ -765,6 +787,7 @@ export default class HubScene extends Phaser.Scene {
             spawn: this.spawnPoint,
             portal1: this.portal1Pos,
             racePortal: this.racePortalPos,
+            zombiesPortal: this.zombiesPortalPos,
             platforms: exportPlatforms
         };
 
@@ -1225,6 +1248,38 @@ export default class HubScene extends Phaser.Scene {
         }
     }
 
+    ensureGrayscaleTexture(sourceKey, targetKey) {
+        if (this.textures.exists(targetKey)) {
+            return;
+        }
+
+        const source = this.textures.get(sourceKey)?.getSourceImage();
+        if (!source) {
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = source.width;
+        canvas.height = source.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(source, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        for (let i = 0; i < pixels.length; i += 4) {
+            const r = pixels[i];
+            const g = pixels[i + 1];
+            const b = pixels[i + 2];
+            const lum = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b));
+            pixels[i] = lum;
+            pixels[i + 1] = lum;
+            pixels[i + 2] = lum;
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        this.textures.addCanvas(targetKey, canvas);
+    }
+
     update() {
         this.player.update();
         this.collectNearbyCoins();
@@ -1243,6 +1298,12 @@ export default class HubScene extends Phaser.Scene {
             this.setPortalTexture(this.racePortal, 'race_bottom_bw');
         } else if (this.racePortal.isPlayerTouching) {
             this.setPortalTexture(this.racePortal, 'race_bottom');
+        }
+
+        if (this.zombiesPortal && this.zombiesPortal.isPlayerTouching) {
+            this.setPortalTexture(this.zombiesPortal, 'zombies');
+        } else {
+            this.setPortalTexture(this.zombiesPortal, 'zombies_bw');
         }
 
         if (this.cryptoHintUntil > this.time.now) {
@@ -1281,6 +1342,15 @@ export default class HubScene extends Phaser.Scene {
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
                 this.persistHubProgress();
                 this.scene.start('BottomRaceScene');
+                return;
+            }
+        }
+
+        if (this.zombiesPortal && this.zombiesPortal.isPlayerTouching) {
+            this.hintText.setText('Press ENTER for Zombie Horde');
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.persistHubProgress();
+                this.scene.start('ZombieHordeScene');
                 return;
             }
         }

@@ -4,9 +4,9 @@ import TextureFactory from './TextureFactory.js';
 import { isDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 
-export default class BottomRaceScene extends Phaser.Scene {
+export default class ZombieHordeScene extends Phaser.Scene {
     constructor() {
-        super('BottomRaceScene');
+        super('ZombieHordeScene');
     }
 
     preload() {
@@ -17,21 +17,22 @@ export default class BottomRaceScene extends Phaser.Scene {
         this.load.image('player5', 'assets/player_sprites/player5.png');
         this.load.image('player6', 'assets/player_sprites/player6.png');
 
-        this.load.image('bottomrace_wall_texture', 'assets/backgrounds/256x256.png');
-        this.load.image('bottomrace_platform_texture', 'assets/backgrounds/hubworld_background.png');
+        this.load.image('concrete_bg', 'assets/backgrounds/hubworld_background.png');
+        this.load.image('platform_texture', 'assets/backgrounds/256x256.png');
         this.load.image('ground', 'assets/backgrounds/ground.png');
         this.load.image('drop', 'assets/backgrounds/drop.png');
-        this.load.image('bottomrace_drop_light', 'assets/backgrounds/drop-light.png');
         this.load.spritesheet('graffiti', 'assets/backgrounds/Atlas.png', {
             frameWidth: 512,
             frameHeight: 512
         });
+        this.load.spritesheet('zombie_wall_graffiti', 'assets/backgrounds/atlas-zombies.png', {
+            frameWidth: 256,
+            frameHeight: 256
+        });
 
-        this.load.image('silly_top_bw', 'assets/backgrounds/silly_top_bw.png');
-        this.load.image('silly_top', 'assets/backgrounds/silly_top.png');
         this.load.image('logo_portal_bw', 'assets/backgrounds/logo-bw.png');
         this.load.image('logo_portal', 'assets/backgrounds/logo.png');
-        this.load.json('bottom_race_level', 'assets/levels/bottomRaceLevel.json');
+        this.load.json('zombie_horde_level', 'assets/levels/zombieHordeLevel.json');
 
         this.load.audio('run_track', 'assets/music/run.mp3');
     }
@@ -41,30 +42,23 @@ export default class BottomRaceScene extends Phaser.Scene {
         this.bgmusic = this.sound.add('run_track', { volume: 0.9, loop: true });
         this.bgmusic.play();
 
-        const cachedLevel = this.cache.json.get('bottom_race_level');
+        const cachedLevel = this.cache.json.get('zombie_horde_level');
         const hasInjectedLevel = Array.isArray(data.levelPlatforms);
         const hasCachedLevel = !!cachedLevel;
 
         this.worldWidth = hasInjectedLevel
-            ? (data.worldWidth || 1600)
-            : (hasCachedLevel ? (cachedLevel.worldWidth || 1600) : 1600);
+            ? (data.worldWidth || 19200)
+            : (hasCachedLevel ? (cachedLevel.worldWidth || 19200) : 19200);
         this.worldHeight = hasInjectedLevel
-            ? (data.worldHeight || 6000)
-            : (hasCachedLevel ? (cachedLevel.worldHeight || 6000) : 6000);
+            ? (data.worldHeight || 900)
+            : (hasCachedLevel ? (cachedLevel.worldHeight || 900) : 900);
 
         this.spawnPoint = hasInjectedLevel
-            ? (data.spawnPoint || { x: 800, y: 190 })
-            : (hasCachedLevel ? (cachedLevel.spawn || { x: 800, y: 190 }) : { x: 800, y: 190 });
+            ? (data.spawnPoint || { x: 180, y: 700 })
+            : (hasCachedLevel ? (cachedLevel.spawn || { x: 180, y: 700 }) : { x: 180, y: 700 });
         this.returnPortalPos = hasInjectedLevel
-            ? (data.returnPortalPos || { x: 620, y: 210 })
-            : (hasCachedLevel ? (cachedLevel.returnPortal || { x: 620, y: 210 }) : { x: 620, y: 210 });
-        this.goalPortalPos = hasInjectedLevel
-            ? (data.goalPortalPos || { x: 800, y: 5750 })
-            : (hasCachedLevel ? (cachedLevel.goalPortal || { x: 800, y: 5750 }) : { x: 800, y: 5750 });
-        this.goalPortalPos = {
-            x: this.goalPortalPos.x,
-            y: this.goalPortalPos.y + 120
-        };
+            ? (data.returnPortalPos || { x: 100, y: 700 })
+            : (hasCachedLevel ? (cachedLevel.returnPortal || { x: 100, y: 700 }) : { x: 100, y: 700 });
 
         const sourcePlatforms = hasInjectedLevel
             ? data.levelPlatforms
@@ -75,6 +69,7 @@ export default class BottomRaceScene extends Phaser.Scene {
             y: def.y,
             config: { ...def.config }
         }));
+
         this.legacyCenteredInput = false;
         this.captureLevelData = false;
         this.isMapMode = false;
@@ -92,39 +87,16 @@ export default class BottomRaceScene extends Phaser.Scene {
             }
         });
 
-        const bg = this.add.tileSprite(0, 0, this.worldWidth, this.worldHeight, 'bottomrace_wall_texture');
+        const bg = this.add.tileSprite(0, 0, this.worldWidth, this.worldHeight, 'concrete_bg');
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
 
-        // Adjusted visual-proxy positions so parallax graffiti aligns with the
-        // player in a tall (6000 px) world.  Without adjustment the bottom portal
-        // falls off the visible parallax range and the sensor drifts out of reach.
-        // Formula: visualPos = targetPos − expectedCamScroll × (1 − parallaxFactor)
-        const viewW = this.scale.width;
-        const viewH = this.scale.height;
-        const pxFactor = 0.85;
-        const followOffY = 100;
-
-        const goalCamX = Phaser.Math.Clamp(this.goalPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
-        const goalCamY = Phaser.Math.Clamp(this.goalPortalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
-        const retCamX = Phaser.Math.Clamp(this.returnPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
-        const retCamY = Phaser.Math.Clamp(this.returnPortalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
-
-        this.goalPortal = new Graffiti(this, this.goalPortalPos.x, this.goalPortalPos.y, 'silly_top_bw', 'silly_top', this.cats.SENSOR);
-        this.goalPortal.setScrollFactor(1, 1);
-        this.goalPortal.enableParallaxVisual(pxFactor, pxFactor, {
-            x: this.goalPortalPos.x - goalCamX * (1 - pxFactor),
-            y: this.goalPortalPos.y - goalCamY * (1 - pxFactor),
-            depth: -2,
-            alpha: 0.75
-        });
+        this.createZombieWallDecorations();
 
         this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
         this.returnPortal.setScrollFactor(1, 1);
-        this.returnPortal.enableParallaxVisual(pxFactor, pxFactor, {
-            x: this.returnPortalPos.x - retCamX * (1 - pxFactor),
-            y: this.returnPortalPos.y - retCamY * (1 - pxFactor),
+        this.returnPortal.enableParallaxVisual(0.85, 0.85, {
             depth: -2,
             alpha: 0.62
         });
@@ -135,7 +107,7 @@ export default class BottomRaceScene extends Phaser.Scene {
             try {
                 this.createPlatform(def.x, def.y, def.config, def);
             } catch (err) {
-                console.error('Failed to create bottom race platform:', def, err);
+                console.error('Failed to create zombie horde platform:', def, err);
             }
         });
 
@@ -148,21 +120,6 @@ export default class BottomRaceScene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
 
         this.setupAnims();
-
-        this.timerStartedAt = this.time.now;
-        this.timerStopped = false;
-        this.finalTimeMs = 0;
-
-        this.timerText = this.add.text(this.scale.width / 2, 16, '00.000', {
-            fontFamily: 'monospace',
-            fontSize: '32px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 5
-        });
-        this.timerText.setOrigin(0.5, 0);
-        this.timerText.setScrollFactor(0);
-        this.timerText.setDepth(2000);
 
         this.hintText = this.add.text(16, 16, '', {
             fontFamily: 'monospace',
@@ -182,7 +139,6 @@ export default class BottomRaceScene extends Phaser.Scene {
             strokeThickness: 3
         }).setScrollFactor(0).setDepth(2000).setVisible(isDebugMode());
 
-        // --- DEBUG MAP VIEW (Press 'M' to toggle) ---
         const debugGrid = this.add.graphics();
         debugGrid.setDepth(1000);
         debugGrid.setVisible(false);
@@ -233,8 +189,7 @@ export default class BottomRaceScene extends Phaser.Scene {
                     worldHeight: this.worldHeight,
                     levelPlatforms: this.levelPlatforms,
                     spawnPoint: this.spawnPoint,
-                    returnPortalPos: this.returnPortalPos,
-                    goalPortalPos: this.goalPortalPos
+                    returnPortalPos: this.returnPortalPos
                 });
             }
         });
@@ -260,8 +215,7 @@ export default class BottomRaceScene extends Phaser.Scene {
             chamfer = 0,
             friction = 0.5,
             isOneWay = false,
-            bouncy = false,
-            texture = 'bottomrace_platform_texture'
+            texture = 'platform_texture'
         } = config;
 
         const renderWidth = type === 'CIRCLE' ? radius * 2 : width;
@@ -272,7 +226,6 @@ export default class BottomRaceScene extends Phaser.Scene {
         const bodyOptions = {
             isStatic: true,
             friction,
-            restitution: bouncy ? 1.2 : 0,
             chamfer: chamfer > 0 ? { radius: chamfer } : null
         };
 
@@ -280,17 +233,19 @@ export default class BottomRaceScene extends Phaser.Scene {
         if (type === 'RECT') {
             body = this.matter.add.rectangle(centerX, centerY, width, height, bodyOptions);
         } else if (type === 'RAMP_LEFT' || type === 'ramp_left') {
-            body = this.matter.add.fromVertices(centerX, centerY, [
+            const verts = [
                 { x: width / 2, y: height / 2 },
                 { x: -width / 2, y: height / 2 },
                 { x: width / 2, y: -height / 2 }
-            ], bodyOptions);
+            ];
+            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
         } else if (type === 'RAMP_RIGHT' || type === 'ramp_right') {
-            body = this.matter.add.fromVertices(centerX, centerY, [
+            const verts = [
                 { x: -width / 2, y: -height / 2 },
                 { x: -width / 2, y: height / 2 },
                 { x: width / 2, y: height / 2 }
-            ], bodyOptions);
+            ];
+            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
         } else if (type === 'CURVE') {
             const segments = 32;
             const verts = [{ x: width / 2, y: height / 2 }];
@@ -331,25 +286,16 @@ export default class BottomRaceScene extends Phaser.Scene {
 
         body.collisionFilter.category = isOneWay ? this.cats.ONE_WAY : this.cats.GROUND;
 
-        if (bouncy) {
-            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, 'bottomrace_platform_texture');
-            return;
-        }
-
-        const renderTexture = texture === 'platform_texture'
-            ? 'bottomrace_platform_texture'
-            : (texture === 'drop' ? 'bottomrace_drop_light' : texture);
-
         if (isOneWay || type === 'RECT') {
-            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, renderTexture);
+            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, texture);
         } else if (
             type === 'CURVE' ||
             type === 'RAMP_LEFT' || type === 'ramp_left' ||
             type === 'RAMP_RIGHT' || type === 'ramp_right'
         ) {
-            TextureFactory.styleCurve(this, body, renderTexture);
+            TextureFactory.styleCurve(this, body, texture);
         } else if (type === 'CIRCLE') {
-            TextureFactory.styleCircle(this, body, renderTexture);
+            TextureFactory.styleCircle(this, body, texture);
         }
     }
 
@@ -369,11 +315,13 @@ export default class BottomRaceScene extends Phaser.Scene {
 
         this.editorCoords = this.add.text(16, 44, 'World: 0, 0', {
             fontFamily: 'monospace',
-            fontSize: '20px',
+            fontSize: '34px',
             color: '#ffff00',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 6
         });
+        this.editorCoords.setBackgroundColor('rgba(0, 0, 0, 0.75)');
+        this.editorCoords.setPadding(10, 8, 10, 8);
         this.editorCoords.setScrollFactor(0);
         this.editorCoords.setDepth(3000);
 
@@ -413,7 +361,7 @@ export default class BottomRaceScene extends Phaser.Scene {
             const handle = this.add.rectangle(handleX, handleY, handleWidth, handleHeight);
             handle.setOrigin(0, 0);
             handle.setStrokeStyle(3, 0xffcc00, 1);
-            handle.setFillStyle(0x000000, 0.001);
+            handle.setFillStyle(0xffcc00, 0.08);
             handle.setDepth(2500);
             handle.setAngle(hasBodyBounds ? 0 : (cfg.angle || 0));
             handle.setInteractive({ cursor: 'move' });
@@ -431,6 +379,8 @@ export default class BottomRaceScene extends Phaser.Scene {
             });
             this.editorHandles.push(handle);
         });
+
+        this.refreshEditorHandleVisuals();
 
         this.input.on('drag', this.onEditorDrag, this);
     }
@@ -554,6 +504,115 @@ export default class BottomRaceScene extends Phaser.Scene {
             this.editorInspect.setScale(1 / zoom);
             this.editorInspect.setPosition(16 / zoom, 84 / zoom);
         }
+
+        this.refreshEditorHandleVisuals();
+    }
+
+    refreshEditorHandleVisuals() {
+        if (!this.editorHandles || this.editorHandles.length === 0) {
+            return;
+        }
+
+        const zoom = this.cameras.main.zoom || 1;
+        const strokeWidth = Phaser.Math.Clamp(3 / zoom, 3, 20);
+        const fillAlpha = zoom < 0.25 ? 0.2 : 0.08;
+
+        this.editorHandles.forEach((handle) => {
+            handle.setStrokeStyle(strokeWidth, 0xffcc00, 1);
+            handle.setFillStyle(0xffcc00, fillAlpha);
+        });
+    }
+
+    createZombieWallDecorations() {
+        const floorDef = this.levelPlatforms.find((def) => def?.config?.texture === 'ground') || null;
+        const floorY = floorDef?.y ?? 800;
+
+        const rng = Phaser.Math.RND;
+        const frameCount = 8;
+        const zoneWidth = Math.max(this.scale.width || 1280, 900);
+        const usedFramesByZone = new Map();
+
+        const pickUniqueFrameForX = (x) => {
+            const zoneIndex = Math.floor(x / zoneWidth);
+            if (!usedFramesByZone.has(zoneIndex)) {
+                usedFramesByZone.set(zoneIndex, new Set());
+            }
+
+            const used = usedFramesByZone.get(zoneIndex);
+            if (used.size >= frameCount) {
+                return null;
+            }
+
+            const available = [];
+            for (let i = 0; i < frameCount; i++) {
+                if (!used.has(i)) {
+                    available.push(i);
+                }
+            }
+
+            const frame = available[rng.between(0, available.length - 1)];
+            used.add(frame);
+            return frame;
+        };
+
+        const addDecoration = (x) => {
+            const frame = pickUniqueFrameForX(x);
+            if (frame == null) {
+                return;
+            }
+
+            const scale = rng.realInRange(0.55, 1.45);
+            const halfSize = 128 * scale;
+
+            let y;
+            const verticalBandRoll = rng.realInRange(0, 1);
+            if (verticalBandRoll < 0.35) {
+                // Touching the floor/wall seam.
+                y = floorY - halfSize + rng.realInRange(-6, 8);
+            } else if (verticalBandRoll < 0.8) {
+                // Close to ground.
+                y = floorY - halfSize - rng.realInRange(25, 160);
+            } else {
+                // Some higher marks for layering.
+                y = floorY - halfSize - rng.realInRange(170, 300);
+            }
+
+            y = Phaser.Math.Clamp(y, 110, floorY - 20);
+
+            // About one quarter fully opaque, rest varied/faded.
+            const alpha = rng.realInRange(0, 1) < 0.25
+                ? 1
+                : rng.realInRange(0.18, 0.85);
+
+            const sprite = this.add.image(x, y, 'zombie_wall_graffiti', frame);
+            sprite.setScrollFactor(0.85, 0.85);
+            sprite.setDepth(-6);
+            sprite.setScale(scale);
+            sprite.setAlpha(alpha);
+            sprite.setFlipX(rng.realInRange(0, 1) < 0.35);
+            sprite.setAngle(rng.realInRange(-7, 7));
+        };
+
+        let x = 180;
+        while (x < this.worldWidth - 160) {
+            // Natural spacing variation along the wall.
+            x += rng.between(190, 470);
+
+            // Drop about half overall to reduce wall clutter.
+            if (rng.realInRange(0, 1) < 0.5) {
+                continue;
+            }
+
+            addDecoration(x + rng.between(-40, 40));
+
+            // Optional smaller clusters for organic density.
+            if (rng.realInRange(0, 1) < 0.2) {
+                addDecoration(x + rng.between(70, 200));
+                if (rng.realInRange(0, 1) < 0.25) {
+                    addDecoration(x + rng.between(210, 330));
+                }
+            }
+        }
     }
 
     positionEditorToastFixed() {
@@ -580,17 +639,16 @@ export default class BottomRaceScene extends Phaser.Scene {
             worldWidth: this.worldWidth,
             worldHeight: this.worldHeight,
             spawn: this.spawnPoint,
-            goalPortal: this.goalPortalPos,
             returnPortal: this.returnPortalPos,
             platforms: exportPlatforms
         };
 
         const text = JSON.stringify(payload, null, 2);
-        console.log('BottomRace level JSON:\n', text);
+        console.log('ZombieHorde level JSON:\n', text);
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text)
-                .then(() => this.showEditorToast('BottomRace JSON copied to clipboard'))
+                .then(() => this.showEditorToast('ZombieHorde JSON copied to clipboard'))
                 .catch(() => this.showEditorToast('Exported to console (clipboard blocked)'));
         } else {
             this.showEditorToast('Exported to console (clipboard unavailable)');
@@ -633,6 +691,7 @@ export default class BottomRaceScene extends Phaser.Scene {
                 repeat: -1
             });
         }
+
         if (!this.anims.exists('kick')) {
             this.anims.create({
                 key: 'kick',
@@ -655,27 +714,7 @@ export default class BottomRaceScene extends Phaser.Scene {
             this.hintText.setText('Press ENTER to return to Hub');
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
                 this.scene.start('HubScene');
-                return;
             }
         }
-
-        if (!this.timerStopped && this.goalPortal.isPlayerTouching) {
-            this.timerStopped = true;
-            this.finalTimeMs = this.time.now - this.timerStartedAt;
-            this.timerText.setColor('#5dff8b');
-        }
-
-        if (this.goalPortal.isPlayerTouching) {
-            this.hintText.setText('Bottom reached. Press ENTER for Hub');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-                this.scene.start('HubScene');
-                return;
-            }
-        }
-
-        const elapsed = this.timerStopped ? this.finalTimeMs : (this.time.now - this.timerStartedAt);
-        const seconds = Math.floor(elapsed / 1000);
-        const milliseconds = Math.floor(elapsed % 1000).toString().padStart(3, '0');
-        this.timerText.setText(`${seconds}.${milliseconds}`);
     }
 }

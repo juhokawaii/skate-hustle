@@ -1,0 +1,582 @@
+{
+  "worldWidth": 12800,
+  "worldHeight": 900,
+  "spawn": {
+    "x": 180,
+    "y": 700
+  },
+  "returnPortal": {
+    "x": 100,
+    "y": 700
+  },
+  "platforms": [
+    {
+      "x": 0,
+      "y": 800,
+      "config": {
+        "type": "RECT",
+        "width": 12800,
+        "height": 100,
+        "texture": "ground"
+      },
+      "id": 1,
+      "remark": "full floor"
+    },
+    {
+      "x": 380,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 90,
+        "texture": "platform_texture"
+      },
+      "id": 2,
+      "remark": "curve left"
+    },
+    {
+      "x": 740,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 0,
+        "texture": "platform_texture"
+      },
+      "id": 3,
+      "remark": "curve right"
+    },
+    {
+      "x": 1140,
+      "y": 420,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 4,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 1460,
+      "y": 420,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 5,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 1740,
+      "y": 410,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 6,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 1960,
+      "y": 410,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 7,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 960,
+      "y": 250,
+      "config": {
+        "type": "RECT",
+        "width": 180,
+        "height": 40,
+        "texture": "drop"
+      },
+      "id": 8,
+      "remark": "drop platform"
+    },
+    {
+      "x": 2240,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 90,
+        "texture": "platform_texture"
+      },
+      "id": 9,
+      "remark": "curve left"
+    },
+    {
+      "x": 2600,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 0,
+        "texture": "platform_texture"
+      },
+      "id": 10,
+      "remark": "curve right"
+    },
+    {
+      "x": 3000,
+      "y": 420,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 11,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 3320,
+      "y": 420,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 12,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 3600,
+      "y": 410,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 13,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 3820,
+      "y": 410,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 14,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 2820,
+      "y": 250,
+      "config": {
+        "type": "RECT",
+        "width": 180,
+        "height": 40,
+        "texture": "drop"
+      },
+      "id": 15,
+      "remark": "drop platform"
+    },
+    {
+      "x": 4100,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 90,
+        "texture": "platform_texture"
+      },
+      "id": 16,
+      "remark": "curve left"
+    },
+    {
+      "x": 4460,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 0,
+        "texture": "platform_texture"
+      },
+      "id": 17,
+      "remark": "curve right"
+    },
+    {
+      "x": 4860,
+      "y": 420,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 18,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 5180,
+      "y": 420,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 19,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 5460,
+      "y": 410,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 20,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 5680,
+      "y": 410,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 21,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 4680,
+      "y": 250,
+      "config": {
+        "type": "RECT",
+        "width": 180,
+        "height": 40,
+        "texture": "drop"
+      },
+      "id": 22,
+      "remark": "drop platform"
+    },
+    {
+      "x": 5960,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 90,
+        "texture": "platform_texture"
+      },
+      "id": 23,
+      "remark": "curve left"
+    },
+    {
+      "x": 6320,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 0,
+        "texture": "platform_texture"
+      },
+      "id": 24,
+      "remark": "curve right"
+    },
+    {
+      "x": 6720,
+      "y": 420,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 25,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 7040,
+      "y": 420,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 26,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 7320,
+      "y": 410,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 27,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 7540,
+      "y": 410,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 28,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 6540,
+      "y": 250,
+      "config": {
+        "type": "RECT",
+        "width": 180,
+        "height": 40,
+        "texture": "drop"
+      },
+      "id": 29,
+      "remark": "drop platform"
+    },
+    {
+      "x": 7820,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 90,
+        "texture": "platform_texture"
+      },
+      "id": 30,
+      "remark": "curve left"
+    },
+    {
+      "x": 8180,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 0,
+        "texture": "platform_texture"
+      },
+      "id": 31,
+      "remark": "curve right"
+    },
+    {
+      "x": 8580,
+      "y": 420,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 32,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 8900,
+      "y": 420,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 33,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 9180,
+      "y": 410,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 34,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 9400,
+      "y": 410,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 220,
+        "height": 120,
+        "texture": "platform_texture"
+      },
+      "id": 35,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 8400,
+      "y": 250,
+      "config": {
+        "type": "RECT",
+        "width": 180,
+        "height": 40,
+        "texture": "drop"
+      },
+      "id": 36,
+      "remark": "drop platform"
+    },
+    {
+      "x": 9680,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 90,
+        "texture": "platform_texture"
+      },
+      "id": 37,
+      "remark": "curve left"
+    },
+    {
+      "x": 10040,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 0,
+        "texture": "platform_texture"
+      },
+      "id": 38,
+      "remark": "curve right"
+    },
+    {
+      "x": 10440,
+      "y": 420,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 39,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 10760,
+      "y": 420,
+      "config": {
+        "type": "RAMP_RIGHT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 40,
+      "remark": "flat ramp right"
+    },
+    {
+      "x": 10260,
+      "y": 250,
+      "config": {
+        "type": "RECT",
+        "width": 180,
+        "height": 40,
+        "texture": "drop"
+      },
+      "id": 41,
+      "remark": "drop platform"
+    },
+    {
+      "x": 11540,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 90,
+        "texture": "platform_texture"
+      },
+      "id": 42,
+      "remark": "curve left"
+    },
+    {
+      "x": 11900,
+      "y": 340,
+      "config": {
+        "type": "CURVE",
+        "width": 260,
+        "height": 260,
+        "friction": 0,
+        "angle": 0,
+        "texture": "platform_texture"
+      },
+      "id": 43,
+      "remark": "curve right"
+    },
+    {
+      "x": 12300,
+      "y": 420,
+      "config": {
+        "type": "RAMP_LEFT",
+        "width": 260,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 44,
+      "remark": "flat ramp left"
+    },
+    {
+      "x": 12120,
+      "y": 250,
+      "config": {
+        "type": "RECT",
+        "width": 180,
+        "height": 40,
+        "texture": "drop"
+      },
+      "id": 46,
+      "remark": "drop platform"
+    }
+  ]
+}

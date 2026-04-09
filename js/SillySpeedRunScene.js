@@ -377,7 +377,27 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         this.editorHud.setDepth(3000);
         this.refreshEditorHudScale();
 
-        this.editorInspect = this.add.text(16, 44, '', {
+        this.editorCoords = this.add.text(16, 44, 'World: 0, 0', {
+            fontFamily: 'monospace',
+            fontSize: '20px',
+            color: '#ffff00',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        this.editorCoords.setScrollFactor(0);
+        this.editorCoords.setDepth(3000);
+
+        this._editorPointerMove = (pointer) => {
+            const cam = this.cameras.main;
+            const worldX = Math.round((pointer.x / cam.zoom) + cam.worldView.x);
+            const worldY = Math.round((pointer.y / cam.zoom) + cam.worldView.y);
+            if (this.editorCoords) {
+                this.editorCoords.setText(`World: ${worldX}, ${worldY}`);
+            }
+        };
+        this.input.on('pointermove', this._editorPointerMove);
+
+        this.editorInspect = this.add.text(16, 72, '', {
             fontFamily: 'monospace',
             fontSize: '20px',
             color: '#ffffff',
@@ -439,6 +459,15 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         if (this.editorInspect) {
             this.editorInspect.destroy();
             this.editorInspect = null;
+        }
+
+        if (this.editorCoords) {
+            this.editorCoords.destroy();
+            this.editorCoords = null;
+        }
+        if (this._editorPointerMove) {
+            this.input.off('pointermove', this._editorPointerMove);
+            this._editorPointerMove = null;
         }
 
         if (this.editorToast) {
@@ -525,6 +554,16 @@ export default class SillySpeedRunScene extends Phaser.Scene {
         const zoom = this.cameras.main.zoom || 1;
         this.editorHud.setScale(1 / zoom);
         this.editorHud.setPosition(16 / zoom, 16 / zoom);
+
+        if (this.editorCoords) {
+            this.editorCoords.setScale(1 / zoom);
+            this.editorCoords.setPosition(16 / zoom, 50 / zoom);
+        }
+
+        if (this.editorInspect) {
+            this.editorInspect.setScale(1 / zoom);
+            this.editorInspect.setPosition(16 / zoom, 84 / zoom);
+        }
     }
 
     positionEditorToastFixed() {
@@ -576,13 +615,16 @@ export default class SillySpeedRunScene extends Phaser.Scene {
 
         this.editorToast = this.add.text(16, 44, message, {
             fontFamily: 'monospace',
-            fontSize: '14px',
+            fontSize: '20px',
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 4
         });
+        this.editorToast.setBackgroundColor('rgba(0, 0, 0, 0.75)');
+        this.editorToast.setPadding(8, 6, 8, 6);
         this.editorToast.setScrollFactor(0);
-        this.editorToast.setDepth(3001);
+        this.editorToast.setDepth(3502);
+        this.positionEditorToastFixed();
 
         this.time.delayedCall(1600, () => {
             if (this.editorToast) {
