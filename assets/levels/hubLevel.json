@@ -9,6 +9,14 @@
     "x": 300,
     "y": 1250
   },
+  "prizePointPortal": {
+    "x": 700,
+    "y": 1450
+  },
+  "zombiesPortal": {
+    "x": 1290,
+    "y": 1425
+  },
   "platforms": [
     {
       "x": 0,

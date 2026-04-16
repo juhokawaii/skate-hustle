@@ -3,6 +3,7 @@ import HubScene from './HubScene.js';
 import SillySpeedRunScene from './SillySpeedRunScene.js';
 import BottomRaceScene from './BottomRaceScene.js';
 import ZombieHordeScene from './ZombieHordeScene.js';
+import PrizePointScene from './PrizePointScene.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -25,7 +26,7 @@ const config = {
             enableSleeping: false
         }
     },
-    scene: [SplashScene, HubScene, SillySpeedRunScene, BottomRaceScene, ZombieHordeScene]
+    scene: [SplashScene, HubScene, SillySpeedRunScene, BottomRaceScene, ZombieHordeScene, PrizePointScene]
 };
 
 const game = new Phaser.Game(config);

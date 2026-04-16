@@ -34,6 +34,7 @@ export default class HubScene extends Phaser.Scene {
         this.load.image("zombies", "assets/backgrounds/zombies.png");
         this.load.image("dealwithit", "assets/backgrounds/dealwithit.png");
         this.load.image("arrow_right", "assets/backgrounds/arrow-light.png");
+        this.load.image("prize_point_color", "assets/backgrounds/prize-point.png");
 
         this.load.audio("secret", "assets/music/title.mp3");
         this.load.audio("ramp", "assets/music/ramp.mp3");
@@ -72,6 +73,11 @@ export default class HubScene extends Phaser.Scene {
             ? (data.zombiesPortalPos || defaultZombiesPos)
             : (hasCachedLevel ? (cachedLevel.zombiesPortal || defaultZombiesPos) : defaultZombiesPos);
 
+        const defaultPrizePointPos = { x: this.portal1Pos.x + 200, y: this.portal1Pos.y + 200 };
+        this.prizePointPortalPos = hasInjectedLevel
+            ? (data.prizePointPortalPos || defaultPrizePointPos)
+            : (hasCachedLevel ? (cachedLevel.prizePointPortal || defaultPrizePointPos) : defaultPrizePointPos);
+
         this.portal1Pos = {
             x: this.portal1Pos.x,
             y: this.portal1Pos.y - 100
@@ -83,6 +89,10 @@ export default class HubScene extends Phaser.Scene {
         this.zombiesPortalPos = {
             x: this.zombiesPortalPos.x,
             y: this.zombiesPortalPos.y - 115
+        };
+        this.prizePointPortalPos = {
+            x: this.prizePointPortalPos.x,
+            y: this.prizePointPortalPos.y - 100
         };
 
         const sourcePlatforms = hasInjectedLevel
@@ -146,6 +156,14 @@ export default class HubScene extends Phaser.Scene {
         this.zombiesPortal.enableParallaxVisual(0.85, 0.85, {
             depth: -2,
             alpha: 0.74
+        });
+
+        this.ensureGrayscaleTexture('prize_point_color', 'prize_point_bw');
+        this.prizePointPortal = new Graffiti(this, this.prizePointPortalPos.x, this.prizePointPortalPos.y, 'prize_point_bw', 'prize_point_color', this.cats.SENSOR);
+        this.prizePointPortal.setScrollFactor(1, 1);
+        this.prizePointPortal.enableParallaxVisual(0.85, 0.85, {
+            depth: -2,
+            alpha: 0.85
         });
 
         const defaultCryptoPos = this.getCryptoPortalPosition();
@@ -317,7 +335,8 @@ export default class HubScene extends Phaser.Scene {
                     spawnPoint: this.spawnPoint,
                     portal1Pos: this.portal1Pos,
                     racePortalPos: this.racePortalPos,
-                    zombiesPortalPos: this.zombiesPortalPos
+                    zombiesPortalPos: this.zombiesPortalPos,
+                    prizePointPortalPos: this.prizePointPortalPos
                 });
             }
         });
@@ -333,7 +352,8 @@ export default class HubScene extends Phaser.Scene {
         const cheatCodes = {
             silly: 'SillySpeedRunScene',
             bottom: 'BottomRaceScene',
-            zombie: 'ZombieHordeScene'
+            zombie: 'ZombieHordeScene',
+            prize: 'PrizePointScene'
         };
         const debugWord = 'debug';
         const cheatWords = Object.keys(cheatCodes);
@@ -788,6 +808,7 @@ export default class HubScene extends Phaser.Scene {
             portal1: this.portal1Pos,
             racePortal: this.racePortalPos,
             zombiesPortal: this.zombiesPortalPos,
+            prizePointPortal: this.prizePointPortalPos,
             platforms: exportPlatforms
         };
 
@@ -1353,6 +1374,18 @@ export default class HubScene extends Phaser.Scene {
                 this.scene.start('ZombieHordeScene');
                 return;
             }
+        }
+
+        if (this.prizePointPortal && this.prizePointPortal.isPlayerTouching) {
+            this.setPortalTexture(this.prizePointPortal, 'prize_point_color');
+            this.hintText.setText('Press ENTER for Prize Point');
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.persistHubProgress();
+                this.scene.start('PrizePointScene');
+                return;
+            }
+        } else if (this.prizePointPortal) {
+            this.setPortalTexture(this.prizePointPortal, 'prize_point_bw');
         }
 
         if(this.portal1.isPlayerTouching) {
