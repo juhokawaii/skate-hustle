@@ -7,6 +7,7 @@ import { CATS } from './CollisionCategories.js';
 export default class PrizePointScene extends Phaser.Scene {
     constructor() {
         super('PrizePointScene');
+        this.highestLineStorageKey = 'skate_hustle_prize_point_best_line_y';
     }
 
     preload() {
@@ -133,6 +134,40 @@ export default class PrizePointScene extends Phaser.Scene {
 
         this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
         this.player.setDepth(10);
+
+        this.resetWord = 'reset';
+        this.resetBuffer = '';
+        this.requestResetHighestLine = false;
+        this._resetWordListener = (event) => {
+            const key = (event?.key || '').toLowerCase();
+            if (!/^[a-z]$/.test(key)) {
+                this.resetBuffer = '';
+                return;
+            }
+
+            this.resetBuffer += key;
+            if (this.resetBuffer.length > this.resetWord.length) {
+                this.resetBuffer = this.resetBuffer.slice(-this.resetWord.length);
+            }
+
+            if (this.resetBuffer === this.resetWord) {
+                this.requestResetHighestLine = true;
+                this.resetBuffer = '';
+            }
+        };
+        this.input.keyboard.on('keydown', this._resetWordListener);
+        this.events.once('shutdown', () => {
+            this.input.keyboard.off('keydown', this._resetWordListener);
+        });
+
+        this.highestLineGraphics = this.add.graphics();
+        this.highestLineGraphics.setDepth(1500);
+        this.highestLineY = this.loadHighestLineY();
+        if (!Number.isFinite(this.highestLineY)) {
+            this.highestLineY = this.getPlayerBottomY();
+            this.saveHighestLineY();
+        }
+        this.redrawHighestLine();
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setDeadzone(400, 200);
@@ -687,8 +722,70 @@ export default class PrizePointScene extends Phaser.Scene {
         this.textures.addCanvas(targetKey, canvas);
     }
 
+    getPlayerBottomY() {
+        if (!this.player) {
+            return 0;
+        }
+
+        if (typeof this.player.getBottomCenter === 'function') {
+            return this.player.getBottomCenter().y;
+        }
+
+        const h = this.player.displayHeight || this.player.height || 0;
+        return this.player.y + (h * 0.5);
+    }
+
+    loadHighestLineY() {
+        try {
+            const raw = localStorage.getItem(this.highestLineStorageKey);
+            if (raw == null) {
+                return NaN;
+            }
+            const parsed = Number(raw);
+            return Number.isFinite(parsed) ? parsed : NaN;
+        } catch {
+            return NaN;
+        }
+    }
+
+    saveHighestLineY() {
+        try {
+            localStorage.setItem(this.highestLineStorageKey, String(this.highestLineY));
+        } catch {
+            // Ignore storage errors (e.g. private mode restrictions).
+        }
+    }
+
+    redrawHighestLine() {
+        if (!this.highestLineGraphics || !Number.isFinite(this.highestLineY)) {
+            return;
+        }
+
+        this.highestLineGraphics.clear();
+        this.highestLineGraphics.lineStyle(6, 0x00ff55, 1);
+        this.highestLineGraphics.beginPath();
+        this.highestLineGraphics.moveTo(0, this.highestLineY);
+        this.highestLineGraphics.lineTo(this.worldWidth, this.highestLineY);
+        this.highestLineGraphics.strokePath();
+    }
+
     update() {
         this.player.update();
+
+        const playerBottomY = this.getPlayerBottomY();
+
+        if (this.requestResetHighestLine) {
+            this.requestResetHighestLine = false;
+            this.highestLineY = playerBottomY;
+            this.saveHighestLineY();
+            this.redrawHighestLine();
+        }
+
+        if (playerBottomY < this.highestLineY) {
+            this.highestLineY = playerBottomY;
+            this.saveHighestLineY();
+            this.redrawHighestLine();
+        }
 
         if (this.returnPortal.isPlayerTouching && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
             this.scene.start('HubScene');
