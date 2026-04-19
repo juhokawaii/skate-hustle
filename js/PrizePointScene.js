@@ -4,6 +4,8 @@ import TextureFactory from './TextureFactory.js';
 import { isDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx2KbZOBAP6JI_gAFdrPjd3BFiQD3bu_k5WB__IR_5FtqILujrZfmHi5we0Mm2yIFud/exec';
+
 export default class PrizePointScene extends Phaser.Scene {
     constructor() {
         super('PrizePointScene');
@@ -811,8 +813,18 @@ export default class PrizePointScene extends Phaser.Scene {
         this.inputPhase = 'intro';
         this.gameplayPaused = true;
 
-        const top7 = this.loadLeaderboard();
-        this.renderHighscoreBoard(this.inputOverlayElements, 6001, top7, null);
+        // Show local board immediately, then replace with global if available
+        const localTop7 = this.loadLeaderboard();
+        this.renderHighscoreBoard(this.inputOverlayElements, 6001, localTop7, null);
+
+        this.fetchGlobalLeaderboard().then(global => {
+            if (global && global.length > 0) {
+                // Clear current board and re-render with global data
+                this.inputOverlayElements.forEach(el => el.destroy());
+                this.inputOverlayElements.length = 0;
+                this.renderHighscoreBoard(this.inputOverlayElements, 6001, global, null);
+            }
+        });
 
         if (this._entryKeyListener) {
             this.input.keyboard.off('keydown', this._entryKeyListener);
@@ -937,7 +949,7 @@ export default class PrizePointScene extends Phaser.Scene {
         if (this.inputPhase === 'tag') {
             promptText = `Enter your tag (max ${this.maxTagLen} chars)\nType and press ENTER`;
         } else {
-            promptText = `Enter your full name and class\n(e.g. "Juho Salmi 3B")\nType and press ENTER`;
+            promptText = `Enter your full name and class\n(e.g. "Aapo Aalto 1A")\nType and press ENTER`;
         }
 
         const prompt = this.add.text(cx, cy - 80, promptText, {
@@ -1070,7 +1082,38 @@ export default class PrizePointScene extends Phaser.Scene {
         // Keep top 7
         const top5 = board.slice(0, 7);
         this.saveLeaderboard(top5);
+
+        // Fire-and-forget POST to Google Sheet
+        this.postScoreToSheet({ tag, fullName, pixelsUp, secondsRemaining, score });
+
         return top5;
+    }
+
+    postScoreToSheet(entry) {
+        fetch(SHEET_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(entry)
+        }).catch(() => { /* silent fail — local board is the fallback */ });
+    }
+
+    fetchGlobalLeaderboard() {
+        return fetch(SHEET_URL)
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok' && Array.isArray(data.leaderboard)) {
+                    return data.leaderboard.map(e => ({
+                        tag: String(e.tag || 'ANON'),
+                        fullName: String(e.fullName || ''),
+                        pixelsUp: Number(e.pixelsUp) || 0,
+                        secondsRemaining: Number(e.secondsRemaining) || 0,
+                        score: Number(e.score) || 0
+                    }));
+                }
+                return null;
+            })
+            .catch(() => null);
     }
 
     // --- ATLAS TEXT RENDERING ---
@@ -1290,10 +1333,20 @@ export default class PrizePointScene extends Phaser.Scene {
 
         // --- End screen: use shared highscore board ---
         const currentScore = Math.round(currentPixelsUp + currentSecondsRemaining);
-        this.renderHighscoreBoard(this.endScreenElements, 5000, top5, {
+        const lastRunInfo = {
             score: currentScore,
             pixelsUp: currentPixelsUp,
             seconds: Math.round(currentSecondsRemaining)
+        };
+        this.renderHighscoreBoard(this.endScreenElements, 5000, top5, lastRunInfo);
+
+        // Replace with global leaderboard when available
+        this.fetchGlobalLeaderboard().then(global => {
+            if (global && global.length > 0) {
+                this.endScreenElements.forEach(el => el.destroy());
+                this.endScreenElements.length = 0;
+                this.renderHighscoreBoard(this.endScreenElements, 5000, global, lastRunInfo);
+            }
         });
     }
 

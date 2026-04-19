@@ -2,6 +2,7 @@ import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
 import { CATS } from './CollisionCategories.js';
+import { setPrizePointUnlocked, isPrizePointUnlocked } from './GameState.js';
 
 export default class SplashScene extends Phaser.Scene {
     constructor() {
@@ -29,6 +30,12 @@ export default class SplashScene extends Phaser.Scene {
     }
 
     create() {
+        // If Prize Point is unlocked, go straight there
+        if (isPrizePointUnlocked()) {
+            this.scene.start('PrizePointScene');
+            return;
+        }
+
         this.worldWidth = 1280;
         this.worldHeight = 720;
         this.cats = CATS;
@@ -159,6 +166,19 @@ export default class SplashScene extends Phaser.Scene {
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
         this.downKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+
+        // BUSINESS cheat code — permanently unlocks Prize Point
+        this._cheatBuffer = '';
+        this.input.keyboard.on('keydown', (event) => {
+            const key = (event.key || '').toLowerCase();
+            if (!/^[a-z]$/.test(key)) { this._cheatBuffer = ''; return; }
+            this._cheatBuffer = (this._cheatBuffer + key).slice(-8);
+            if (this._cheatBuffer === 'business') {
+                setPrizePointUnlocked();
+                this._cheatBuffer = '';
+                this.scene.start('PrizePointScene');
+            }
+        });
 
         this.tutorialStep = 0;
         this.collectedCoins = 0;

@@ -1,7 +1,7 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
-import { getHubProgress, saveHubProgress, isDebugMode, setDebugMode } from './GameState.js';
+import { getHubProgress, saveHubProgress, isDebugMode, setDebugMode, isPrizePointUnlocked, setPrizePointUnlocked } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 
 export default class HubScene extends Phaser.Scene {
@@ -41,6 +41,12 @@ export default class HubScene extends Phaser.Scene {
     }
 
     create(data = {}) {
+        // If Prize Point is unlocked, go straight there
+        if (isPrizePointUnlocked()) {
+            this.scene.start('PrizePointScene');
+            return;
+        }
+
         // --- BACKGROUND MUSIC ---
         this.sound.stopAll();
         this.bgmusic = this.sound.add("ramp", { volume: 1.0, loop: true });
@@ -165,6 +171,15 @@ export default class HubScene extends Phaser.Scene {
             depth: -2,
             alpha: 0.85
         });
+
+        // Prize Point portal — always hidden, only accessible via BUSINESS code
+        if (!isPrizePointUnlocked()) {
+            this.prizePointPortal.setVisible(false);
+            this.prizePointPortal.setSensor(true);
+            if (this.prizePointPortal.visualProxy) {
+                this.prizePointPortal.visualProxy.setVisible(false);
+            }
+        }
 
         const defaultCryptoPos = this.getCryptoPortalPosition();
         this.cryptoPortalPos = {
@@ -362,9 +377,10 @@ export default class HubScene extends Phaser.Scene {
             zombie: 'ZombieHordeScene',
             prize: 'PrizePointScene'
         };
+        const businessWord = 'business';
         const debugWord = 'debug';
         const cheatWords = Object.keys(cheatCodes);
-        const allWords = [debugWord, ...cheatWords];
+        const allWords = [debugWord, businessWord, ...cheatWords];
         const maxCheatLen = allWords.reduce((m, word) => Math.max(m, word.length), 0);
         this.input.keyboard.on('keydown', (event) => {
             const key = (event.key || '').toLowerCase();
@@ -376,6 +392,15 @@ export default class HubScene extends Phaser.Scene {
             this._cheatBuffer += key;
             if (this._cheatBuffer.length > maxCheatLen) {
                 this._cheatBuffer = this._cheatBuffer.slice(-maxCheatLen);
+            }
+
+            // BUSINESS unlock — permanently enters Prize Point
+            if (this._cheatBuffer.endsWith(businessWord)) {
+                setPrizePointUnlocked();
+                this._cheatBuffer = '';
+                this.persistHubProgress();
+                this.scene.start('PrizePointScene');
+                return;
             }
 
             // DEBUG toggle
@@ -1381,18 +1406,6 @@ export default class HubScene extends Phaser.Scene {
                 this.scene.start('ZombieHordeScene');
                 return;
             }
-        }
-
-        if (this.prizePointPortal && this.prizePointPortal.isPlayerTouching) {
-            this.setPortalTexture(this.prizePointPortal, 'prize_point_color');
-            this.hintText.setText('Press ENTER for Prize Point');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-                this.persistHubProgress();
-                this.scene.start('PrizePointScene');
-                return;
-            }
-        } else if (this.prizePointPortal) {
-            this.setPortalTexture(this.prizePointPortal, 'prize_point_bw');
         }
 
         if(this.portal1.isPlayerTouching) {
