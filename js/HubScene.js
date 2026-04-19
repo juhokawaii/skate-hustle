@@ -300,8 +300,15 @@ export default class HubScene extends Phaser.Scene {
             debugGrid.strokePath();
         }
 
-        // 5.2. Wire up the 'M' key to toggle the view
-        this.input.keyboard.on('keydown-M', () => {
+        // 5.2. Type 'MAP' to toggle the editor view
+        this._mapBuffer = '';
+        this.input.keyboard.on('keydown', (event) => {
+            const k = (event.key || '').toLowerCase();
+            if (!/^[a-z]$/.test(k)) { this._mapBuffer = ''; return; }
+            this._mapBuffer += k;
+            if (this._mapBuffer.length > 3) this._mapBuffer = this._mapBuffer.slice(-3);
+            if (this._mapBuffer !== 'map') return;
+            this._mapBuffer = '';
             this.isMapMode = !this.isMapMode;
             
             if (this.isMapMode) {

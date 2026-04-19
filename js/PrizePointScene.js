@@ -8,6 +8,30 @@ export default class PrizePointScene extends Phaser.Scene {
     constructor() {
         super('PrizePointScene');
         this.highestLineStorageKey = 'skate_hustle_prize_point_best_line_y';
+        this.highestLineBaselineStorageKey = 'skate_hustle_prize_point_line_baseline_y';
+        this.bestPixelsUpStorageKey = 'skate_hustle_prize_point_best_pixels_up';
+        this.bestSecondsRemainingStorageKey = 'skate_hustle_prize_point_best_seconds_remaining';
+        this.leaderboardStorageKey = 'skate_hustle_prize_point_leaderboard';
+
+        // Atlas grid: 8 cols x 6 rows, 560x423 image
+        this.atlasCols = 8;
+        this.atlasRows = 6;
+        this.atlasCellW = Math.floor(560 / 8); // 70
+        this.atlasCellH = Math.floor(423 / 6); // 70
+
+        // Character map: row by row
+        this.atlasChars = [
+            'A','B','C','D','E','F','G','H',
+            'I','J','K','L','M','N','O','P',
+            'Q','R','S','T','U','V','W','X',
+            'Y','Z','Å','Ä','Ö','','','',
+            '1','2','3','4','5','6','7','8',
+            '9','0','','','','','',''
+        ];
+        this.atlasCharMap = {};
+        this.atlasChars.forEach((ch, i) => {
+            if (ch) this.atlasCharMap[ch] = i;
+        });
     }
 
     preload() {
@@ -22,6 +46,7 @@ export default class PrizePointScene extends Phaser.Scene {
         this.load.image('platform_texture', 'assets/backgrounds/256x256.png');
         this.load.image('ground', 'assets/backgrounds/ground.png');
         this.load.image('drop', 'assets/backgrounds/drop.png');
+        this.load.image('sponsor_graffiti_1', 'assets/backgrounds/sponsor-graffiti-1.png');
         this.load.spritesheet('graffiti', 'assets/backgrounds/Atlas.png', {
             frameWidth: 512,
             frameHeight: 512
@@ -31,12 +56,28 @@ export default class PrizePointScene extends Phaser.Scene {
         this.load.json('prize_point_level', 'assets/levels/prizePointLevel.json');
 
         this.load.audio('run_track', 'assets/music/run.mp3');
+        this.load.image('high_score_title', 'assets/backgrounds/high-score-title.png');
+
+        this.load.spritesheet('highscore_atlas', 'assets/backgrounds/highscore-atlas.png', {
+            frameWidth: this.atlasCellW,
+            frameHeight: this.atlasCellH
+        });
     }
 
     create(data = {}) {
         this.sound.stopAll();
         this.bgmusic = this.sound.add('run_track', { volume: 0.9, loop: true });
         this.bgmusic.play();
+
+        // --- INPUT PHASE: collect player info before gameplay ---
+        this.inputPhase = 'intro'; // 'intro' -> 'tag' -> 'nameclass' -> 'playing'
+        this.playerTag = '';
+        this.playerFullName = '';
+        this.playerClass = '';
+        this.inputBuffer = '';
+        this.maxTagLen = 7;
+        this.inputOverlayElements = [];
+        this.gameplayPaused = true;
 
         const cachedLevel = this.cache.json.get('prize_point_level');
         const hasInjectedLevel = Array.isArray(data.levelPlatforms);
@@ -84,10 +125,10 @@ export default class PrizePointScene extends Phaser.Scene {
             }
         });
 
-        const bg = this.add.tileSprite(0, 0, this.worldWidth, this.worldHeight, 'concrete_bg');
-        bg.setOrigin(0, 0);
-        bg.setScrollFactor(0.85, 0.85);
-        bg.setDepth(-10);
+        this.parkBackground = this.add.tileSprite(0, 0, this.worldWidth, this.worldHeight, 'concrete_bg');
+        this.parkBackground.setOrigin(0, 0);
+        this.parkBackground.setScrollFactor(0.85, 0.85);
+        this.parkBackground.setDepth(-10);
 
         // Compensate visual proxy positions for parallax in tall world
         const viewW = this.scale.width;
@@ -118,6 +159,14 @@ export default class PrizePointScene extends Phaser.Scene {
             depth: -2,
             alpha: 0.62
         });
+
+        const sponsorX = 820;
+        const sponsorY = 4070;
+        this.sponsorGraffiti = this.add.image(sponsorX, sponsorY, 'sponsor_graffiti_1');
+        this.sponsorGraffiti.setOrigin(0, 0);
+        this.sponsorGraffiti.setAngle(15);
+        this.sponsorGraffiti.setScrollFactor(pxFactor, pxFactor);
+        this.sponsorGraffiti.setDepth(-2);
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
@@ -162,11 +211,10 @@ export default class PrizePointScene extends Phaser.Scene {
 
         this.highestLineGraphics = this.add.graphics();
         this.highestLineGraphics.setDepth(1500);
-        this.highestLineY = this.loadHighestLineY();
-        if (!Number.isFinite(this.highestLineY)) {
-            this.highestLineY = this.getPlayerBottomY();
-            this.saveHighestLineY();
-        }
+        this.highestLineGraphics.setVisible(false);
+        // Reset green line each run — always starts at player spawn
+        this.highestLineBaselineY = this.getPlayerBottomY();
+        this.highestLineY = this.highestLineBaselineY;
         this.redrawHighestLine();
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
@@ -176,11 +224,15 @@ export default class PrizePointScene extends Phaser.Scene {
 
         this.setupAnims();
 
-        this.timerStartedAt = this.time.now;
-        this.timerStopped = false;
-        this.finalTimeMs = 0;
+        this.countdownDurationMs = 120000;
+        this.remainingTimeMs = this.countdownDurationMs;
+        this.runEnded = false;
+        this.goalReached = false;
+        this.finalRemainingTimeMs = 0;
+        this.endScreenText = null;
+        this.endScreenElements = [];
 
-        this.timerText = this.add.text(this.scale.width / 2, 16, '00.000', {
+        this.timerText = this.add.text(this.scale.width / 2, 16, this.formatTimeMs(this.remainingTimeMs), {
             fontFamily: 'monospace',
             fontSize: '32px',
             color: '#ffffff',
@@ -203,6 +255,7 @@ export default class PrizePointScene extends Phaser.Scene {
         const debugGrid = this.add.graphics();
         debugGrid.setDepth(1000);
         debugGrid.setVisible(false);
+        this.debugGrid = debugGrid;
 
         for (let x = 0; x <= this.worldWidth; x += 100) {
             const isMajor = x % 500 === 0;
@@ -222,7 +275,15 @@ export default class PrizePointScene extends Phaser.Scene {
             debugGrid.strokePath();
         }
 
-        this.input.keyboard.on('keydown-M', () => {
+        this._mapBuffer = '';
+        this.input.keyboard.on('keydown', (event) => {
+            if (this.inputPhase === 'intro' || this.inputPhase === 'tag' || this.inputPhase === 'nameclass') return;
+            const k = (event.key || '').toLowerCase();
+            if (!/^[a-z]$/.test(k)) { this._mapBuffer = ''; return; }
+            this._mapBuffer += k;
+            if (this._mapBuffer.length > 3) this._mapBuffer = this._mapBuffer.slice(-3);
+            if (this._mapBuffer !== 'map') return;
+            this._mapBuffer = '';
             this.isMapMode = !this.isMapMode;
 
             if (this.isMapMode) {
@@ -261,6 +322,19 @@ export default class PrizePointScene extends Phaser.Scene {
                 this.exportLevelData();
             }
         });
+
+        // Show leaderboard first, then ENTER to start entering a new run tag/name.
+        if (data && data.skipIntro) {
+            this.setGameplayVisibility(false);
+            this.inputPhase = 'tag';
+            this.gameplayPaused = true;
+            if (this.matter?.world?.pause) {
+                this.matter.world.pause();
+            }
+            this.showInputOverlay();
+        } else {
+            this.showEntryHighscoreOverlay();
+        }
     }
 
     createPlatform(x, y, config, defRef = null) {
@@ -690,6 +764,348 @@ export default class PrizePointScene extends Phaser.Scene {
         }
     }
 
+    // --- INPUT PHASE UI ---
+    setGameplayVisibility(visible) {
+        const snapshot = [...this.children.list];
+        snapshot.forEach((child) => {
+            if (child === this.parkBackground) {
+                return;
+            }
+            if (this.inputOverlayElements.includes(child)) {
+                return;
+            }
+            if (this.endScreenElements.includes(child)) {
+                return;
+            }
+            if (child instanceof Graffiti) {
+                // Graffiti uses a hidden sensor sprite + visualProxy image.
+                // Keep sensor hidden always so it never renders in front.
+                child.setVisible(false);
+                if (child.visualProxy) {
+                    child.visualProxy.setVisible(visible);
+                }
+                return;
+            }
+            if (child === this.debugGrid) {
+                child.setVisible(this.isMapMode && visible);
+                return;
+            }
+            if (child === this.debugLabel) {
+                child.setVisible(isDebugMode() && visible);
+                return;
+            }
+            child.setVisible(visible);
+        });
+    }
+
+    showEntryHighscoreOverlay() {
+        this.clearInputOverlay();
+
+        if (this.matter?.world?.pause) {
+            this.matter.world.pause();
+        }
+
+        // Intro must show only concrete wall + highscore elements.
+        this.setGameplayVisibility(false);
+
+        this.inputPhase = 'intro';
+        this.gameplayPaused = true;
+
+        const top7 = this.loadLeaderboard();
+        this.renderHighscoreBoard(this.inputOverlayElements, 6001, top7, null);
+
+        if (this._entryKeyListener) {
+            this.input.keyboard.off('keydown', this._entryKeyListener);
+        }
+        this._entryKeyListener = (event) => {
+            if (event.key !== 'Enter') {
+                return;
+            }
+            this.input.keyboard.off('keydown', this._entryKeyListener);
+            this._entryKeyListener = null;
+            this.startNameEntryFlow();
+        };
+        this.input.keyboard.on('keydown', this._entryKeyListener);
+    }
+
+    renderHighscoreBoard(elements, depth, top7, lastRunInfo) {
+        const cx = this.scale.width * 0.5;
+        const startY = 70;
+        const rowGap = 58;
+
+        const title = this.add.image(cx, startY - 60, 'high_score_title');
+        title.setOrigin(0.5, 0);
+        title.setScrollFactor(0);
+        title.setDepth(depth);
+        elements.push(title);
+
+        if (top7.length === 0) {
+            const emptyText = this.add.text(cx, startY + 120, 'No scores yet', {
+                fontFamily: 'monospace',
+                fontSize: '28px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 4,
+                align: 'center'
+            });
+            emptyText.setOrigin(0.5, 0);
+            emptyText.setScrollFactor(0);
+            emptyText.setDepth(depth);
+            elements.push(emptyText);
+        } else {
+            top7.forEach((entry, index) => {
+                const rowY = startY + 200 + (index * rowGap);
+
+                const rankImages = this.renderAtlasText(`${index + 1}`, cx - 310, rowY, depth, 'left');
+                elements.push(...rankImages);
+
+                const tagImages = this.renderAtlasText(entry.tag || 'ANON', cx - 80, rowY, depth);
+                elements.push(...tagImages);
+
+                const entryScore = entry.score != null ? entry.score : Math.round(entry.pixelsUp + entry.secondsRemaining);
+                const scoreImages = this.renderAtlasText(`${entryScore}`, cx + 220, rowY, depth);
+                elements.push(...scoreImages);
+            });
+        }
+
+        // Bottom line: previous run (red, left) + ENTER prompt (right, tweening)
+        const bottomY = this.scale.height - 16;
+
+        if (lastRunInfo) {
+            const runText = this.add.text(16, bottomY,
+                `Score: ${lastRunInfo.score}  (${lastRunInfo.pixelsUp}px + ${lastRunInfo.seconds}s)`, {
+                    fontFamily: 'monospace',
+                    fontSize: '18px',
+                    color: '#ff5d5d',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                });
+            runText.setOrigin(0, 1);
+            runText.setScrollFactor(0);
+            runText.setDepth(depth);
+            elements.push(runText);
+        }
+
+        const enterText = this.add.text(
+            lastRunInfo ? cx + 280 : cx,
+            bottomY,
+            'Press ENTER for a new run', {
+                fontFamily: 'monospace',
+                fontSize: '28px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 5
+            });
+        enterText.setOrigin(lastRunInfo ? 1 : 0.5, 1);
+        enterText.setScrollFactor(0);
+        enterText.setDepth(depth);
+        elements.push(enterText);
+
+        // Tween between white and dark gray
+        this.tweens.add({
+            targets: enterText,
+            alpha: { from: 1, to: 0.35 },
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    startNameEntryFlow() {
+        this.inputPhase = 'tag';
+        this.showInputOverlay();
+    }
+
+    showInputOverlay() {
+        this.clearInputOverlay();
+        this.inputBuffer = '';
+
+        if (this.matter?.world?.pause) {
+            this.matter.world.pause();
+        }
+
+        const cx = this.scale.width * 0.5;
+        const cy = this.scale.height * 0.5;
+
+        const dimBg = this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.7);
+        dimBg.setScrollFactor(0);
+        dimBg.setDepth(6000);
+        this.inputOverlayElements.push(dimBg);
+
+        let promptText;
+        if (this.inputPhase === 'tag') {
+            promptText = `Enter your tag (max ${this.maxTagLen} chars)\nType and press ENTER`;
+        } else {
+            promptText = `Enter your full name and class\n(e.g. "Juho Salmi 3B")\nType and press ENTER`;
+        }
+
+        const prompt = this.add.text(cx, cy - 80, promptText, {
+            fontFamily: 'monospace',
+            fontSize: '28px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center'
+        });
+        prompt.setOrigin(0.5, 0.5);
+        prompt.setScrollFactor(0);
+        prompt.setDepth(6001);
+        this.inputOverlayElements.push(prompt);
+
+        this.inputDisplay = this.add.text(cx, cy + 20, '_', {
+            fontFamily: 'monospace',
+            fontSize: '36px',
+            color: '#5dff8b',
+            stroke: '#000000',
+            strokeThickness: 5,
+            align: 'center'
+        });
+        this.inputDisplay.setOrigin(0.5, 0.5);
+        this.inputDisplay.setScrollFactor(0);
+        this.inputDisplay.setDepth(6001);
+        this.inputOverlayElements.push(this.inputDisplay);
+
+        if (this._inputKeyListener) {
+            this.input.keyboard.off('keydown', this._inputKeyListener);
+        }
+        this._inputKeyListener = (event) => this.handleInputKey(event);
+        this.input.keyboard.on('keydown', this._inputKeyListener);
+    }
+
+    handleInputKey(event) {
+        if (this.inputPhase !== 'tag' && this.inputPhase !== 'nameclass') {
+            return;
+        }
+
+        const key = event.key || '';
+
+        if (key === 'Enter') {
+            if (this.inputBuffer.length === 0) return;
+
+            if (this.inputPhase === 'tag') {
+                this.playerTag = this.inputBuffer.toUpperCase();
+                this.inputPhase = 'nameclass';
+                this.showInputOverlay();
+            } else if (this.inputPhase === 'nameclass') {
+                const parts = this.inputBuffer.trim();
+                this.playerFullName = parts;
+                this.playerClass = '';
+                this.inputPhase = 'playing';
+                this.clearInputOverlay();
+                this.input.keyboard.off('keydown', this._inputKeyListener);
+                this._inputKeyListener = null;
+                this.setGameplayVisibility(true);
+                this.gameplayPaused = false;
+                // Reset ENTER key so it doesn't fire portal transition this frame
+                this.enterKey.isDown = false;
+                this.enterKey._justDown = false;
+                if (this.matter?.world?.resume) {
+                    this.matter.world.resume();
+                }
+            }
+            return;
+        }
+
+        if (key === 'Backspace') {
+            this.inputBuffer = this.inputBuffer.slice(0, -1);
+        } else if (key.length === 1) {
+            const maxLen = this.inputPhase === 'tag' ? this.maxTagLen : 40;
+            if (this.inputBuffer.length < maxLen) {
+                this.inputBuffer += key;
+            }
+        }
+
+        if (this.inputDisplay) {
+            const display = this.inputBuffer.length > 0
+                ? (this.inputPhase === 'tag' ? this.inputBuffer.toUpperCase() : this.inputBuffer) + '_'
+                : '_';
+            this.inputDisplay.setText(display);
+        }
+    }
+
+    clearInputOverlay() {
+        this.inputOverlayElements.forEach((el) => {
+            if (el && el.destroy) el.destroy();
+        });
+        this.inputOverlayElements = [];
+        this.inputDisplay = null;
+
+        if (this._entryKeyListener) {
+            this.input.keyboard.off('keydown', this._entryKeyListener);
+            this._entryKeyListener = null;
+        }
+    }
+
+    // --- LEADERBOARD ---
+    loadLeaderboard() {
+        try {
+            const raw = localStorage.getItem(this.leaderboardStorageKey);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+
+    saveLeaderboard(board) {
+        try {
+            localStorage.setItem(this.leaderboardStorageKey, JSON.stringify(board));
+        } catch {
+            // Ignore
+        }
+    }
+
+    addLeaderboardEntry(tag, fullName, pixelsUp, secondsRemaining) {
+        const board = this.loadLeaderboard();
+        const score = Math.round(pixelsUp + secondsRemaining);
+        board.push({ tag, fullName, pixelsUp, secondsRemaining, score });
+        // Sort by combined score (pixels + time), descending
+        board.sort((a, b) => {
+            const sa = a.score != null ? a.score : Math.round(a.pixelsUp + a.secondsRemaining);
+            const sb = b.score != null ? b.score : Math.round(b.pixelsUp + b.secondsRemaining);
+            return sb - sa;
+        });
+        // Keep top 7
+        const top5 = board.slice(0, 7);
+        this.saveLeaderboard(top5);
+        return top5;
+    }
+
+    // --- ATLAS TEXT RENDERING ---
+    renderAtlasText(text, x, y, depth, align) {
+        const images = [];
+        const upper = text.toUpperCase();
+        const effectiveCharWidth = this.atlasCellW * 0.5;
+        const totalWidth = upper.length * effectiveCharWidth;
+        let cursorX;
+        if (align === 'left') {
+            cursorX = x;
+        } else {
+            cursorX = x - totalWidth * 0.5;
+        }
+
+        for (let i = 0; i < upper.length; i++) {
+            const ch = upper[i];
+            if (ch === ' ') {
+                cursorX += effectiveCharWidth;
+                continue;
+            }
+            const frameIndex = this.atlasCharMap[ch];
+            if (frameIndex == null) {
+                cursorX += effectiveCharWidth;
+                continue;
+            }
+            const img = this.add.image(cursorX + effectiveCharWidth * 0.5, y, 'highscore_atlas', frameIndex);
+            img.setScrollFactor(0);
+            img.setDepth(depth || 5000);
+            images.push(img);
+            cursorX += effectiveCharWidth;
+        }
+        return images;
+    }
+
     ensureGrayscaleTexture(sourceKey, targetKey) {
         if (this.textures.exists(targetKey)) {
             return;
@@ -756,20 +1172,156 @@ export default class PrizePointScene extends Phaser.Scene {
         }
     }
 
-    redrawHighestLine() {
-        if (!this.highestLineGraphics || !Number.isFinite(this.highestLineY)) {
+    loadHighestLineBaselineY() {
+        try {
+            const raw = localStorage.getItem(this.highestLineBaselineStorageKey);
+            if (raw == null) {
+                return NaN;
+            }
+            const parsed = Number(raw);
+            return Number.isFinite(parsed) ? parsed : NaN;
+        } catch {
+            return NaN;
+        }
+    }
+
+    saveHighestLineBaselineY() {
+        try {
+            localStorage.setItem(this.highestLineBaselineStorageKey, String(this.highestLineBaselineY));
+        } catch {
+            // Ignore storage errors (e.g. private mode restrictions).
+        }
+    }
+
+    loadBestPixelsUp() {
+        try {
+            const raw = localStorage.getItem(this.bestPixelsUpStorageKey);
+            if (raw == null) {
+                return 0;
+            }
+            const parsed = Number(raw);
+            return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+        } catch {
+            return 0;
+        }
+    }
+
+    saveBestPixelsUp(value) {
+        try {
+            localStorage.setItem(this.bestPixelsUpStorageKey, String(value));
+        } catch {
+            // Ignore storage errors (e.g. private mode restrictions).
+        }
+    }
+
+    loadBestSecondsRemaining() {
+        try {
+            const raw = localStorage.getItem(this.bestSecondsRemainingStorageKey);
+            if (raw == null) {
+                return 0;
+            }
+            const parsed = Number(raw);
+            return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+        } catch {
+            return 0;
+        }
+    }
+
+    saveBestSecondsRemaining(value) {
+        try {
+            localStorage.setItem(this.bestSecondsRemainingStorageKey, String(value));
+        } catch {
+            // Ignore storage errors (e.g. private mode restrictions).
+        }
+    }
+
+    getCurrentPixelsPushedUp() {
+        // Measure the highest point reached during this run (green line)
+        const pushed = this.highestLineBaselineY - this.highestLineY;
+        return Math.max(0, Math.round(pushed));
+    }
+
+    formatTimeMs(ms) {
+        const clamped = Math.max(0, ms);
+        const seconds = Math.floor(clamped / 1000);
+        const milliseconds = Math.floor(clamped % 1000).toString().padStart(3, '0');
+        return `${seconds}.${milliseconds}`;
+    }
+
+    endRun(goalReached) {
+        if (this.runEnded) {
             return;
         }
 
-        this.highestLineGraphics.clear();
-        this.highestLineGraphics.lineStyle(6, 0x00ff55, 1);
-        this.highestLineGraphics.beginPath();
-        this.highestLineGraphics.moveTo(0, this.highestLineY);
-        this.highestLineGraphics.lineTo(this.worldWidth, this.highestLineY);
-        this.highestLineGraphics.strokePath();
+        this.runEnded = true;
+        this.goalReached = goalReached;
+        this.finalRemainingTimeMs = this.remainingTimeMs;
+
+        const currentPixelsUp = this.getCurrentPixelsPushedUp();
+        const currentSecondsRemaining = goalReached ? (this.finalRemainingTimeMs / 1000) : 0;
+
+        // Update personal bests
+        const bestPixelsUp = Math.max(this.loadBestPixelsUp(), currentPixelsUp);
+        this.saveBestPixelsUp(bestPixelsUp);
+        if (goalReached) {
+            const bestSec = Math.max(this.loadBestSecondsRemaining(), currentSecondsRemaining);
+            this.saveBestSecondsRemaining(bestSec);
+        }
+
+        // Add to leaderboard
+        const top5 = this.addLeaderboardEntry(
+            this.playerTag || 'ANON',
+            this.playerFullName || '',
+            currentPixelsUp,
+            currentSecondsRemaining
+        );
+
+        if (this.matter?.world?.pause) {
+            this.matter.world.pause();
+        }
+
+        // Hide all children except park background
+        const snapshot = [...this.children.list];
+        snapshot.forEach((child) => {
+            if (child !== this.parkBackground) {
+                child.setVisible(false);
+            }
+        });
+
+        // --- End screen: use shared highscore board ---
+        const currentScore = Math.round(currentPixelsUp + currentSecondsRemaining);
+        this.renderHighscoreBoard(this.endScreenElements, 5000, top5, {
+            score: currentScore,
+            pixelsUp: currentPixelsUp,
+            seconds: Math.round(currentSecondsRemaining)
+        });
+    }
+
+    redrawHighestLine() {
+        // Green line hidden — only track position for score calculation
     }
 
     update() {
+        if (this.runEnded) {
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.scene.restart({ skipIntro: true });
+            }
+            return;
+        }
+
+        if (this.gameplayPaused) {
+            return;
+        }
+
+        // Skip a couple of frames after input phase ends to avoid ENTER leaking
+        if (this._inputGraceFrames == null) {
+            this._inputGraceFrames = 0;
+        }
+        if (this._inputGraceFrames < 2) {
+            this._inputGraceFrames++;
+            return;
+        }
+
         this.player.update();
 
         const playerBottomY = this.getPlayerBottomY();
@@ -777,7 +1329,9 @@ export default class PrizePointScene extends Phaser.Scene {
         if (this.requestResetHighestLine) {
             this.requestResetHighestLine = false;
             this.highestLineY = playerBottomY;
+            this.highestLineBaselineY = playerBottomY;
             this.saveHighestLineY();
+            this.saveHighestLineBaselineY();
             this.redrawHighestLine();
         }
 
@@ -787,26 +1341,22 @@ export default class PrizePointScene extends Phaser.Scene {
             this.redrawHighestLine();
         }
 
+        this.remainingTimeMs = Math.max(0, this.remainingTimeMs - this.game.loop.delta);
+        this.timerText.setText(this.formatTimeMs(this.remainingTimeMs));
+
         if (this.returnPortal.isPlayerTouching && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
             this.scene.start('HubScene');
             return;
         }
 
-        if (!this.timerStopped && this.finishPortal.isPlayerTouching) {
-            this.timerStopped = true;
-            this.finalTimeMs = this.time.now - this.timerStartedAt;
-            this.timerText.setColor('#5dff8b');
-            // Prize Point finish - no hub progress flag yet
-        }
-
-        if (this.finishPortal.isPlayerTouching && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-            this.scene.start('HubScene');
+        if (this.finishPortal.isPlayerTouching) {
+            this.endRun(true);
             return;
         }
 
-        const elapsed = this.timerStopped ? this.finalTimeMs : (this.time.now - this.timerStartedAt);
-        const seconds = Math.floor(elapsed / 1000);
-        const milliseconds = Math.floor(elapsed % 1000).toString().padStart(3, '0');
-        this.timerText.setText(`${seconds}.${milliseconds}`);
+        if (this.remainingTimeMs <= 0) {
+            this.endRun(false);
+            return;
+        }
     }
 }

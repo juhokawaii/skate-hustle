@@ -46,6 +46,12 @@ game.scale.on('leavefullscreen', () => {
 
 document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyF') {
+        const activeScenes = game.scene.getScenes(true);
+        const prizePointScene = activeScenes.find((scene) => scene?.scene?.key === 'PrizePointScene');
+        if (prizePointScene && (prizePointScene.inputPhase === 'tag' || prizePointScene.inputPhase === 'nameclass')) {
+            return;
+        }
+
         if (game.scale.isFullscreen) {
             game.scale.stopFullscreen();
         } else {

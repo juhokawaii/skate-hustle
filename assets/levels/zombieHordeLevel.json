@@ -1,18 +1,18 @@
 {
   "worldWidth": 12800,
-  "worldHeight": 900,
+  "worldHeight": 1900,
   "spawn": {
     "x": 180,
-    "y": 700
+    "y": 1700
   },
   "returnPortal": {
-    "x": 100,
-    "y": 700
+    "x": 1215,
+    "y": 420
   },
   "platforms": [
     {
       "x": 0,
-      "y": 800,
+      "y": 1800,
       "config": {
         "type": "RECT",
         "width": 12800,
@@ -20,39 +20,17 @@
         "texture": "ground"
       },
       "id": 1,
-      "remark": "full floor"
+      "remark": "full floor",
+      "__editorBounds": {
+        "x": 0,
+        "y": 1800,
+        "width": 12800,
+        "height": 100
+      }
     },
     {
-      "x": 380,
-      "y": 340,
-      "config": {
-        "type": "CURVE",
-        "width": 260,
-        "height": 260,
-        "friction": 0,
-        "angle": 90,
-        "texture": "platform_texture"
-      },
-      "id": 2,
-      "remark": "curve left"
-    },
-    {
-      "x": 740,
-      "y": 340,
-      "config": {
-        "type": "CURVE",
-        "width": 260,
-        "height": 260,
-        "friction": 0,
-        "angle": 0,
-        "texture": "platform_texture"
-      },
-      "id": 3,
-      "remark": "curve right"
-    },
-    {
-      "x": 1140,
-      "y": 420,
+      "x": 553,
+      "y": 1683,
       "config": {
         "type": "RAMP_LEFT",
         "width": 260,
@@ -60,23 +38,35 @@
         "texture": "platform_texture"
       },
       "id": 4,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 509.66666666666663,
+        "y": 1659.6666666666667,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 1460,
-      "y": 420,
+      "x": 335,
+      "y": 1203,
       "config": {
         "type": "RAMP_RIGHT",
-        "width": 260,
+        "width": 390,
         "height": 140,
         "texture": "platform_texture"
       },
       "id": 5,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 400,
+        "y": 1179.6666666666667,
+        "width": 390,
+        "height": 140
+      }
     },
     {
-      "x": 1740,
-      "y": 410,
+      "x": 2107,
+      "y": 1700,
       "config": {
         "type": "RAMP_LEFT",
         "width": 220,
@@ -84,11 +74,17 @@
         "texture": "platform_texture"
       },
       "id": 6,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 2070.3333333333335,
+        "y": 1680,
+        "width": 220,
+        "height": 120
+      }
     },
     {
-      "x": 1960,
-      "y": 410,
+      "x": 1763,
+      "y": 1100,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 220,
@@ -96,51 +92,36 @@
         "texture": "platform_texture"
       },
       "id": 7,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 1799.6666666666667,
+        "y": 1080,
+        "width": 220,
+        "height": 120
+      }
     },
     {
-      "x": 960,
-      "y": 250,
+      "x": 920,
+      "y": 1490,
       "config": {
         "type": "RECT",
         "width": 180,
         "height": 40,
-        "texture": "drop"
+        "texture": "drop",
+        "isOneWay": true
       },
       "id": 8,
-      "remark": "drop platform"
+      "remark": "drop platform",
+      "__editorBounds": {
+        "x": 920,
+        "y": 1490,
+        "width": 180,
+        "height": 40
+      }
     },
     {
-      "x": 2240,
-      "y": 340,
-      "config": {
-        "type": "CURVE",
-        "width": 260,
-        "height": 260,
-        "friction": 0,
-        "angle": 90,
-        "texture": "platform_texture"
-      },
-      "id": 9,
-      "remark": "curve left"
-    },
-    {
-      "x": 2600,
-      "y": 340,
-      "config": {
-        "type": "CURVE",
-        "width": 260,
-        "height": 260,
-        "friction": 0,
-        "angle": 0,
-        "texture": "platform_texture"
-      },
-      "id": 10,
-      "remark": "curve right"
-    },
-    {
-      "x": 3000,
-      "y": 420,
+      "x": 4363,
+      "y": 1683,
       "config": {
         "type": "RAMP_LEFT",
         "width": 260,
@@ -148,11 +129,17 @@
         "texture": "platform_texture"
       },
       "id": 11,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 4319.666666666667,
+        "y": 1659.6666666666667,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 3320,
-      "y": 420,
+      "x": 2177,
+      "y": 1303,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 260,
@@ -160,11 +147,17 @@
         "texture": "platform_texture"
       },
       "id": 12,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 2220.3333333333335,
+        "y": 1279.6666666666667,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 3600,
-      "y": 410,
+      "x": 5697,
+      "y": 1700,
       "config": {
         "type": "RAMP_LEFT",
         "width": 220,
@@ -172,11 +165,17 @@
         "texture": "platform_texture"
       },
       "id": 13,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 5660.333333333333,
+        "y": 1680,
+        "width": 220,
+        "height": 120
+      }
     },
     {
-      "x": 3820,
-      "y": 410,
+      "x": 4013,
+      "y": 1170,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 220,
@@ -184,51 +183,36 @@
         "texture": "platform_texture"
       },
       "id": 14,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 4049.6666666666665,
+        "y": 1150,
+        "width": 220.00000000000045,
+        "height": 120
+      }
     },
     {
-      "x": 2820,
-      "y": 250,
+      "x": 2700,
+      "y": 1250,
       "config": {
         "type": "RECT",
         "width": 180,
         "height": 40,
-        "texture": "drop"
+        "texture": "drop",
+        "isOneWay": true
       },
       "id": 15,
-      "remark": "drop platform"
+      "remark": "drop platform",
+      "__editorBounds": {
+        "x": 2700,
+        "y": 1250,
+        "width": 180,
+        "height": 40
+      }
     },
     {
-      "x": 4100,
-      "y": 340,
-      "config": {
-        "type": "CURVE",
-        "width": 260,
-        "height": 260,
-        "friction": 0,
-        "angle": 90,
-        "texture": "platform_texture"
-      },
-      "id": 16,
-      "remark": "curve left"
-    },
-    {
-      "x": 4460,
-      "y": 340,
-      "config": {
-        "type": "CURVE",
-        "width": 260,
-        "height": 260,
-        "friction": 0,
-        "angle": 0,
-        "texture": "platform_texture"
-      },
-      "id": 17,
-      "remark": "curve right"
-    },
-    {
-      "x": 4860,
-      "y": 420,
+      "x": 3003,
+      "y": 1683,
       "config": {
         "type": "RAMP_LEFT",
         "width": 260,
@@ -236,11 +220,17 @@
         "texture": "platform_texture"
       },
       "id": 18,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 2959.6666666666665,
+        "y": 1659.6666666666667,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 5180,
-      "y": 420,
+      "x": 3457,
+      "y": 1683,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 260,
@@ -248,11 +238,17 @@
         "texture": "platform_texture"
       },
       "id": 19,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 3500.3333333333335,
+        "y": 1659.6666666666667,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 5460,
-      "y": 410,
+      "x": 3157,
+      "y": 1180,
       "config": {
         "type": "RAMP_LEFT",
         "width": 220,
@@ -260,11 +256,17 @@
         "texture": "platform_texture"
       },
       "id": 20,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 3120.3333333333335,
+        "y": 1160,
+        "width": 220,
+        "height": 120
+      }
     },
     {
-      "x": 5680,
-      "y": 410,
+      "x": 4903,
+      "y": 1700,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 220,
@@ -272,51 +274,76 @@
         "texture": "platform_texture"
       },
       "id": 21,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 4939.666666666667,
+        "y": 1680,
+        "width": 220,
+        "height": 120
+      }
     },
     {
-      "x": 4680,
-      "y": 250,
+      "x": 4580,
+      "y": 1520,
       "config": {
         "type": "RECT",
-        "width": 180,
-        "height": 40,
-        "texture": "drop"
+        "width": 360,
+        "height": 280,
+        "texture": "platform_texture",
+        "isOneWay": false
       },
       "id": 22,
-      "remark": "drop platform"
+      "remark": "drop platform",
+      "__editorBounds": {
+        "x": 4580,
+        "y": 1520,
+        "width": 360,
+        "height": 280
+      }
     },
     {
-      "x": 5960,
-      "y": 340,
+      "x": 8856,
+      "y": 1414,
       "config": {
         "type": "CURVE",
-        "width": 260,
-        "height": 260,
+        "width": 520,
+        "height": 520,
         "friction": 0,
         "angle": 90,
         "texture": "platform_texture"
       },
       "id": 23,
-      "remark": "curve left"
+      "remark": "curve left",
+      "__editorBounds": {
+        "x": 8989.983870973785,
+        "y": 1280.016129026215,
+        "width": 520,
+        "height": 520
+      }
     },
     {
-      "x": 6320,
-      "y": 340,
+      "x": 9644,
+      "y": 1414,
       "config": {
         "type": "CURVE",
-        "width": 260,
-        "height": 260,
+        "width": 520,
+        "height": 520,
         "friction": 0,
         "angle": 0,
         "texture": "platform_texture"
       },
       "id": 24,
-      "remark": "curve right"
+      "remark": "curve right",
+      "__editorBounds": {
+        "x": 9510.016129026215,
+        "y": 1280.0161290262154,
+        "width": 520,
+        "height": 520
+      }
     },
     {
-      "x": 6720,
-      "y": 420,
+      "x": 6073.333333333333,
+      "y": 1593.3333333333333,
       "config": {
         "type": "RAMP_LEFT",
         "width": 260,
@@ -324,11 +351,17 @@
         "texture": "platform_texture"
       },
       "id": 25,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 6030,
+        "y": 1570,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 7040,
-      "y": 420,
+      "x": 9976,
+      "y": 1303,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 260,
@@ -336,11 +369,17 @@
         "texture": "platform_texture"
       },
       "id": 26,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 10019.333333333334,
+        "y": 1279.6666666666667,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 7320,
-      "y": 410,
+      "x": 1617,
+      "y": 1100,
       "config": {
         "type": "RAMP_LEFT",
         "width": 220,
@@ -348,87 +387,130 @@
         "texture": "platform_texture"
       },
       "id": 27,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 1580.3333333333333,
+        "y": 1080,
+        "width": 220,
+        "height": 120
+      }
     },
     {
-      "x": 7540,
-      "y": 410,
+      "x": 6213,
+      "y": 2060,
       "config": {
-        "type": "RAMP_RIGHT",
+        "type": "RECT",
         "width": 220,
         "height": 120,
         "texture": "platform_texture"
       },
       "id": 28,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 6213,
+        "y": 2060,
+        "width": 220,
+        "height": 120
+      }
     },
     {
-      "x": 6540,
-      "y": 250,
+      "x": 8550,
+      "y": 1340,
       "config": {
         "type": "RECT",
         "width": 180,
         "height": 40,
-        "texture": "drop"
+        "texture": "drop",
+        "isOneWay": true
       },
       "id": 29,
-      "remark": "drop platform"
+      "remark": "drop platform",
+      "__editorBounds": {
+        "x": 8550,
+        "y": 1340,
+        "width": 180,
+        "height": 40
+      }
     },
     {
-      "x": 7820,
-      "y": 340,
+      "x": 10013.008064513107,
+      "y": 1673.983870973785,
       "config": {
         "type": "CURVE",
-        "width": 260,
+        "width": 520,
         "height": 260,
         "friction": 0,
         "angle": 90,
         "texture": "platform_texture"
       },
       "id": 30,
-      "remark": "curve left"
+      "remark": "curve left",
+      "__editorBounds": {
+        "x": 10210,
+        "y": 1410,
+        "width": 260,
+        "height": 520
+      }
     },
     {
-      "x": 8180,
-      "y": 340,
+      "x": 8443.983870973785,
+      "y": 1606.9919354868923,
       "config": {
         "type": "CURVE",
-        "width": 260,
+        "width": 520,
         "height": 260,
         "friction": 0,
         "angle": 0,
         "texture": "platform_texture"
       },
       "id": 31,
-      "remark": "curve right"
+      "remark": "curve right",
+      "__editorBounds": {
+        "x": 8310,
+        "y": 1540,
+        "width": 520,
+        "height": 260
+      }
     },
     {
-      "x": 8580,
-      "y": 420,
+      "x": 11600,
+      "y": 2160,
       "config": {
-        "type": "RAMP_LEFT",
+        "type": "RECT",
         "width": 260,
         "height": 140,
         "texture": "platform_texture"
       },
       "id": 32,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 11600,
+        "y": 2160,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 8900,
-      "y": 420,
+      "x": 11690,
+      "y": 1700,
       "config": {
-        "type": "RAMP_RIGHT",
+        "type": "RECT",
         "width": 260,
         "height": 140,
         "texture": "platform_texture"
       },
       "id": 33,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 11690,
+        "y": 1700,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 9180,
-      "y": 410,
+      "x": 9537,
+      "y": 2020,
       "config": {
         "type": "RAMP_LEFT",
         "width": 220,
@@ -436,11 +518,17 @@
         "texture": "platform_texture"
       },
       "id": 34,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 9500.333333333334,
+        "y": 2000,
+        "width": 220,
+        "height": 120
+      }
     },
     {
-      "x": 9400,
-      "y": 410,
+      "x": 11673.333333333334,
+      "y": 1600,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 220,
@@ -448,51 +536,76 @@
         "texture": "platform_texture"
       },
       "id": 35,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 11710,
+        "y": 1580,
+        "width": 220,
+        "height": 120
+      }
     },
     {
-      "x": 8400,
-      "y": 250,
+      "x": 8430,
+      "y": 1580,
       "config": {
         "type": "RECT",
         "width": 180,
         "height": 40,
-        "texture": "drop"
+        "texture": "drop",
+        "isOneWay": true
       },
       "id": 36,
-      "remark": "drop platform"
+      "remark": "drop platform",
+      "__editorBounds": {
+        "x": 8430,
+        "y": 1580,
+        "width": 180,
+        "height": 40
+      }
     },
     {
-      "x": 9680,
-      "y": 340,
+      "x": 1141,
+      "y": 1449,
       "config": {
         "type": "CURVE",
-        "width": 260,
-        "height": 260,
+        "width": 780,
+        "height": 624,
         "friction": 0,
         "angle": 90,
         "texture": "platform_texture"
       },
       "id": 37,
-      "remark": "curve left"
+      "remark": "curve left",
+      "__editorBounds": {
+        "x": 1379.7806451685406,
+        "y": 1170.0241935393228,
+        "width": 624,
+        "height": 780
+      }
     },
     {
-      "x": 10040,
-      "y": 340,
+      "x": 12400.975806460678,
+      "y": 1220.9758064606758,
       "config": {
         "type": "CURVE",
-        "width": 260,
-        "height": 260,
+        "width": 780,
+        "height": 780,
         "friction": 0,
         "angle": 0,
         "texture": "platform_texture"
       },
       "id": 38,
-      "remark": "curve right"
+      "remark": "curve right",
+      "__editorBounds": {
+        "x": 12200,
+        "y": 1020,
+        "width": 780,
+        "height": 780
+      }
     },
     {
-      "x": 10440,
-      "y": 420,
+      "x": 11733.333333333334,
+      "y": 1573.3333333333335,
       "config": {
         "type": "RAMP_LEFT",
         "width": 260,
@@ -500,11 +613,17 @@
         "texture": "platform_texture"
       },
       "id": 39,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 11690,
+        "y": 1550.0000000000002,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 10760,
-      "y": 420,
+      "x": 11127,
+      "y": 1683,
       "config": {
         "type": "RAMP_RIGHT",
         "width": 260,
@@ -512,23 +631,36 @@
         "texture": "platform_texture"
       },
       "id": 40,
-      "remark": "flat ramp right"
+      "remark": "flat ramp right",
+      "__editorBounds": {
+        "x": 11170.333333333334,
+        "y": 1659.6666666666667,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 10260,
-      "y": 250,
+      "x": 12280,
+      "y": 1440,
       "config": {
         "type": "RECT",
         "width": 180,
         "height": 40,
-        "texture": "drop"
+        "texture": "drop",
+        "isOneWay": true
       },
       "id": 41,
-      "remark": "drop platform"
+      "remark": "drop platform",
+      "__editorBounds": {
+        "x": 12280,
+        "y": 1440,
+        "width": 180,
+        "height": 40
+      }
     },
     {
-      "x": 11540,
-      "y": 340,
+      "x": 11883.008064513107,
+      "y": 1616.9919354868925,
       "config": {
         "type": "CURVE",
         "width": 260,
@@ -538,11 +670,17 @@
         "texture": "platform_texture"
       },
       "id": 42,
-      "remark": "curve left"
+      "remark": "curve left",
+      "__editorBounds": {
+        "x": 11950,
+        "y": 1550,
+        "width": 260,
+        "height": 260
+      }
     },
     {
-      "x": 11900,
-      "y": 340,
+      "x": 11516.991935486893,
+      "y": 1616.9919354868923,
       "config": {
         "type": "CURVE",
         "width": 260,
@@ -552,11 +690,17 @@
         "texture": "platform_texture"
       },
       "id": 43,
-      "remark": "curve right"
+      "remark": "curve right",
+      "__editorBounds": {
+        "x": 11450,
+        "y": 1550,
+        "width": 260,
+        "height": 260
+      }
     },
     {
-      "x": 12300,
-      "y": 420,
+      "x": 10953,
+      "y": 1683,
       "config": {
         "type": "RAMP_LEFT",
         "width": 260,
@@ -564,19 +708,279 @@
         "texture": "platform_texture"
       },
       "id": 44,
-      "remark": "flat ramp left"
+      "remark": "flat ramp left",
+      "__editorBounds": {
+        "x": 10909.666666666666,
+        "y": 1659.6666666666667,
+        "width": 260,
+        "height": 140
+      }
     },
     {
-      "x": 12120,
-      "y": 250,
+      "x": 11380,
+      "y": 1560,
       "config": {
         "type": "RECT",
         "width": 180,
         "height": 40,
-        "texture": "drop"
+        "texture": "drop",
+        "isOneWay": true
       },
       "id": 46,
-      "remark": "drop platform"
+      "remark": "drop platform",
+      "__editorBounds": {
+        "x": 11380,
+        "y": 1560,
+        "width": 180,
+        "height": 40
+      }
+    },
+    {
+      "x": 2600,
+      "y": 1510,
+      "config": {
+        "type": "RECT",
+        "width": 360,
+        "height": 45,
+        "texture": "platform_texture"
+      },
+      "id": 47,
+      "remark": "extra concrete slab",
+      "__editorBounds": {
+        "x": 2600,
+        "y": 1510,
+        "width": 360,
+        "height": 45
+      }
+    },
+    {
+      "x": 3220,
+      "y": 1660,
+      "config": {
+        "type": "RECT",
+        "width": 280,
+        "height": 140,
+        "texture": "platform_texture"
+      },
+      "id": 48,
+      "remark": "extra concrete slab",
+      "__editorBounds": {
+        "x": 3220,
+        "y": 1660,
+        "width": 280,
+        "height": 140
+      }
+    },
+    {
+      "x": 3480,
+      "y": 1220,
+      "config": {
+        "type": "RECT",
+        "width": 430,
+        "height": 70,
+        "texture": "platform_texture"
+      },
+      "id": 49,
+      "remark": "extra concrete slab",
+      "__editorBounds": {
+        "x": 3480,
+        "y": 1220,
+        "width": 430,
+        "height": 70
+      }
+    },
+    {
+      "x": 6030,
+      "y": 1710,
+      "config": {
+        "type": "RECT",
+        "width": 260,
+        "height": 160,
+        "texture": "platform_texture"
+      },
+      "id": 50,
+      "remark": "extra concrete slab",
+      "__editorBounds": {
+        "x": 6030,
+        "y": 1710,
+        "width": 260,
+        "height": 160
+      }
+    },
+    {
+      "x": 8830,
+      "y": 1280,
+      "config": {
+        "type": "RECT",
+        "width": 160,
+        "height": 520,
+        "texture": "platform_texture"
+      },
+      "id": 51,
+      "remark": "extra tall concrete slab",
+      "__editorBounds": {
+        "x": 8830,
+        "y": 1280,
+        "width": 160,
+        "height": 520
+      }
+    },
+    {
+      "x": 1100,
+      "y": 1170,
+      "config": {
+        "type": "RECT",
+        "width": 280,
+        "height": 800,
+        "texture": "platform_texture"
+      },
+      "id": 52,
+      "remark": "extra tall concrete slab",
+      "__editorBounds": {
+        "x": 1100,
+        "y": 1170,
+        "width": 280,
+        "height": 800
+      }
+    },
+    {
+      "x": 6440,
+      "y": 1500,
+      "config": {
+        "type": "RECT",
+        "width": 200,
+        "height": 360,
+        "texture": "platform_texture"
+      },
+      "id": 53,
+      "remark": "extra tall concrete slab",
+      "__editorBounds": {
+        "x": 6440,
+        "y": 1500,
+        "width": 200,
+        "height": 360
+      }
+    },
+    {
+      "x": 7230,
+      "y": 1580,
+      "config": {
+        "type": "RECT",
+        "width": 260,
+        "height": 410,
+        "texture": "platform_texture"
+      },
+      "id": 54,
+      "remark": "extra tall concrete slab",
+      "__editorBounds": {
+        "x": 7230,
+        "y": 1580,
+        "width": 260,
+        "height": 410
+      }
+    },
+    {
+      "x": 10030,
+      "y": 1400,
+      "config": {
+        "type": "RECT",
+        "width": 190,
+        "height": 470,
+        "texture": "platform_texture"
+      },
+      "id": 55,
+      "remark": "extra tall concrete slab",
+      "__editorBounds": {
+        "x": 10030,
+        "y": 1400,
+        "width": 190,
+        "height": 470
+      }
+    },
+    {
+      "x": 11819.563,
+      "y": 1020,
+      "config": {
+        "type": "CIRCLE",
+        "radius": 60,
+        "texture": "platform_texture"
+      },
+      "id": 56,
+      "remark": "extra random circle",
+      "__editorBounds": {
+        "x": 11820,
+        "y": 1020,
+        "width": 119.1260000000002,
+        "height": 120
+      }
+    },
+    {
+      "x": 7580,
+      "y": 1800,
+      "config": {
+        "type": "CIRCLE",
+        "radius": 40,
+        "texture": "platform_texture"
+      },
+      "id": 57,
+      "remark": "extra random circle",
+      "__editorBounds": {
+        "x": 7580.292,
+        "y": 1800,
+        "width": 79.41599999999926,
+        "height": 80
+      }
+    },
+    {
+      "x": 11709.125,
+      "y": 1430,
+      "config": {
+        "type": "CIRCLE",
+        "radius": 120,
+        "texture": "platform_texture"
+      },
+      "id": 58,
+      "remark": "extra random circle",
+      "__editorBounds": {
+        "x": 11710,
+        "y": 1430,
+        "width": 238.25,
+        "height": 240
+      }
+    },
+    {
+      "x": 12039.344,
+      "y": 1200,
+      "config": {
+        "type": "CIRCLE",
+        "radius": 90,
+        "texture": "platform_texture"
+      },
+      "id": 59,
+      "remark": "extra random circle",
+      "__editorBounds": {
+        "x": 12040,
+        "y": 1200,
+        "width": 178.68799999999828,
+        "height": 180
+      }
+    },
+    {
+      "x": 4479.125,
+      "y": 950,
+      "config": {
+        "type": "CIRCLE",
+        "radius": 120,
+        "texture": "platform_texture"
+      },
+      "id": 60,
+      "remark": "extra random circle",
+      "__editorBounds": {
+        "x": 4480,
+        "y": 950,
+        "width": 238.25,
+        "height": 240
+      }
     }
   ]
 }

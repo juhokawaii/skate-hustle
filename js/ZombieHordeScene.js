@@ -22,6 +22,7 @@ export default class ZombieHordeScene extends Phaser.Scene {
         this.load.image('platform_texture', 'assets/backgrounds/256x256.png');
         this.load.image('ground', 'assets/backgrounds/ground.png');
         this.load.image('drop', 'assets/backgrounds/drop.png');
+        this.load.image('zombie_goal_color', 'assets/backgrounds/zombie-goal.png');
         this.load.spritesheet('graffiti', 'assets/backgrounds/Atlas.png', {
             frameWidth: 512,
             frameHeight: 512
@@ -68,6 +69,12 @@ export default class ZombieHordeScene extends Phaser.Scene {
             ? (data.returnPortalPos || { x: 100, y: 700 })
             : (hasCachedLevel ? (cachedLevel.returnPortal || { x: 100, y: 700 }) : { x: 100, y: 700 });
 
+        // Keep the return logo close to spawn for quick exit back to Hub.
+        this.returnPortalPos = {
+            x: this.spawnPoint.x - 80,
+            y: this.spawnPoint.y
+        };
+
         const sourcePlatforms = hasInjectedLevel
             ? data.levelPlatforms
             : (Array.isArray(cachedLevel?.platforms) ? cachedLevel.platforms : []);
@@ -100,11 +107,40 @@ export default class ZombieHordeScene extends Phaser.Scene {
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
 
-        this.createZombieWallDecorations();
+        const viewW = this.scale.width;
+        const viewH = this.scale.height;
+        const pxFactor = 0.85;
+        const followOffY = 100;
+        const spawnCamY = Phaser.Math.Clamp(this.spawnPoint.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
+        const parallaxCompY = spawnCamY * (1 - pxFactor);
+
+        this.createZombieWallDecorations(pxFactor, parallaxCompY);
+
+        this.ensureGrayscaleTexture('zombie_goal_color', 'zombie_goal_bw');
+
+        // Goal graffiti: keep 600px clear from right wall (image is 600px wide), and place around top third.
+        this.goalPos = {
+            x: this.worldWidth - 300,
+            y: Math.round(this.worldHeight / 3) + 300
+        };
+        this.goalGraffiti = new Graffiti(this, this.goalPos.x, this.goalPos.y, 'zombie_goal_bw', 'zombie_goal_color', this.cats.SENSOR);
+        this.goalGraffiti.setScrollFactor(1, 1);
+        const goalCamX = Phaser.Math.Clamp(this.goalPos.x - viewW / 2, 0, this.worldWidth - viewW);
+        const goalCamY = Phaser.Math.Clamp(this.goalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
+        this.goalGraffiti.enableParallaxVisual(pxFactor, pxFactor, {
+            x: this.goalPos.x - goalCamX * (1 - pxFactor),
+            y: this.goalPos.y - goalCamY * (1 - pxFactor),
+            depth: -2,
+            alpha: 0.9
+        });
 
         this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
         this.returnPortal.setScrollFactor(1, 1);
+        const retCamX = Phaser.Math.Clamp(this.returnPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
+        const retCamY = Phaser.Math.Clamp(this.returnPortalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
         this.returnPortal.enableParallaxVisual(0.85, 0.85, {
+            x: this.returnPortalPos.x - retCamX * (1 - pxFactor),
+            y: this.returnPortalPos.y - retCamY * (1 - pxFactor),
             depth: -2,
             alpha: 0.62
         });
@@ -149,6 +185,19 @@ export default class ZombieHordeScene extends Phaser.Scene {
         this.hintText.setScrollFactor(0);
         this.hintText.setDepth(2000);
 
+        this.runTimeMs = 0;
+        this.goalReached = false;
+        this.timerText = this.add.text(this.scale.width / 2, 16, this.formatTimeMs(this.runTimeMs), {
+            fontFamily: 'monospace',
+            fontSize: '32px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 5
+        });
+        this.timerText.setOrigin(0.5, 0);
+        this.timerText.setScrollFactor(0);
+        this.timerText.setDepth(2000);
+
         this.debugLabel = this.add.text(16, 700, 'Debug mode', {
             fontFamily: 'monospace',
             fontSize: '14px',
@@ -179,7 +228,14 @@ export default class ZombieHordeScene extends Phaser.Scene {
             debugGrid.strokePath();
         }
 
-        this.input.keyboard.on('keydown-M', () => {
+        this._mapBuffer = '';
+        this.input.keyboard.on('keydown', (event) => {
+            const k = (event.key || '').toLowerCase();
+            if (!/^[a-z]$/.test(k)) { this._mapBuffer = ''; return; }
+            this._mapBuffer += k;
+            if (this._mapBuffer.length > 3) this._mapBuffer = this._mapBuffer.slice(-3);
+            if (this._mapBuffer !== 'map') return;
+            this._mapBuffer = '';
             this.isMapMode = !this.isMapMode;
 
             if (this.isMapMode) {
@@ -541,7 +597,7 @@ export default class ZombieHordeScene extends Phaser.Scene {
         });
     }
 
-    createZombieWallDecorations() {
+    createZombieWallDecorations(scrollFactor = 0.85, parallaxCompY = 0) {
         const floorDef = this.levelPlatforms.find((def) => def?.config?.texture === 'ground') || null;
         const floorY = floorDef?.y ?? 800;
 
@@ -602,8 +658,8 @@ export default class ZombieHordeScene extends Phaser.Scene {
                 ? 1
                 : rng.realInRange(0.18, 0.85);
 
-            const sprite = this.add.image(x, y, 'zombie_wall_graffiti', frame);
-            sprite.setScrollFactor(0.85, 0.85);
+            const sprite = this.add.image(x, y - parallaxCompY, 'zombie_wall_graffiti', frame);
+            sprite.setScrollFactor(scrollFactor, scrollFactor);
             sprite.setDepth(-6);
             sprite.setScale(scale);
             sprite.setAlpha(alpha);
@@ -724,6 +780,45 @@ export default class ZombieHordeScene extends Phaser.Scene {
         }
     }
 
+    formatTimeMs(ms) {
+        const clamped = Math.max(0, ms);
+        const seconds = Math.floor(clamped / 1000);
+        const milliseconds = Math.floor(clamped % 1000).toString().padStart(3, '0');
+        return `${seconds}.${milliseconds}`;
+    }
+
+    ensureGrayscaleTexture(sourceKey, targetKey) {
+        if (this.textures.exists(targetKey)) {
+            return;
+        }
+
+        const source = this.textures.get(sourceKey)?.getSourceImage();
+        if (!source) {
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = source.width;
+        canvas.height = source.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(source, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        for (let i = 0; i < pixels.length; i += 4) {
+            const r = pixels[i];
+            const g = pixels[i + 1];
+            const b = pixels[i + 2];
+            const lum = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b));
+            pixels[i] = lum;
+            pixels[i + 1] = lum;
+            pixels[i + 2] = lum;
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        this.textures.addCanvas(targetKey, canvas);
+    }
+
     update(time, delta) {
         this.player.update();
         if (this.zombies) {
@@ -732,6 +827,20 @@ export default class ZombieHordeScene extends Phaser.Scene {
             }
         }
         this.hintText.setText('');
+
+        if (!this.goalReached) {
+            this.runTimeMs += delta;
+            this.timerText.setText(this.formatTimeMs(this.runTimeMs));
+        }
+
+        if (this.goalGraffiti && this.goalGraffiti.isPlayerTouching) {
+            this.goalReached = true;
+            this.hintText.setText('Press ENTER to return to Hub');
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.scene.start('HubScene');
+                return;
+            }
+        }
 
         if (this.returnPortal.isPlayerTouching) {
             this.hintText.setText('Press ENTER to return to Hub');
