@@ -14,6 +14,7 @@ export default class PrizePointScene extends Phaser.Scene {
         this.bestPixelsUpStorageKey = 'skate_hustle_prize_point_best_pixels_up';
         this.bestSecondsRemainingStorageKey = 'skate_hustle_prize_point_best_seconds_remaining';
         this.leaderboardStorageKey = 'skate_hustle_prize_point_leaderboard';
+        this.globalCacheKey = 'skate_hustle_global_leaderboard_cache';
 
         // Atlas grid: 8 cols x 6 rows, 560x423 image
         this.atlasCols = 8;
@@ -813,13 +814,15 @@ export default class PrizePointScene extends Phaser.Scene {
         this.inputPhase = 'intro';
         this.gameplayPaused = true;
 
-        // Show local board immediately, then replace with global if available
-        const localTop7 = this.loadLeaderboard();
-        this.renderHighscoreBoard(this.inputOverlayElements, 6001, localTop7, null);
+        // Show cached global board immediately, fall back to local
+        let cachedGlobal = [];
+        try { cachedGlobal = JSON.parse(localStorage.getItem(this.globalCacheKey) || '[]'); } catch {}
+        const initialBoard = cachedGlobal.length > 0 ? cachedGlobal.slice(0, 7) : this.loadLeaderboard();
+        this.renderHighscoreBoard(this.inputOverlayElements, 6001, initialBoard, null);
 
+        // Refresh from sheet in background
         this.fetchGlobalLeaderboard().then(global => {
             if (global && global.length > 0) {
-                // Clear current board and re-render with global data
                 this.inputOverlayElements.forEach(el => el.destroy());
                 this.inputOverlayElements.length = 0;
                 this.renderHighscoreBoard(this.inputOverlayElements, 6001, global, null);
@@ -1103,13 +1106,15 @@ export default class PrizePointScene extends Phaser.Scene {
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'ok' && Array.isArray(data.leaderboard)) {
-                    return data.leaderboard.map(e => ({
+                    const board = data.leaderboard.map(e => ({
                         tag: String(e.tag || 'ANON'),
                         fullName: String(e.fullName || ''),
                         pixelsUp: Number(e.pixelsUp) || 0,
                         secondsRemaining: Number(e.secondsRemaining) || 0,
                         score: Number(e.score) || 0
                     }));
+                    try { localStorage.setItem(this.globalCacheKey, JSON.stringify(board)); } catch {}
+                    return board;
                 }
                 return null;
             })
@@ -1331,23 +1336,24 @@ export default class PrizePointScene extends Phaser.Scene {
             }
         });
 
-        // --- End screen: use shared highscore board ---
+        // --- End screen: merge new score into cached global board ---
         const currentScore = Math.round(currentPixelsUp + currentSecondsRemaining);
         const lastRunInfo = {
             score: currentScore,
             pixelsUp: currentPixelsUp,
             seconds: Math.round(currentSecondsRemaining)
         };
-        this.renderHighscoreBoard(this.endScreenElements, 5000, top5, lastRunInfo);
 
-        // Replace with global leaderboard when available
-        this.fetchGlobalLeaderboard().then(global => {
-            if (global && global.length > 0) {
-                this.endScreenElements.forEach(el => el.destroy());
-                this.endScreenElements.length = 0;
-                this.renderHighscoreBoard(this.endScreenElements, 5000, global, lastRunInfo);
+        let displayBoard = top5;
+        try {
+            const cached = JSON.parse(localStorage.getItem(this.globalCacheKey) || '[]');
+            if (cached.length > 0) {
+                cached.push({ tag: this.playerTag || 'ANON', fullName: this.playerFullName || '', pixelsUp: currentPixelsUp, secondsRemaining: currentSecondsRemaining, score: currentScore });
+                cached.sort((a, b) => (b.score || 0) - (a.score || 0));
+                displayBoard = cached.slice(0, 7);
             }
-        });
+        } catch {}
+        this.renderHighscoreBoard(this.endScreenElements, 5000, displayBoard, lastRunInfo);
     }
 
     redrawHighestLine() {
