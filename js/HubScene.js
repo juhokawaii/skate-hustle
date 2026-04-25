@@ -1,7 +1,7 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
-import { getHubProgress, saveHubProgress, isDebugMode, setDebugMode, isPrizePointUnlocked, setPrizePointUnlocked } from './GameState.js';
+import { getHubProgress, saveHubProgress, isDebugMode, setDebugMode, setPrizePointUnlocked } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 
 export default class HubScene extends Phaser.Scene {
@@ -41,12 +41,6 @@ export default class HubScene extends Phaser.Scene {
     }
 
     create(data = {}) {
-        // If Prize Point is unlocked, go straight there
-        if (isPrizePointUnlocked()) {
-            this.scene.start('PrizePointScene');
-            return;
-        }
-
         // --- BACKGROUND MUSIC ---
         this.sound.stopAll();
         this.bgmusic = this.sound.add("ramp", { volume: 1.0, loop: true });
@@ -62,9 +56,9 @@ export default class HubScene extends Phaser.Scene {
         this.worldHeight = hasInjectedLevel
             ? (data.worldHeight || 1800)
             : (hasCachedLevel ? (cachedLevel.worldHeight || 1800) : 1800);
-        this.spawnPoint = hasInjectedLevel
+        this.spawnPoint = data.spawnPoint || (hasInjectedLevel
             ? (data.spawnPoint || { x: 200, y: 950 })
-            : (hasCachedLevel ? (cachedLevel.spawn || { x: 200, y: 950 }) : { x: 200, y: 950 });
+            : (hasCachedLevel ? (cachedLevel.spawn || { x: 200, y: 950 }) : { x: 200, y: 950 }));
         this.portal1Pos = hasInjectedLevel
             ? (data.portal1Pos || { x: 300, y: 1350 })
             : (hasCachedLevel ? (cachedLevel.portal1 || { x: 300, y: 1350 }) : { x: 300, y: 1350 });
@@ -79,7 +73,7 @@ export default class HubScene extends Phaser.Scene {
             ? (data.zombiesPortalPos || defaultZombiesPos)
             : (hasCachedLevel ? (cachedLevel.zombiesPortal || defaultZombiesPos) : defaultZombiesPos);
 
-        const defaultPrizePointPos = { x: this.portal1Pos.x + 200, y: this.portal1Pos.y + 200 };
+        const defaultPrizePointPos = { x: 500, y: 400 };
         this.prizePointPortalPos = hasInjectedLevel
             ? (data.prizePointPortalPos || defaultPrizePointPos)
             : (hasCachedLevel ? (cachedLevel.prizePointPortal || defaultPrizePointPos) : defaultPrizePointPos);
@@ -97,8 +91,8 @@ export default class HubScene extends Phaser.Scene {
             y: this.zombiesPortalPos.y - 115
         };
         this.prizePointPortalPos = {
-            x: this.prizePointPortalPos.x,
-            y: this.prizePointPortalPos.y - 100
+            x: 500,
+            y: 400
         };
 
         const sourcePlatforms = hasInjectedLevel
@@ -171,15 +165,6 @@ export default class HubScene extends Phaser.Scene {
             depth: -2,
             alpha: 0.85
         });
-
-        // Prize Point portal — always hidden, only accessible via BUSINESS code
-        if (!isPrizePointUnlocked()) {
-            this.prizePointPortal.setVisible(false);
-            this.prizePointPortal.setSensor(true);
-            if (this.prizePointPortal.visualProxy) {
-                this.prizePointPortal.visualProxy.setVisible(false);
-            }
-        }
 
         const defaultCryptoPos = this.getCryptoPortalPosition();
         this.cryptoPortalPos = {
@@ -1404,6 +1389,15 @@ export default class HubScene extends Phaser.Scene {
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
                 this.persistHubProgress();
                 this.scene.start('ZombieHordeScene');
+                return;
+            }
+        }
+
+        if (this.prizePointPortal && this.prizePointPortal.isPlayerTouching) {
+            this.hintText.setText('Press ENTER for Prize Point');
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.persistHubProgress();
+                this.scene.start('PrizePointScene');
                 return;
             }
         }

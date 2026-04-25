@@ -2,7 +2,7 @@ import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
 import { CATS } from './CollisionCategories.js';
-import { setPrizePointUnlocked, isPrizePointUnlocked } from './GameState.js';
+import { setPrizePointUnlocked } from './GameState.js';
 
 export default class SplashScene extends Phaser.Scene {
     constructor() {
@@ -30,12 +30,6 @@ export default class SplashScene extends Phaser.Scene {
     }
 
     create() {
-        // If Prize Point is unlocked, go straight there
-        if (isPrizePointUnlocked()) {
-            this.scene.start('PrizePointScene');
-            return;
-        }
-
         this.worldWidth = 1280;
         this.worldHeight = 720;
         this.cats = CATS;

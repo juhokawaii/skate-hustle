@@ -4,7 +4,7 @@ import TextureFactory from './TextureFactory.js';
 import { isDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx2KbZOBAP6JI_gAFdrPjd3BFiQD3bu_k5WB__IR_5FtqILujrZfmHi5we0Mm2yIFud/exec';
+const HUB_PRIZE_POINT_RETURN_SPAWN = { x: 670, y: 400 };
 
 export default class PrizePointScene extends Phaser.Scene {
     constructor() {
@@ -14,7 +14,6 @@ export default class PrizePointScene extends Phaser.Scene {
         this.bestPixelsUpStorageKey = 'skate_hustle_prize_point_best_pixels_up';
         this.bestSecondsRemainingStorageKey = 'skate_hustle_prize_point_best_seconds_remaining';
         this.leaderboardStorageKey = 'skate_hustle_prize_point_leaderboard';
-        this.globalCacheKey = 'skate_hustle_global_leaderboard_cache';
 
         // Atlas grid: 8 cols x 6 rows, 560x423 image
         this.atlasCols = 8;
@@ -72,11 +71,9 @@ export default class PrizePointScene extends Phaser.Scene {
         this.bgmusic = this.sound.add('run_track', { volume: 0.9, loop: true });
         this.bgmusic.play();
 
-        // --- INPUT PHASE: collect player info before gameplay ---
-        this.inputPhase = 'intro'; // 'intro' -> 'tag' -> 'nameclass' -> 'playing'
+        // --- INPUT PHASE: collect player tag before gameplay ---
+        this.inputPhase = 'intro'; // 'intro' -> 'tag' -> 'playing'
         this.playerTag = '';
-        this.playerFullName = '';
-        this.playerClass = '';
         this.inputBuffer = '';
         this.maxTagLen = 7;
         this.inputOverlayElements = [];
@@ -280,7 +277,7 @@ export default class PrizePointScene extends Phaser.Scene {
 
         this._mapBuffer = '';
         this.input.keyboard.on('keydown', (event) => {
-            if (this.inputPhase === 'intro' || this.inputPhase === 'tag' || this.inputPhase === 'nameclass') return;
+            if (this.inputPhase === 'intro' || this.inputPhase === 'tag') return;
             const k = (event.key || '').toLowerCase();
             if (!/^[a-z]$/.test(k)) { this._mapBuffer = ''; return; }
             this._mapBuffer += k;
@@ -326,18 +323,14 @@ export default class PrizePointScene extends Phaser.Scene {
             }
         });
 
-        // Show leaderboard first, then ENTER to start entering a new run tag/name.
-        if (data && data.skipIntro) {
-            this.setGameplayVisibility(false);
-            this.inputPhase = 'tag';
-            this.gameplayPaused = true;
-            if (this.matter?.world?.pause) {
-                this.matter.world.pause();
-            }
-            this.showInputOverlay();
-        } else {
-            this.showEntryHighscoreOverlay();
+        // Ask only for the run tag before gameplay; highscore board is shown after the run.
+        this.setGameplayVisibility(false);
+        this.inputPhase = 'tag';
+        this.gameplayPaused = true;
+        if (this.matter?.world?.pause) {
+            this.matter.world.pause();
         }
+        this.showInputOverlay();
     }
 
     createPlatform(x, y, config, defRef = null) {
@@ -814,20 +807,7 @@ export default class PrizePointScene extends Phaser.Scene {
         this.inputPhase = 'intro';
         this.gameplayPaused = true;
 
-        // Show cached global board immediately, fall back to local
-        let cachedGlobal = [];
-        try { cachedGlobal = JSON.parse(localStorage.getItem(this.globalCacheKey) || '[]'); } catch {}
-        const initialBoard = cachedGlobal.length > 0 ? cachedGlobal.slice(0, 7) : this.loadLeaderboard();
-        this.renderHighscoreBoard(this.inputOverlayElements, 6001, initialBoard, null);
-
-        // Refresh from sheet in background
-        this.fetchGlobalLeaderboard().then(global => {
-            if (global && global.length > 0) {
-                this.inputOverlayElements.forEach(el => el.destroy());
-                this.inputOverlayElements.length = 0;
-                this.renderHighscoreBoard(this.inputOverlayElements, 6001, global, null);
-            }
-        });
+        this.renderHighscoreBoard(this.inputOverlayElements, 6001, this.loadLeaderboard(), null);
 
         if (this._entryKeyListener) {
             this.input.keyboard.off('keydown', this._entryKeyListener);
@@ -838,7 +818,7 @@ export default class PrizePointScene extends Phaser.Scene {
             }
             this.input.keyboard.off('keydown', this._entryKeyListener);
             this._entryKeyListener = null;
-            this.startNameEntryFlow();
+            this.startTagEntryFlow();
         };
         this.input.keyboard.on('keydown', this._entryKeyListener);
     }
@@ -904,7 +884,7 @@ export default class PrizePointScene extends Phaser.Scene {
         const enterText = this.add.text(
             lastRunInfo ? cx + 280 : cx,
             bottomY,
-            'Press ENTER for a new run', {
+            lastRunInfo ? 'Press ENTER to return to Hub' : 'Press ENTER for a new run', {
                 fontFamily: 'monospace',
                 fontSize: '28px',
                 color: '#ffffff',
@@ -927,7 +907,7 @@ export default class PrizePointScene extends Phaser.Scene {
         });
     }
 
-    startNameEntryFlow() {
+    startTagEntryFlow() {
         this.inputPhase = 'tag';
         this.showInputOverlay();
     }
@@ -948,12 +928,7 @@ export default class PrizePointScene extends Phaser.Scene {
         dimBg.setDepth(6000);
         this.inputOverlayElements.push(dimBg);
 
-        let promptText;
-        if (this.inputPhase === 'tag') {
-            promptText = `Enter your tag (max ${this.maxTagLen} chars)\nType and press ENTER`;
-        } else {
-            promptText = `Enter your full name and class\n(e.g. "Aapo Aalto 1A")\nType and press ENTER`;
-        }
+        const promptText = `Enter your tag (max ${this.maxTagLen} chars)\nType and press ENTER`;
 
         const prompt = this.add.text(cx, cy - 80, promptText, {
             fontFamily: 'monospace',
@@ -989,7 +964,7 @@ export default class PrizePointScene extends Phaser.Scene {
     }
 
     handleInputKey(event) {
-        if (this.inputPhase !== 'tag' && this.inputPhase !== 'nameclass') {
+        if (this.inputPhase !== 'tag') {
             return;
         }
 
@@ -998,26 +973,18 @@ export default class PrizePointScene extends Phaser.Scene {
         if (key === 'Enter') {
             if (this.inputBuffer.length === 0) return;
 
-            if (this.inputPhase === 'tag') {
-                this.playerTag = this.inputBuffer.toUpperCase();
-                this.inputPhase = 'nameclass';
-                this.showInputOverlay();
-            } else if (this.inputPhase === 'nameclass') {
-                const parts = this.inputBuffer.trim();
-                this.playerFullName = parts;
-                this.playerClass = '';
-                this.inputPhase = 'playing';
-                this.clearInputOverlay();
-                this.input.keyboard.off('keydown', this._inputKeyListener);
-                this._inputKeyListener = null;
-                this.setGameplayVisibility(true);
-                this.gameplayPaused = false;
-                // Reset ENTER key so it doesn't fire portal transition this frame
-                this.enterKey.isDown = false;
-                this.enterKey._justDown = false;
-                if (this.matter?.world?.resume) {
-                    this.matter.world.resume();
-                }
+            this.playerTag = this.inputBuffer.toUpperCase();
+            this.inputPhase = 'playing';
+            this.clearInputOverlay();
+            this.input.keyboard.off('keydown', this._inputKeyListener);
+            this._inputKeyListener = null;
+            this.setGameplayVisibility(true);
+            this.gameplayPaused = false;
+            // Reset ENTER key so it doesn't fire portal transition this frame
+            this.enterKey.isDown = false;
+            this.enterKey._justDown = false;
+            if (this.matter?.world?.resume) {
+                this.matter.world.resume();
             }
             return;
         }
@@ -1025,7 +992,7 @@ export default class PrizePointScene extends Phaser.Scene {
         if (key === 'Backspace') {
             this.inputBuffer = this.inputBuffer.slice(0, -1);
         } else if (key.length === 1) {
-            const maxLen = this.inputPhase === 'tag' ? this.maxTagLen : 40;
+            const maxLen = this.maxTagLen;
             if (this.inputBuffer.length < maxLen) {
                 this.inputBuffer += key;
             }
@@ -1033,7 +1000,7 @@ export default class PrizePointScene extends Phaser.Scene {
 
         if (this.inputDisplay) {
             const display = this.inputBuffer.length > 0
-                ? (this.inputPhase === 'tag' ? this.inputBuffer.toUpperCase() : this.inputBuffer) + '_'
+                ? this.inputBuffer.toUpperCase() + '_'
                 : '_';
             this.inputDisplay.setText(display);
         }
@@ -1072,10 +1039,10 @@ export default class PrizePointScene extends Phaser.Scene {
         }
     }
 
-    addLeaderboardEntry(tag, fullName, pixelsUp, secondsRemaining) {
+    addLeaderboardEntry(tag, pixelsUp, secondsRemaining) {
         const board = this.loadLeaderboard();
         const score = Math.round(pixelsUp + secondsRemaining);
-        board.push({ tag, fullName, pixelsUp, secondsRemaining, score });
+        board.push({ tag, pixelsUp, secondsRemaining, score });
         // Sort by combined score (pixels + time), descending
         board.sort((a, b) => {
             const sa = a.score != null ? a.score : Math.round(a.pixelsUp + a.secondsRemaining);
@@ -1083,42 +1050,9 @@ export default class PrizePointScene extends Phaser.Scene {
             return sb - sa;
         });
         // Keep top 7
-        const top5 = board.slice(0, 7);
-        this.saveLeaderboard(top5);
-
-        // Fire-and-forget POST to Google Sheet
-        this.postScoreToSheet({ tag, fullName, pixelsUp, secondsRemaining, score });
-
-        return top5;
-    }
-
-    postScoreToSheet(entry) {
-        fetch(SHEET_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(entry)
-        }).catch(() => { /* silent fail — local board is the fallback */ });
-    }
-
-    fetchGlobalLeaderboard() {
-        return fetch(SHEET_URL)
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'ok' && Array.isArray(data.leaderboard)) {
-                    const board = data.leaderboard.map(e => ({
-                        tag: String(e.tag || 'ANON'),
-                        fullName: String(e.fullName || ''),
-                        pixelsUp: Number(e.pixelsUp) || 0,
-                        secondsRemaining: Number(e.secondsRemaining) || 0,
-                        score: Number(e.score) || 0
-                    }));
-                    try { localStorage.setItem(this.globalCacheKey, JSON.stringify(board)); } catch {}
-                    return board;
-                }
-                return null;
-            })
-            .catch(() => null);
+        const top7 = board.slice(0, 7);
+        this.saveLeaderboard(top7);
+        return top7;
     }
 
     // --- ATLAS TEXT RENDERING ---
@@ -1317,9 +1251,8 @@ export default class PrizePointScene extends Phaser.Scene {
         }
 
         // Add to leaderboard
-        const top5 = this.addLeaderboardEntry(
+        const top7 = this.addLeaderboardEntry(
             this.playerTag || 'ANON',
-            this.playerFullName || '',
             currentPixelsUp,
             currentSecondsRemaining
         );
@@ -1336,7 +1269,6 @@ export default class PrizePointScene extends Phaser.Scene {
             }
         });
 
-        // --- End screen: merge new score into cached global board ---
         const currentScore = Math.round(currentPixelsUp + currentSecondsRemaining);
         const lastRunInfo = {
             score: currentScore,
@@ -1344,16 +1276,7 @@ export default class PrizePointScene extends Phaser.Scene {
             seconds: Math.round(currentSecondsRemaining)
         };
 
-        let displayBoard = top5;
-        try {
-            const cached = JSON.parse(localStorage.getItem(this.globalCacheKey) || '[]');
-            if (cached.length > 0) {
-                cached.push({ tag: this.playerTag || 'ANON', fullName: this.playerFullName || '', pixelsUp: currentPixelsUp, secondsRemaining: currentSecondsRemaining, score: currentScore });
-                cached.sort((a, b) => (b.score || 0) - (a.score || 0));
-                displayBoard = cached.slice(0, 7);
-            }
-        } catch {}
-        this.renderHighscoreBoard(this.endScreenElements, 5000, displayBoard, lastRunInfo);
+        this.renderHighscoreBoard(this.endScreenElements, 5000, top7, lastRunInfo);
     }
 
     redrawHighestLine() {
@@ -1363,7 +1286,12 @@ export default class PrizePointScene extends Phaser.Scene {
     update() {
         if (this.runEnded) {
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-                this.scene.restart({ skipIntro: true });
+                this.scene.start('HubScene', {
+                    spawnPoint: {
+                        x: HUB_PRIZE_POINT_RETURN_SPAWN.x,
+                        y: HUB_PRIZE_POINT_RETURN_SPAWN.y
+                    }
+                });
             }
             return;
         }

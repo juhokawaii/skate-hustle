@@ -48,7 +48,7 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyF') {
         const activeScenes = game.scene.getScenes(true);
         const prizePointScene = activeScenes.find((scene) => scene?.scene?.key === 'PrizePointScene');
-        if (prizePointScene && (prizePointScene.inputPhase === 'tag' || prizePointScene.inputPhase === 'nameclass')) {
+        if (prizePointScene && prizePointScene.inputPhase === 'tag') {
             return;
         }
 
