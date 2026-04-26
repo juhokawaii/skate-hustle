@@ -47,8 +47,7 @@ game.scale.on('leavefullscreen', () => {
 document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyF') {
         const activeScenes = game.scene.getScenes(true);
-        const prizePointScene = activeScenes.find((scene) => scene?.scene?.key === 'PrizePointScene');
-        if (prizePointScene && prizePointScene.inputPhase === 'tag') {
+        if (activeScenes.some((scene) => scene?.isCapturingKeyboard?.())) {
             return;
         }
 

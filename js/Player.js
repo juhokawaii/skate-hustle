@@ -40,7 +40,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.airFrameBuffer = 0; 
         
         // 3. COLLISION SENSOR
-        this.scene.matter.world.on('collisionactive', (event) => {
+        this._onCollisionActive = (event) => {
             const pairs = event.pairs;
             let normalSumX = 0;
             let normalSumY = 0;
@@ -100,7 +100,16 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
                 const invLength = 1 / Math.max(0.0001, Math.hypot(normalSumX, normalSumY));
                 this.groundNormal.set(normalSumX * invLength, normalSumY * invLength);
             }
-        });
+        };
+        this.scene.matter.world.on('collisionactive', this._onCollisionActive);
+    }
+
+    destroy(fromScene) {
+        if (this._onCollisionActive) {
+            this.scene.matter.world.off('collisionactive', this._onCollisionActive);
+            this._onCollisionActive = null;
+        }
+        super.destroy(fromScene);
     }
 
     update() {

@@ -124,12 +124,4 @@ export default class Graffiti extends Phaser.Physics.Matter.Sprite {
         super.preDestroy();
     }
     
-    // Call this in your Scene's update() loop if you want to check for interaction
-    checkInteraction() {
-        if (this.isPlayerTouching && Phaser.Input.Keyboard.JustDown(this.scene.input.keyboard.addKey('ENTER'))) {
-            console.log("Entering portal: " + this.keyColor);
-            return true; // Signal to scene to change levels
-        }
-        return false;
-    }
 }

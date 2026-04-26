@@ -3,6 +3,7 @@ import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
 import { getHubProgress, saveHubProgress, isDebugMode, setDebugMode, setPrizePointUnlocked } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
+import { loadLevelData } from './loadLevelData.js';
 
 export default class HubScene extends Phaser.Scene {
     constructor() { super("HubScene"); }
@@ -25,11 +26,8 @@ export default class HubScene extends Phaser.Scene {
         });
         this.load.json('hub_level', 'assets/levels/hubLevel.json');
 
-        this.load.image("speedrun_bw", "assets/backgrounds/speedrun_bw.png");
         this.load.image("speedrun", "assets/backgrounds/speedrun.png");
-        this.load.image("race_bottom_bw", "assets/backgrounds/race-to-the-bottom-bw.png");
         this.load.image("race_bottom", "assets/backgrounds/race-to-the-bottom.png");
-        this.load.image("crypto_bw", "assets/backgrounds/crypto_bw.png");
         this.load.image("crypto", "assets/backgrounds/crypto.png");
         this.load.image("zombies", "assets/backgrounds/zombies.png");
         this.load.image("dealwithit", "assets/backgrounds/dealwithit.png");
@@ -46,59 +44,31 @@ export default class HubScene extends Phaser.Scene {
         this.bgmusic = this.sound.add("ramp", { volume: 1.0, loop: true });
         this.bgmusic.play();
 
-        const cachedLevel = this.cache.json.get('hub_level');
-        const hasInjectedLevel = Array.isArray(data.levelPlatforms);
-        const hasCachedLevel = !!cachedLevel;
+        const level = loadLevelData(this, 'hub_level', data, {
+            worldWidth:          6400,
+            worldHeight:         1800,
+            spawnPoint:          { x: 200, y: 950 },
+            portal1Pos:          { x: 300, y: 1350 },
+            racePortalPos:       { x: 1880, y: 1500 },
+            zombiesPortalPos:    { x: 0, y: 0 },
+            prizePointPortalPos: { x: 500, y: 400 }
+        });
+        this.worldWidth  = level.worldWidth;
+        this.worldHeight = level.worldHeight;
+        this.spawnPoint  = data.spawnPoint || level.spawnPoint;
 
-        this.worldWidth = hasInjectedLevel
-            ? (data.worldWidth || 6400)
-            : (hasCachedLevel ? (cachedLevel.worldWidth || 6400) : 6400);
-        this.worldHeight = hasInjectedLevel
-            ? (data.worldHeight || 1800)
-            : (hasCachedLevel ? (cachedLevel.worldHeight || 1800) : 1800);
-        this.spawnPoint = data.spawnPoint || (hasInjectedLevel
-            ? (data.spawnPoint || { x: 200, y: 950 })
-            : (hasCachedLevel ? (cachedLevel.spawn || { x: 200, y: 950 }) : { x: 200, y: 950 }));
-        this.portal1Pos = hasInjectedLevel
-            ? (data.portal1Pos || { x: 300, y: 1350 })
-            : (hasCachedLevel ? (cachedLevel.portal1 || { x: 300, y: 1350 }) : { x: 300, y: 1350 });
-        this.racePortalPos = hasInjectedLevel
-            ? (data.racePortalPos || { x: 1880, y: 1500 })
-            : (hasCachedLevel ? (cachedLevel.racePortal || { x: 1880, y: 1500 }) : { x: 1880, y: 1500 });
+        this.portal1Pos    = { x: level.portal1Pos.x,    y: level.portal1Pos.y - 100 };
+        this.racePortalPos = { x: level.racePortalPos.x, y: level.racePortalPos.y - 130 };
+
         const defaultZombiesPos = {
-            x: Math.round((this.portal1Pos.x + this.racePortalPos.x) * 0.5),
-            y: Math.round((this.portal1Pos.y + this.racePortalPos.y) * 0.5)
+            x: Math.round((level.portal1Pos.x + level.racePortalPos.x) * 0.5),
+            y: Math.round((level.portal1Pos.y + level.racePortalPos.y) * 0.5)
         };
-        this.zombiesPortalPos = hasInjectedLevel
-            ? (data.zombiesPortalPos || defaultZombiesPos)
-            : (hasCachedLevel ? (cachedLevel.zombiesPortal || defaultZombiesPos) : defaultZombiesPos);
+        const resolvedZombies = level.zombiesPortalPos.x ? level.zombiesPortalPos : defaultZombiesPos;
+        this.zombiesPortalPos    = { x: resolvedZombies.x,    y: resolvedZombies.y - 115 };
+        this.prizePointPortalPos = { x: 500, y: 400 };
 
-        const defaultPrizePointPos = { x: 500, y: 400 };
-        this.prizePointPortalPos = hasInjectedLevel
-            ? (data.prizePointPortalPos || defaultPrizePointPos)
-            : (hasCachedLevel ? (cachedLevel.prizePointPortal || defaultPrizePointPos) : defaultPrizePointPos);
-
-        this.portal1Pos = {
-            x: this.portal1Pos.x,
-            y: this.portal1Pos.y - 100
-        };
-        this.racePortalPos = {
-            x: this.racePortalPos.x,
-            y: this.racePortalPos.y - 130
-        };
-        this.zombiesPortalPos = {
-            x: this.zombiesPortalPos.x,
-            y: this.zombiesPortalPos.y - 115
-        };
-        this.prizePointPortalPos = {
-            x: 500,
-            y: 400
-        };
-
-        const sourcePlatforms = hasInjectedLevel
-            ? data.levelPlatforms
-            : (Array.isArray(cachedLevel?.platforms) ? cachedLevel.platforms : []);
-        this.levelPlatforms = sourcePlatforms.map((def) => ({
+        this.levelPlatforms = level.platforms.map((def) => ({
             ...def,
             x: def.x,
             y: def.y,
@@ -137,12 +107,14 @@ export default class HubScene extends Phaser.Scene {
         
  
         
+        TextureFactory.ensureGrayscaleTexture(this, 'speedrun', 'speedrun_bw');
         this.portal1 = new Graffiti(this, this.portal1Pos.x, this.portal1Pos.y, "speedrun_bw", "speedrun", this.cats.SENSOR);
         this.portal1.setScrollFactor(1, 1);
         this.portal1.enableParallaxVisual(0.85, 0.85, {
             alpha: 0.85
         });
 
+        TextureFactory.ensureGrayscaleTexture(this, 'race_bottom', 'race_bottom_bw');
         this.racePortal = new Graffiti(this, this.racePortalPos.x, this.racePortalPos.y, "race_bottom_bw", "race_bottom", this.cats.SENSOR);
         this.racePortal.setScrollFactor(1, 1);
         this.racePortal.enableParallaxVisual(0.85, 0.85, {
@@ -150,7 +122,7 @@ export default class HubScene extends Phaser.Scene {
             alpha: 0.70
         });
 
-        this.ensureGrayscaleTexture('zombies', 'zombies_bw');
+        TextureFactory.ensureGrayscaleTexture(this, 'zombies', 'zombies_bw');
         this.zombiesPortal = new Graffiti(this, this.zombiesPortalPos.x, this.zombiesPortalPos.y, 'zombies_bw', 'zombies', this.cats.SENSOR);
         this.zombiesPortal.setScrollFactor(1, 1);
         this.zombiesPortal.enableParallaxVisual(0.85, 0.85, {
@@ -158,7 +130,7 @@ export default class HubScene extends Phaser.Scene {
             alpha: 0.74
         });
 
-        this.ensureGrayscaleTexture('prize_point_color', 'prize_point_bw');
+        TextureFactory.ensureGrayscaleTexture(this, 'prize_point_color', 'prize_point_bw');
         this.prizePointPortal = new Graffiti(this, this.prizePointPortalPos.x, this.prizePointPortalPos.y, 'prize_point_bw', 'prize_point_color', this.cats.SENSOR);
         this.prizePointPortal.setScrollFactor(1, 1);
         this.prizePointPortal.enableParallaxVisual(0.85, 0.85, {
@@ -171,6 +143,7 @@ export default class HubScene extends Phaser.Scene {
             x: Phaser.Math.Clamp(defaultCryptoPos.x - 600, 120, this.worldWidth - 120),
             y: Phaser.Math.Clamp(defaultCryptoPos.y - 150, 120, this.worldHeight - 120)
         };
+        TextureFactory.ensureGrayscaleTexture(this, 'crypto', 'crypto_bw');
         this.cryptoPortal = new Graffiti(this, this.cryptoPortalPos.x, this.cryptoPortalPos.y, "crypto_bw", "crypto", this.cats.SENSOR);
         this.cryptoPortal.setScrollFactor(1, 1);
         this.cryptoPortal.enableParallaxVisual(0.85, 0.85);
@@ -1284,38 +1257,6 @@ export default class HubScene extends Phaser.Scene {
         if (portal.visualProxy) {
             portal.visualProxy.setTexture(textureKey);
         }
-    }
-
-    ensureGrayscaleTexture(sourceKey, targetKey) {
-        if (this.textures.exists(targetKey)) {
-            return;
-        }
-
-        const source = this.textures.get(sourceKey)?.getSourceImage();
-        if (!source) {
-            return;
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = source.width;
-        canvas.height = source.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(source, 0, 0);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const pixels = imageData.data;
-        for (let i = 0; i < pixels.length; i += 4) {
-            const r = pixels[i];
-            const g = pixels[i + 1];
-            const b = pixels[i + 2];
-            const lum = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b));
-            pixels[i] = lum;
-            pixels[i + 1] = lum;
-            pixels[i + 2] = lum;
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-        this.textures.addCanvas(targetKey, canvas);
     }
 
     update() {

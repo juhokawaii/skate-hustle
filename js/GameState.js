@@ -1,25 +1,23 @@
-const gameState = {
-    hub: {
-        coinsActivated: false,
-        collectedCoinIndices: [],
-        portalUnlocked: false,
-        spawnedCoinTotal: 0,
-        sillyCompleted: false
-    },
-    debugMode: false
-};
+let debugMode = false;
 
 const HUB_PROGRESS_KEY = 'skate_hustle_hub_progress';
+const PRIZE_POINT_KEY = 'skate_hustle_prize_point_unlocked';
+
+const HUB_DEFAULTS = {
+    coinsActivated: false,
+    collectedCoinIndices: [],
+    portalUnlocked: false,
+    spawnedCoinTotal: 0,
+    sillyCompleted: false
+};
 
 export function isDebugMode() {
-    return gameState.debugMode;
+    return debugMode;
 }
 
 export function setDebugMode(enabled) {
-    gameState.debugMode = enabled;
+    debugMode = enabled;
 }
-
-const PRIZE_POINT_KEY = 'skate_hustle_prize_point_unlocked';
 
 export function isPrizePointUnlocked() {
     return localStorage.getItem(PRIZE_POINT_KEY) === '1';
@@ -33,42 +31,26 @@ export function getHubProgress() {
     try {
         const raw = localStorage.getItem(HUB_PROGRESS_KEY);
         if (raw) {
-            const parsed = JSON.parse(raw);
-            gameState.hub = {
-                ...gameState.hub,
-                ...(parsed || {})
-            };
+            return { ...HUB_DEFAULTS, ...JSON.parse(raw) };
         }
     } catch {
         // Ignore storage parsing errors.
     }
-    return gameState.hub;
+    return { ...HUB_DEFAULTS };
 }
 
 export function saveHubProgress(patch) {
-    gameState.hub = {
-        ...gameState.hub,
-        ...patch
-    };
-
+    const current = getHubProgress();
+    const updated = { ...current, ...patch };
     try {
-        localStorage.setItem(HUB_PROGRESS_KEY, JSON.stringify(gameState.hub));
+        localStorage.setItem(HUB_PROGRESS_KEY, JSON.stringify(updated));
     } catch {
         // Ignore storage write errors.
     }
-
-    return gameState.hub;
+    return updated;
 }
 
 export function resetHubProgress() {
-    gameState.hub = {
-        coinsActivated: false,
-        collectedCoinIndices: [],
-        portalUnlocked: false,
-        spawnedCoinTotal: 0,
-        sillyCompleted: false
-    };
-
     try {
         localStorage.removeItem(HUB_PROGRESS_KEY);
     } catch {

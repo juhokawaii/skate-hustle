@@ -32,6 +32,38 @@ export default class TextureFactory {
         graphics.fillCircle(x, y, radius);
     }
 
+    static ensureGrayscaleTexture(scene, sourceKey, targetKey) {
+        if (scene.textures.exists(targetKey)) {
+            return;
+        }
+
+        const source = scene.textures.get(sourceKey)?.getSourceImage();
+        if (!source) {
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = source.width;
+        canvas.height = source.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(source, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        for (let i = 0; i < pixels.length; i += 4) {
+            const r = pixels[i];
+            const g = pixels[i + 1];
+            const b = pixels[i + 2];
+            const lum = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b));
+            pixels[i] = lum;
+            pixels[i + 1] = lum;
+            pixels[i + 2] = lum;
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        scene.textures.addCanvas(targetKey, canvas);
+    }
+
     static isConcreteTexture(textureKey) {
         return textureKey === 'platform_texture' || textureKey === 'bottomrace_platform_texture';
     }

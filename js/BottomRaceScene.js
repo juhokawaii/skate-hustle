@@ -3,6 +3,7 @@ import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
 import { isDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
+import { loadLevelData } from './loadLevelData.js';
 
 export default class BottomRaceScene extends Phaser.Scene {
     constructor() {
@@ -27,9 +28,7 @@ export default class BottomRaceScene extends Phaser.Scene {
             frameHeight: 512
         });
 
-        this.load.image('silly_top_bw', 'assets/backgrounds/silly_top_bw.png');
         this.load.image('silly_top', 'assets/backgrounds/silly_top.png');
-        this.load.image('logo_portal_bw', 'assets/backgrounds/logo-bw.png');
         this.load.image('logo_portal', 'assets/backgrounds/logo.png');
         this.load.json('bottom_race_level', 'assets/levels/bottomRaceLevel.json');
 
@@ -41,35 +40,20 @@ export default class BottomRaceScene extends Phaser.Scene {
         this.bgmusic = this.sound.add('run_track', { volume: 0.9, loop: true });
         this.bgmusic.play();
 
-        const cachedLevel = this.cache.json.get('bottom_race_level');
-        const hasInjectedLevel = Array.isArray(data.levelPlatforms);
-        const hasCachedLevel = !!cachedLevel;
+        const level = loadLevelData(this, 'bottom_race_level', data, {
+            worldWidth:      1600,
+            worldHeight:     6000,
+            spawnPoint:      { x: 800, y: 190 },
+            returnPortalPos: { x: 620, y: 210 },
+            goalPortalPos:   { x: 800, y: 5750 }
+        });
+        this.worldWidth      = level.worldWidth;
+        this.worldHeight     = level.worldHeight;
+        this.spawnPoint      = level.spawnPoint;
+        this.returnPortalPos = level.returnPortalPos;
+        this.goalPortalPos   = { x: level.goalPortalPos.x, y: level.goalPortalPos.y + 120 };
 
-        this.worldWidth = hasInjectedLevel
-            ? (data.worldWidth || 1600)
-            : (hasCachedLevel ? (cachedLevel.worldWidth || 1600) : 1600);
-        this.worldHeight = hasInjectedLevel
-            ? (data.worldHeight || 6000)
-            : (hasCachedLevel ? (cachedLevel.worldHeight || 6000) : 6000);
-
-        this.spawnPoint = hasInjectedLevel
-            ? (data.spawnPoint || { x: 800, y: 190 })
-            : (hasCachedLevel ? (cachedLevel.spawn || { x: 800, y: 190 }) : { x: 800, y: 190 });
-        this.returnPortalPos = hasInjectedLevel
-            ? (data.returnPortalPos || { x: 620, y: 210 })
-            : (hasCachedLevel ? (cachedLevel.returnPortal || { x: 620, y: 210 }) : { x: 620, y: 210 });
-        this.goalPortalPos = hasInjectedLevel
-            ? (data.goalPortalPos || { x: 800, y: 5750 })
-            : (hasCachedLevel ? (cachedLevel.goalPortal || { x: 800, y: 5750 }) : { x: 800, y: 5750 });
-        this.goalPortalPos = {
-            x: this.goalPortalPos.x,
-            y: this.goalPortalPos.y + 120
-        };
-
-        const sourcePlatforms = hasInjectedLevel
-            ? data.levelPlatforms
-            : (Array.isArray(cachedLevel?.platforms) ? cachedLevel.platforms : []);
-        this.levelPlatforms = sourcePlatforms.map((def) => ({
+        this.levelPlatforms = level.platforms.map((def) => ({
             ...def,
             x: def.x,
             y: def.y,
@@ -111,6 +95,7 @@ export default class BottomRaceScene extends Phaser.Scene {
         const retCamX = Phaser.Math.Clamp(this.returnPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
         const retCamY = Phaser.Math.Clamp(this.returnPortalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
 
+        TextureFactory.ensureGrayscaleTexture(this, 'silly_top', 'silly_top_bw');
         this.goalPortal = new Graffiti(this, this.goalPortalPos.x, this.goalPortalPos.y, 'silly_top_bw', 'silly_top', this.cats.SENSOR);
         this.goalPortal.setScrollFactor(1, 1);
         this.goalPortal.enableParallaxVisual(pxFactor, pxFactor, {
@@ -120,6 +105,7 @@ export default class BottomRaceScene extends Phaser.Scene {
             alpha: 0.75
         });
 
+        TextureFactory.ensureGrayscaleTexture(this, 'logo_portal', 'logo_portal_bw');
         this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
         this.returnPortal.setScrollFactor(1, 1);
         this.returnPortal.enableParallaxVisual(pxFactor, pxFactor, {

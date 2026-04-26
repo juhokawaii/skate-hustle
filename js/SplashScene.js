@@ -25,7 +25,6 @@ export default class SplashScene extends Phaser.Scene {
             frameHeight: 512
         });
 
-        this.load.image('logo_full_portal_bw', 'assets/backgrounds/logo-full-bw.png');
         this.load.image('logo_full_portal', 'assets/backgrounds/logo-full.png');
     }
 
@@ -47,6 +46,7 @@ export default class SplashScene extends Phaser.Scene {
 
         this.createPlatform(0, this.worldHeight - 60, this.worldWidth, 60);
 
+        TextureFactory.ensureGrayscaleTexture(this, 'logo_full_portal', 'logo_full_portal_bw');
         this.portal = new Graffiti(this, 1170, 390, 'logo_full_portal_bw', 'logo_full_portal', this.cats.SENSOR);
         this.portal.setScrollFactor(1, 1);
         this.portal.enableParallaxVisual(1, 1, {

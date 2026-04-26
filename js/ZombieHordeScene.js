@@ -4,6 +4,7 @@ import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
 import { isDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
+import { loadLevelData } from './loadLevelData.js';
 
 export default class ZombieHordeScene extends Phaser.Scene {
     constructor() {
@@ -32,7 +33,6 @@ export default class ZombieHordeScene extends Phaser.Scene {
             frameHeight: 256
         });
 
-        this.load.image('logo_portal_bw', 'assets/backgrounds/logo-bw.png');
         this.load.image('logo_portal', 'assets/backgrounds/logo.png');
         this.load.json('zombie_horde_level', 'assets/levels/zombieHordeLevel.json');
 
@@ -51,34 +51,19 @@ export default class ZombieHordeScene extends Phaser.Scene {
         this.bgmusic = this.sound.add('run_track', { volume: 0.9, loop: true });
         this.bgmusic.play();
 
-        const cachedLevel = this.cache.json.get('zombie_horde_level');
-        const hasInjectedLevel = Array.isArray(data.levelPlatforms);
-        const hasCachedLevel = !!cachedLevel;
-
-        this.worldWidth = hasInjectedLevel
-            ? (data.worldWidth || 19200)
-            : (hasCachedLevel ? (cachedLevel.worldWidth || 19200) : 19200);
-        this.worldHeight = hasInjectedLevel
-            ? (data.worldHeight || 900)
-            : (hasCachedLevel ? (cachedLevel.worldHeight || 900) : 900);
-
-        this.spawnPoint = hasInjectedLevel
-            ? (data.spawnPoint || { x: 180, y: 700 })
-            : (hasCachedLevel ? (cachedLevel.spawn || { x: 180, y: 700 }) : { x: 180, y: 700 });
-        this.returnPortalPos = hasInjectedLevel
-            ? (data.returnPortalPos || { x: 100, y: 700 })
-            : (hasCachedLevel ? (cachedLevel.returnPortal || { x: 100, y: 700 }) : { x: 100, y: 700 });
-
+        const level = loadLevelData(this, 'zombie_horde_level', data, {
+            worldWidth:      19200,
+            worldHeight:     900,
+            spawnPoint:      { x: 180, y: 700 },
+            returnPortalPos: { x: 100, y: 700 }
+        });
+        this.worldWidth      = level.worldWidth;
+        this.worldHeight     = level.worldHeight;
+        this.spawnPoint      = level.spawnPoint;
         // Keep the return logo close to spawn for quick exit back to Hub.
-        this.returnPortalPos = {
-            x: this.spawnPoint.x - 80,
-            y: this.spawnPoint.y
-        };
+        this.returnPortalPos = { x: this.spawnPoint.x - 80, y: this.spawnPoint.y };
 
-        const sourcePlatforms = hasInjectedLevel
-            ? data.levelPlatforms
-            : (Array.isArray(cachedLevel?.platforms) ? cachedLevel.platforms : []);
-        this.levelPlatforms = sourcePlatforms.map((def) => ({
+        this.levelPlatforms = level.platforms.map((def) => ({
             ...def,
             x: def.x,
             y: def.y,
@@ -116,7 +101,7 @@ export default class ZombieHordeScene extends Phaser.Scene {
 
         this.createZombieWallDecorations(pxFactor, parallaxCompY);
 
-        this.ensureGrayscaleTexture('zombie_goal_color', 'zombie_goal_bw');
+        TextureFactory.ensureGrayscaleTexture(this, 'zombie_goal_color', 'zombie_goal_bw');
 
         // Goal graffiti: keep 600px clear from right wall (image is 600px wide), and place around top third.
         this.goalPos = {
@@ -134,6 +119,7 @@ export default class ZombieHordeScene extends Phaser.Scene {
             alpha: 0.9
         });
 
+        TextureFactory.ensureGrayscaleTexture(this, 'logo_portal', 'logo_portal_bw');
         this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
         this.returnPortal.setScrollFactor(1, 1);
         const retCamX = Phaser.Math.Clamp(this.returnPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
@@ -785,38 +771,6 @@ export default class ZombieHordeScene extends Phaser.Scene {
         const seconds = Math.floor(clamped / 1000);
         const milliseconds = Math.floor(clamped % 1000).toString().padStart(3, '0');
         return `${seconds}.${milliseconds}`;
-    }
-
-    ensureGrayscaleTexture(sourceKey, targetKey) {
-        if (this.textures.exists(targetKey)) {
-            return;
-        }
-
-        const source = this.textures.get(sourceKey)?.getSourceImage();
-        if (!source) {
-            return;
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = source.width;
-        canvas.height = source.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(source, 0, 0);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const pixels = imageData.data;
-        for (let i = 0; i < pixels.length; i += 4) {
-            const r = pixels[i];
-            const g = pixels[i + 1];
-            const b = pixels[i + 2];
-            const lum = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b));
-            pixels[i] = lum;
-            pixels[i + 1] = lum;
-            pixels[i + 2] = lum;
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-        this.textures.addCanvas(targetKey, canvas);
     }
 
     update(time, delta) {
