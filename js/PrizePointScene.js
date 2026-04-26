@@ -10,8 +10,6 @@ const HUB_PRIZE_POINT_RETURN_SPAWN = { x: 670, y: 400 };
 export default class PrizePointScene extends Phaser.Scene {
     constructor() {
         super('PrizePointScene');
-        this.highestLineStorageKey = 'skate_hustle_prize_point_best_line_y';
-        this.highestLineBaselineStorageKey = 'skate_hustle_prize_point_line_baseline_y';
         this.bestPixelsUpStorageKey = 'skate_hustle_prize_point_best_pixels_up';
         this.bestSecondsRemainingStorageKey = 'skate_hustle_prize_point_best_seconds_remaining';
         this.leaderboardStorageKey = 'skate_hustle_prize_point_leaderboard';
@@ -174,38 +172,8 @@ export default class PrizePointScene extends Phaser.Scene {
         this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
         this.player.setDepth(10);
 
-        this.resetWord = 'reset';
-        this.resetBuffer = '';
-        this.requestResetHighestLine = false;
-        this._resetWordListener = (event) => {
-            const key = (event?.key || '').toLowerCase();
-            if (!/^[a-z]$/.test(key)) {
-                this.resetBuffer = '';
-                return;
-            }
-
-            this.resetBuffer += key;
-            if (this.resetBuffer.length > this.resetWord.length) {
-                this.resetBuffer = this.resetBuffer.slice(-this.resetWord.length);
-            }
-
-            if (this.resetBuffer === this.resetWord) {
-                this.requestResetHighestLine = true;
-                this.resetBuffer = '';
-            }
-        };
-        this.input.keyboard.on('keydown', this._resetWordListener);
-        this.events.once('shutdown', () => {
-            this.input.keyboard.off('keydown', this._resetWordListener);
-        });
-
-        this.highestLineGraphics = this.add.graphics();
-        this.highestLineGraphics.setDepth(1500);
-        this.highestLineGraphics.setVisible(false);
-        // Reset green line each run — always starts at player spawn
         this.highestLineBaselineY = this.getPlayerBottomY();
         this.highestLineY = this.highestLineBaselineY;
-        this.redrawHighestLine();
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setDeadzone(400, 200);
@@ -1091,48 +1059,6 @@ export default class PrizePointScene extends Phaser.Scene {
         return this.player.y + (h * 0.5);
     }
 
-    loadHighestLineY() {
-        try {
-            const raw = localStorage.getItem(this.highestLineStorageKey);
-            if (raw == null) {
-                return NaN;
-            }
-            const parsed = Number(raw);
-            return Number.isFinite(parsed) ? parsed : NaN;
-        } catch {
-            return NaN;
-        }
-    }
-
-    saveHighestLineY() {
-        try {
-            localStorage.setItem(this.highestLineStorageKey, String(this.highestLineY));
-        } catch {
-            // Ignore storage errors (e.g. private mode restrictions).
-        }
-    }
-
-    loadHighestLineBaselineY() {
-        try {
-            const raw = localStorage.getItem(this.highestLineBaselineStorageKey);
-            if (raw == null) {
-                return NaN;
-            }
-            const parsed = Number(raw);
-            return Number.isFinite(parsed) ? parsed : NaN;
-        } catch {
-            return NaN;
-        }
-    }
-
-    saveHighestLineBaselineY() {
-        try {
-            localStorage.setItem(this.highestLineBaselineStorageKey, String(this.highestLineBaselineY));
-        } catch {
-            // Ignore storage errors (e.g. private mode restrictions).
-        }
-    }
-
     loadBestPixelsUp() {
         try {
             const raw = localStorage.getItem(this.bestPixelsUpStorageKey);
@@ -1176,9 +1102,7 @@ export default class PrizePointScene extends Phaser.Scene {
     }
 
     getCurrentPixelsPushedUp() {
-        // Measure the highest point reached during this run (green line)
-        const pushed = this.highestLineBaselineY - this.highestLineY;
-        return Math.max(0, Math.round(pushed));
+        return Math.max(0, Math.round(this.highestLineBaselineY - this.highestLineY));
     }
 
     formatTimeMs(ms) {
@@ -1241,10 +1165,6 @@ export default class PrizePointScene extends Phaser.Scene {
         return this.inputPhase === 'tag';
     }
 
-    redrawHighestLine() {
-        // Green line hidden — only track position for score calculation
-    }
-
     update() {
         if (this.runEnded) {
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
@@ -1275,19 +1195,8 @@ export default class PrizePointScene extends Phaser.Scene {
 
         const playerBottomY = this.getPlayerBottomY();
 
-        if (this.requestResetHighestLine) {
-            this.requestResetHighestLine = false;
-            this.highestLineY = playerBottomY;
-            this.highestLineBaselineY = playerBottomY;
-            this.saveHighestLineY();
-            this.saveHighestLineBaselineY();
-            this.redrawHighestLine();
-        }
-
         if (playerBottomY < this.highestLineY) {
             this.highestLineY = playerBottomY;
-            this.saveHighestLineY();
-            this.redrawHighestLine();
         }
 
         this.remainingTimeMs = Math.max(0, this.remainingTimeMs - this.game.loop.delta);
