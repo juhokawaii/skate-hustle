@@ -4,19 +4,20 @@ import TextureFactory from './TextureFactory.js';
 import { isDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 import { loadLevelData } from './loadLevelData.js';
+import BaseGameScene from './BaseGameScene.js';
 
 const HUB_PRIZE_POINT_RETURN_SPAWN = { x: 670, y: 400 };
 
-export default class PrizePointScene extends Phaser.Scene {
+export default class PrizePointScene extends BaseGameScene {
     constructor() {
         super('PrizePointScene');
-        this.bestPixelsUpStorageKey = 'skate_hustle_prize_point_best_pixels_up';
-        this.bestSecondsRemainingStorageKey = 'skate_hustle_prize_point_best_seconds_remaining';
-        this.leaderboardStorageKey = 'skate_hustle_prize_point_leaderboard';
+        this.bestPixelsUpStorageKey          = 'skate_hustle_prize_point_best_pixels_up';
+        this.bestSecondsRemainingStorageKey  = 'skate_hustle_prize_point_best_seconds_remaining';
+        this.leaderboardStorageKey           = 'skate_hustle_prize_point_leaderboard';
 
         // Atlas grid: 8 cols x 6 rows, 560x423 image
-        this.atlasCols = 8;
-        this.atlasRows = 6;
+        this.atlasCols  = 8;
+        this.atlasRows  = 6;
         this.atlasCellW = Math.floor(560 / 8); // 70
         this.atlasCellH = Math.floor(423 / 6); // 70
 
@@ -36,29 +37,12 @@ export default class PrizePointScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('player1', 'assets/player_sprites/player1.png');
-        this.load.image('player2', 'assets/player_sprites/player2.png');
-        this.load.image('player3', 'assets/player_sprites/player3.png');
-        this.load.image('player4', 'assets/player_sprites/player4.png');
-        this.load.image('player5', 'assets/player_sprites/player5.png');
-        this.load.image('player6', 'assets/player_sprites/player6.png');
-
-        this.load.image('concrete_bg', 'assets/backgrounds/hubworld_background.png');
-        this.load.image('platform_texture', 'assets/backgrounds/256x256.png');
-        this.load.image('ground', 'assets/backgrounds/ground.png');
-        this.load.image('drop', 'assets/backgrounds/drop.png');
+        super.preload();
         this.load.image('sponsor_graffiti_1', 'assets/backgrounds/sponsor-graffiti-1.png');
-        this.load.spritesheet('graffiti', 'assets/backgrounds/Atlas.png', {
-            frameWidth: 512,
-            frameHeight: 512
-        });
-
         this.load.image('prize_point_color', 'assets/backgrounds/prize-point.png');
         this.load.json('prize_point_level', 'assets/levels/prizePointLevel.json');
-
         this.load.audio('run_track', 'assets/music/run.mp3');
         this.load.image('high_score_title', 'assets/backgrounds/high-score-title.png');
-
         this.load.spritesheet('highscore_atlas', 'assets/backgrounds/highscore-atlas.png', {
             frameWidth: this.atlasCellW,
             frameHeight: this.atlasCellH
@@ -71,12 +55,12 @@ export default class PrizePointScene extends Phaser.Scene {
         this.bgmusic.play();
 
         // --- INPUT PHASE: collect player tag before gameplay ---
-        this.inputPhase = 'intro'; // 'intro' -> 'tag' -> 'playing'
-        this.playerTag = '';
-        this.inputBuffer = '';
-        this.maxTagLen = 7;
+        this.inputPhase          = 'intro'; // 'intro' -> 'tag' -> 'playing'
+        this.playerTag           = '';
+        this.inputBuffer         = '';
+        this.maxTagLen           = 7;
         this.inputOverlayElements = [];
-        this.gameplayPaused = true;
+        this.gameplayPaused      = true;
 
         const level = loadLevelData(this, 'prize_point_level', data, {
             worldWidth:      1600,
@@ -97,31 +81,22 @@ export default class PrizePointScene extends Phaser.Scene {
             y: def.y,
             config: { ...def.config }
         }));
+
+        this.cats                = CATS;
         this.legacyCenteredInput = false;
-        this.captureLevelData = false;
-        this.isMapMode = false;
-        this.editorHandles = [];
-        this.editorHud = null;
-        this.editorInspect = null;
+        this.captureLevelData    = false;
 
-        this.cats = CATS;
-
-        this.matter.world.setBounds(0, 0, this.worldWidth, this.worldHeight, 1000, true, true, true, true);
-        Object.values(this.matter.world.walls).forEach((wall) => {
-            if (wall) {
-                wall.collisionFilter.category = this.cats.GROUND;
-            }
-        });
+        this.initEditorState();
+        this.setupWorldBounds();
 
         this.parkBackground = this.add.tileSprite(0, 0, this.worldWidth, this.worldHeight, 'concrete_bg');
         this.parkBackground.setOrigin(0, 0);
         this.parkBackground.setScrollFactor(0.85, 0.85);
         this.parkBackground.setDepth(-10);
 
-        // Compensate visual proxy positions for parallax in tall world
-        const viewW = this.scale.width;
-        const viewH = this.scale.height;
-        const pxFactor = 0.85;
+        const viewW      = this.scale.width;
+        const viewH      = this.scale.height;
+        const pxFactor   = 0.85;
         const followOffY = 100;
 
         const finCamX = Phaser.Math.Clamp(this.finishPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
@@ -158,7 +133,6 @@ export default class PrizePointScene extends Phaser.Scene {
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
-        // --- THE GAUNTLET ---
         this.levelPlatforms.forEach((def) => {
             try {
                 this.createPlatform(def.x, def.y, def.config, def);
@@ -167,28 +141,26 @@ export default class PrizePointScene extends Phaser.Scene {
             }
         });
 
-        this.captureLevelData = false;
-
         this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
         this.player.setDepth(10);
 
         this.highestLineBaselineY = this.getPlayerBottomY();
-        this.highestLineY = this.highestLineBaselineY;
+        this.highestLineY         = this.highestLineBaselineY;
 
-        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-        this.cameras.main.setDeadzone(400, 200);
-        this.cameras.main.setFollowOffset(0, 100);
-        this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
-
+        this.setupCamera();
         this.setupAnims();
+        this.setupDebugLabel();
+        // Store reference — setGameplayVisibility needs to control debugGrid visibility
+        this.debugGrid = this.buildDebugGrid();
+        this.setupMapEditor(this.debugGrid);
 
-        this.countdownDurationMs = 120000;
-        this.remainingTimeMs = this.countdownDurationMs;
-        this.runEnded = false;
-        this.goalReached = false;
+        this.countdownDurationMs  = 120000;
+        this.remainingTimeMs      = this.countdownDurationMs;
+        this.runEnded             = false;
+        this.goalReached          = false;
         this.finalRemainingTimeMs = 0;
-        this.endScreenText = null;
-        this.endScreenElements = [];
+        this.endScreenText        = null;
+        this.endScreenElements    = [];
 
         this.timerText = this.add.text(this.scale.width / 2, 16, this.formatTimeMs(this.remainingTimeMs), {
             fontFamily: 'monospace',
@@ -201,89 +173,9 @@ export default class PrizePointScene extends Phaser.Scene {
         this.timerText.setScrollFactor(0);
         this.timerText.setDepth(2000);
 
-        this.debugLabel = this.add.text(16, 700, 'Debug mode', {
-            fontFamily: 'monospace',
-            fontSize: '14px',
-            color: '#ff4444',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setScrollFactor(0).setDepth(2000).setVisible(isDebugMode());
-
-        // --- DEBUG MAP VIEW (Press 'M' to toggle) ---
-        const debugGrid = this.add.graphics();
-        debugGrid.setDepth(1000);
-        debugGrid.setVisible(false);
-        this.debugGrid = debugGrid;
-
-        for (let x = 0; x <= this.worldWidth; x += 100) {
-            const isMajor = x % 500 === 0;
-            debugGrid.lineStyle(isMajor ? 10 : 4, 0x00ff00, isMajor ? 0.8 : 0.3);
-            debugGrid.beginPath();
-            debugGrid.moveTo(x, 0);
-            debugGrid.lineTo(x, this.worldHeight);
-            debugGrid.strokePath();
-        }
-
-        for (let y = 0; y <= this.worldHeight; y += 100) {
-            const isMajor = y % 500 === 0;
-            debugGrid.lineStyle(isMajor ? 10 : 4, 0x00ff00, isMajor ? 0.8 : 0.3);
-            debugGrid.beginPath();
-            debugGrid.moveTo(0, y);
-            debugGrid.lineTo(this.worldWidth, y);
-            debugGrid.strokePath();
-        }
-
-        this._mapBuffer = '';
-        this.input.keyboard.on('keydown', (event) => {
-            if (this.inputPhase === 'intro' || this.inputPhase === 'tag') return;
-            const k = (event.key || '').toLowerCase();
-            if (!/^[a-z]$/.test(k)) { this._mapBuffer = ''; return; }
-            this._mapBuffer += k;
-            if (this._mapBuffer.length > 3) this._mapBuffer = this._mapBuffer.slice(-3);
-            if (this._mapBuffer !== 'map') return;
-            this._mapBuffer = '';
-            this.isMapMode = !this.isMapMode;
-
-            if (this.isMapMode) {
-                this.cameras.main.stopFollow();
-
-                const fitWidthZoom = this.scale.width / this.worldWidth;
-                const fitHeightZoom = this.scale.height / this.worldHeight;
-                const zoomLevel = Math.min(fitWidthZoom, fitHeightZoom);
-                this.cameras.main.setZoom(zoomLevel);
-
-                this.cameras.main.centerOn(this.worldWidth / 2, this.worldHeight / 2);
-                debugGrid.setVisible(true);
-                this.enterMapEditorMode();
-            } else {
-                this.exitMapEditorMode();
-                this.cameras.main.setZoom(1);
-                this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-                this.cameras.main.setDeadzone(400, 200);
-                this.cameras.main.setFollowOffset(0, 100);
-                this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
-                debugGrid.setVisible(false);
-
-                this.scene.restart({
-                    worldWidth: this.worldWidth,
-                    worldHeight: this.worldHeight,
-                    levelPlatforms: this.levelPlatforms,
-                    spawnPoint: this.spawnPoint,
-                    finishPortalPos: this.finishPortalPos,
-                    returnPortalPos: this.returnPortalPos
-                });
-            }
-        });
-
-        this.input.keyboard.on('keydown-S', () => {
-            if (this.isMapMode) {
-                this.exportLevelData();
-            }
-        });
-
         // Ask only for the run tag before gameplay; highscore board is shown after the run.
         this.setGameplayVisibility(false);
-        this.inputPhase = 'tag';
+        this.inputPhase     = 'tag';
         this.gameplayPaused = true;
         if (this.matter?.world?.pause) {
             this.matter.world.pause();
@@ -291,453 +183,36 @@ export default class PrizePointScene extends Phaser.Scene {
         this.showInputOverlay();
     }
 
-    createPlatform(x, y, config, defRef = null) {
-        if (!config || typeof config !== 'object') {
-            return;
-        }
-
-        const {
-            type = 'RECT',
-            width = 100,
-            height = 100,
-            radius = 50,
-            angle = 0,
-            chamfer = 0,
-            friction = 0.5,
-            isOneWay = false,
-            bouncy = false,
-            texture = 'platform_texture'
-        } = config;
-
-        const renderWidth = type === 'CIRCLE' ? radius * 2 : width;
-        const renderHeight = type === 'CIRCLE' ? radius * 2 : height;
-
-        let topLeftX = x;
-        let topLeftY = y;
-        if (this.legacyCenteredInput) {
-            topLeftX = x - (renderWidth / 2);
-            topLeftY = y - (renderHeight / 2);
-        }
-
-        if (this.captureLevelData) {
-            this.levelPlatforms.push({
-                x: topLeftX,
-                y: topLeftY,
-                config: { ...config }
-            });
-        }
-
-        const centerX = topLeftX + (renderWidth / 2);
-        const centerY = topLeftY + (renderHeight / 2);
-
-        const bodyOptions = {
-            isStatic: true,
-            friction,
-            restitution: bouncy ? 1.2 : 0,
-            chamfer: chamfer > 0 ? { radius: chamfer } : null
+    getRestartData() {
+        return {
+            worldWidth:      this.worldWidth,
+            worldHeight:     this.worldHeight,
+            levelPlatforms:  this.levelPlatforms,
+            spawnPoint:      this.spawnPoint,
+            finishPortalPos: this.finishPortalPos,
+            returnPortalPos: this.returnPortalPos
         };
-
-        let body;
-
-        if (type === 'RECT') {
-            body = this.matter.add.rectangle(centerX, centerY, width, height, bodyOptions);
-        }
-        else if (type === 'RAMP_LEFT' || type === 'ramp_left') {
-            const verts = [
-                { x: width / 2, y: height / 2 },
-                { x: -width / 2, y: height / 2 },
-                { x: width / 2, y: -height / 2 }
-            ];
-            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
-        }
-        else if (type === 'RAMP_RIGHT' || type === 'ramp_right') {
-            const verts = [
-                { x: -width / 2, y: -height / 2 },
-                { x: -width / 2, y: height / 2 },
-                { x: width / 2, y: height / 2 }
-            ];
-            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
-        }
-        else if (type === 'CURVE') {
-            const segments = 32;
-            const verts = [{ x: width / 2, y: height / 2 }];
-            for (let i = 0; i <= segments; i++) {
-                const t = i / segments;
-                const px = -width / 2 + (Math.cos(t * Math.PI / 2) * width);
-                const py = -height / 2 + (Math.sin(t * Math.PI / 2) * height);
-                verts.push({ x: px, y: py });
-            }
-            verts.push({ x: width / 2, y: height / 2 });
-            body = this.matter.add.fromVertices(centerX, centerY, verts, bodyOptions);
-        }
-        else if (type === 'CIRCLE') {
-            body = this.matter.add.circle(centerX, centerY, radius, bodyOptions);
-        }
-
-        if (Array.isArray(body)) {
-            body = body[0] || null;
-        }
-
-        if (!body) {
-            return;
-        }
-
-        this.matter.body.setAngle(body, Phaser.Math.DegToRad(angle));
-        this.matter.body.setPosition(body, { x: centerX, y: centerY });
-
-        if (defRef) {
-            const minX = body.bounds.min.x;
-            const minY = body.bounds.min.y;
-            const boundsWidth = body.bounds.max.x - body.bounds.min.x;
-            const boundsHeight = body.bounds.max.y - body.bounds.min.y;
-            defRef.__editorBounds = {
-                x: minX,
-                y: minY,
-                width: boundsWidth,
-                height: boundsHeight
-            };
-        }
-
-        if (isOneWay) {
-            body.collisionFilter.category = this.cats.ONE_WAY;
-        } else {
-            body.collisionFilter.category = this.cats.GROUND;
-        }
-
-        if (bouncy) {
-            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, 'ground');
-            return;
-        }
-
-        if (isOneWay || type === 'RECT') {
-            TextureFactory.styleRectangle(this, centerX, centerY, width, height, body, texture);
-        }
-        else if (
-            type === 'CURVE' ||
-            type === 'RAMP_LEFT' || type === 'ramp_left' ||
-            type === 'RAMP_RIGHT' || type === 'ramp_right'
-        ) {
-            TextureFactory.styleCurve(this, body, texture);
-        }
-        else if (type === 'CIRCLE') {
-            TextureFactory.styleCircle(this, body, texture);
-        }
     }
 
-    enterMapEditorMode() {
-        this.destroyEditorHandles();
-
-        this.editorHud = this.add.text(16, 16, 'Editor: drag platforms | hover = inspect | S = export JSON | M = apply + exit', {
-            fontFamily: 'monospace',
-            fontSize: '20px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        this.editorHud.setScrollFactor(0);
-        this.editorHud.setDepth(3000);
-        this.refreshEditorHudScale();
-
-        this.editorCoords = this.add.text(16, 44, 'World: 0, 0', {
-            fontFamily: 'monospace',
-            fontSize: '20px',
-            color: '#ffff00',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        this.editorCoords.setScrollFactor(0);
-        this.editorCoords.setDepth(3000);
-
-        this._editorPointerMove = (pointer) => {
-            const cam = this.cameras.main;
-            const worldX = Math.round((pointer.x / cam.zoom) + cam.worldView.x);
-            const worldY = Math.round((pointer.y / cam.zoom) + cam.worldView.y);
-            if (this.editorCoords) {
-                this.editorCoords.setText(`World: ${worldX}, ${worldY}`);
-            }
-        };
-        this.input.on('pointermove', this._editorPointerMove);
-
-        this.editorInspect = this.add.text(16, 72, '', {
-            fontFamily: 'monospace',
-            fontSize: '20px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        this.editorInspect.setBackgroundColor('rgba(0, 0, 0, 0.75)');
-        this.editorInspect.setPadding(8, 6, 8, 6);
-        this.editorInspect.setVisible(false);
-        this.editorInspect.setScrollFactor(0);
-        this.editorInspect.setDepth(3501);
-
-        this.levelPlatforms.forEach((def, index) => {
-            const cfg = def.config || {};
-            const fallbackWidth = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.width || 100);
-            const fallbackHeight = cfg.type === 'CIRCLE' ? ((cfg.radius || 50) * 2) : (cfg.height || 100);
-            const hasBodyBounds = !!def.__editorBounds;
-            const handleX = hasBodyBounds ? def.__editorBounds.x : def.x;
-            const handleY = hasBodyBounds ? def.__editorBounds.y : def.y;
-            const handleWidth = hasBodyBounds ? def.__editorBounds.width : fallbackWidth;
-            const handleHeight = hasBodyBounds ? def.__editorBounds.height : fallbackHeight;
-
-            const handle = this.add.rectangle(handleX, handleY, handleWidth, handleHeight);
-            handle.setOrigin(0, 0);
-            handle.setStrokeStyle(3, 0xffcc00, 1);
-            handle.setFillStyle(0x000000, 0.001);
-            handle.setDepth(2500);
-            handle.setAngle(hasBodyBounds ? 0 : (cfg.angle || 0));
-            handle.setInteractive({ cursor: 'move' });
-            this.input.setDraggable(handle);
-
-            handle.__defRef = def;
-            handle.__platformIndex = index;
-            handle.__xOffset = def.x - handleX;
-            handle.__yOffset = def.y - handleY;
-            handle.on('pointerover', () => {
-                this.showHandleInspect(handle.__defRef, handle.__platformIndex);
-            });
-            handle.on('pointerout', () => {
-                this.hideHandleInspect();
-            });
-            this.editorHandles.push(handle);
-        });
-
-        this.input.on('drag', this.onEditorDrag, this);
+    getLevelPayload() {
+        const base = super.getLevelPayload();
+        return { ...base, finishPortal: this.finishPortalPos, returnPortal: this.returnPortalPos };
     }
 
-    exitMapEditorMode() {
-        this.input.off('drag', this.onEditorDrag, this);
-        this.destroyEditorHandles();
-    }
-
-    destroyEditorHandles() {
-        if (this.editorHud) {
-            this.editorHud.destroy();
-            this.editorHud = null;
-        }
-
-        if (this.editorInspect) {
-            this.editorInspect.destroy();
-            this.editorInspect = null;
-        }
-
-        if (this.editorCoords) {
-            this.editorCoords.destroy();
-            this.editorCoords = null;
-        }
-        if (this._editorPointerMove) {
-            this.input.off('pointermove', this._editorPointerMove);
-            this._editorPointerMove = null;
-        }
-
-        if (this.editorToast) {
-            this.editorToast.destroy();
-            this.editorToast = null;
-        }
-
-        if (this.editorHandles.length > 0) {
-            this.editorHandles.forEach((handle) => handle.destroy());
-            this.editorHandles = [];
-        }
-    }
-
-    onEditorDrag(pointer, gameObject, dragX, dragY) {
-        if (!this.isMapMode || !gameObject.__defRef) {
-            return;
-        }
-
-        const snappedX = Math.round(dragX / 10) * 10;
-        const snappedY = Math.round(dragY / 10) * 10;
-        gameObject.setPosition(snappedX, snappedY);
-        const offsetX = gameObject.__xOffset || 0;
-        const offsetY = gameObject.__yOffset || 0;
-        gameObject.__defRef.x = snappedX + offsetX;
-        gameObject.__defRef.y = snappedY + offsetY;
-
-        gameObject.__defRef.__editorBounds = {
-            x: snappedX,
-            y: snappedY,
-            width: gameObject.width,
-            height: gameObject.height
-        };
-        this.showHandleInspect(gameObject.__defRef, gameObject.__platformIndex);
-    }
-
-    showHandleInspect(def, index) {
-        if (!this.editorInspect) {
-            return;
-        }
-
-        const cfg = def?.config || {};
-        const idText = def?.id != null ? String(def.id) : String((index || 0) + 1);
-        const remark = def?.remark || cfg?.remark || '-';
-        this.editorInspect.setText(`Object #${(index || 0) + 1} | id: ${idText} | type: ${cfg.type || 'RECT'} | remark: ${remark}`);
-        this.editorInspect.setVisible(true);
-        this.refreshInspectScale();
-        this.positionInspectFixed();
-    }
-
-    hideHandleInspect() {
-        if (this.editorInspect) {
-            this.editorInspect.setVisible(false);
-            this.editorInspect.setText('');
-        }
-    }
-
-    positionInspectFixed() {
-        if (!this.editorInspect) {
-            return;
-        }
-
-        this.refreshInspectScale();
-
-        const zoom = this.cameras.main.zoom || 1;
-        const fixedX = 16;
-        const fixedY = 54;
-        this.editorInspect.setPosition(fixedX / zoom, fixedY / zoom);
-    }
-
-    refreshInspectScale() {
-        if (!this.editorInspect) {
-            return;
-        }
-
-        const zoom = this.cameras.main.zoom || 1;
-        this.editorInspect.setScale(1 / zoom);
-    }
-
-    refreshEditorHudScale() {
-        if (!this.editorHud) {
-            return;
-        }
-
-        const zoom = this.cameras.main.zoom || 1;
-        this.editorHud.setScale(1 / zoom);
-        this.editorHud.setPosition(16 / zoom, 16 / zoom);
-
-        if (this.editorCoords) {
-            this.editorCoords.setScale(1 / zoom);
-            this.editorCoords.setPosition(16 / zoom, 50 / zoom);
-        }
-
-        if (this.editorInspect) {
-            this.editorInspect.setScale(1 / zoom);
-            this.editorInspect.setPosition(16 / zoom, 84 / zoom);
-        }
-    }
-
-    positionEditorToastFixed() {
-        if (!this.editorToast) {
-            return;
-        }
-
-        const zoom = this.cameras.main.zoom || 1;
-        this.editorToast.setScale(1 / zoom);
-        this.editorToast.setPosition(16 / zoom, 98 / zoom);
-    }
-
-    exportLevelData() {
-        const exportPlatforms = this.levelPlatforms.map((def, index) => {
-            const existingRemark = def?.remark ?? def?.config?.remark;
-            return {
-                ...def,
-                id: def?.id ?? (index + 1),
-                remark: existingRemark ?? ''
-            };
-        });
-
-        const payload = {
-            worldWidth: this.worldWidth,
-            worldHeight: this.worldHeight,
-            spawn: this.spawnPoint,
-            finishPortal: this.finishPortalPos,
-            returnPortal: this.returnPortalPos,
-            platforms: exportPlatforms
-        };
-
-        const text = JSON.stringify(payload, null, 2);
-        console.log('PrizePoint level JSON:\n', text);
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text)
-                .then(() => this.showEditorToast('PrizePoint JSON copied to clipboard'))
-                .catch(() => this.showEditorToast('Exported to console (clipboard blocked)'));
-        } else {
-            this.showEditorToast('Exported to console (clipboard unavailable)');
-        }
-    }
-
-    showEditorToast(message) {
-        if (this.editorToast) {
-            this.editorToast.destroy();
-            this.editorToast = null;
-        }
-
-        this.editorToast = this.add.text(16, 44, message, {
-            fontFamily: 'monospace',
-            fontSize: '20px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        this.editorToast.setBackgroundColor('rgba(0, 0, 0, 0.75)');
-        this.editorToast.setPadding(8, 6, 8, 6);
-        this.editorToast.setScrollFactor(0);
-        this.editorToast.setDepth(3502);
-        this.positionEditorToastFixed();
-
-        this.time.delayedCall(1600, () => {
-            if (this.editorToast) {
-                this.editorToast.destroy();
-                this.editorToast = null;
-            }
-        });
-    }
-
-    setupAnims() {
-        if (!this.anims.exists('idle_pump')) {
-            this.anims.create({
-                key: 'idle_pump',
-                frames: [{ key: 'player1' }, { key: 'player2' }],
-                frameRate: 1.5,
-                repeat: -1
-            });
-        }
-        if (!this.anims.exists('kick')) {
-            this.anims.create({
-                key: 'kick',
-                frames: [
-                    { key: 'player2', duration: 50 },
-                    { key: 'player3', duration: 400 },
-                    { key: 'player1', duration: 50 }
-                ],
-                frameRate: 10,
-                repeat: 0
-            });
-        }
+    isCapturingKeyboard() {
+        return this.inputPhase === 'tag';
     }
 
     // --- INPUT PHASE UI ---
     setGameplayVisibility(visible) {
         const snapshot = [...this.children.list];
         snapshot.forEach((child) => {
-            if (child === this.parkBackground) {
-                return;
-            }
-            if (this.inputOverlayElements.includes(child)) {
-                return;
-            }
-            if (this.endScreenElements.includes(child)) {
-                return;
-            }
+            if (child === this.parkBackground)                  return;
+            if (this.inputOverlayElements.includes(child))     return;
+            if (this.endScreenElements.includes(child))        return;
             if (child instanceof Graffiti) {
-                // Graffiti uses a hidden sensor sprite + visualProxy image.
-                // Keep sensor hidden always so it never renders in front.
                 child.setVisible(false);
-                if (child.visualProxy) {
-                    child.visualProxy.setVisible(visible);
-                }
+                if (child.visualProxy) child.visualProxy.setVisible(visible);
                 return;
             }
             if (child === this.debugGrid) {
@@ -754,26 +229,15 @@ export default class PrizePointScene extends Phaser.Scene {
 
     showEntryHighscoreOverlay() {
         this.clearInputOverlay();
-
-        if (this.matter?.world?.pause) {
-            this.matter.world.pause();
-        }
-
-        // Intro must show only concrete wall + highscore elements.
+        if (this.matter?.world?.pause) this.matter.world.pause();
         this.setGameplayVisibility(false);
-
-        this.inputPhase = 'intro';
+        this.inputPhase     = 'intro';
         this.gameplayPaused = true;
-
         this.renderHighscoreBoard(this.inputOverlayElements, 6001, this.loadLeaderboard(), null);
 
-        if (this._entryKeyListener) {
-            this.input.keyboard.off('keydown', this._entryKeyListener);
-        }
+        if (this._entryKeyListener) this.input.keyboard.off('keydown', this._entryKeyListener);
         this._entryKeyListener = (event) => {
-            if (event.key !== 'Enter') {
-                return;
-            }
+            if (event.key !== 'Enter') return;
             this.input.keyboard.off('keydown', this._entryKeyListener);
             this._entryKeyListener = null;
             this.startTagEntryFlow();
@@ -782,7 +246,7 @@ export default class PrizePointScene extends Phaser.Scene {
     }
 
     renderHighscoreBoard(elements, depth, top7, lastRunInfo) {
-        const cx = this.scale.width * 0.5;
+        const cx     = this.scale.width * 0.5;
         const startY = 70;
         const rowGap = 58;
 
@@ -794,12 +258,8 @@ export default class PrizePointScene extends Phaser.Scene {
 
         if (top7.length === 0) {
             const emptyText = this.add.text(cx, startY + 120, 'No scores yet', {
-                fontFamily: 'monospace',
-                fontSize: '28px',
-                color: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 4,
-                align: 'center'
+                fontFamily: 'monospace', fontSize: '28px',
+                color: '#ffffff', stroke: '#000000', strokeThickness: 4, align: 'center'
             });
             emptyText.setOrigin(0.5, 0);
             emptyText.setScrollFactor(0);
@@ -808,31 +268,21 @@ export default class PrizePointScene extends Phaser.Scene {
         } else {
             top7.forEach((entry, index) => {
                 const rowY = startY + 200 + (index * rowGap);
-
-                const rankImages = this.renderAtlasText(`${index + 1}`, cx - 310, rowY, depth, 'left');
-                elements.push(...rankImages);
-
-                const tagImages = this.renderAtlasText(entry.tag || 'ANON', cx - 80, rowY, depth);
-                elements.push(...tagImages);
-
+                elements.push(...this.renderAtlasText(`${index + 1}`, cx - 310, rowY, depth, 'left'));
+                elements.push(...this.renderAtlasText(entry.tag || 'ANON', cx - 80, rowY, depth));
                 const entryScore = entry.score != null ? entry.score : Math.round(entry.pixelsUp + entry.secondsRemaining);
-                const scoreImages = this.renderAtlasText(`${entryScore}`, cx + 220, rowY, depth);
-                elements.push(...scoreImages);
+                elements.push(...this.renderAtlasText(`${entryScore}`, cx + 220, rowY, depth));
             });
         }
 
-        // Bottom line: previous run (red, left) + ENTER prompt (right, tweening)
         const bottomY = this.scale.height - 16;
 
         if (lastRunInfo) {
             const runText = this.add.text(16, bottomY,
                 `Score: ${lastRunInfo.score}  (${lastRunInfo.pixelsUp}px + ${lastRunInfo.seconds}s)`, {
-                    fontFamily: 'monospace',
-                    fontSize: '18px',
-                    color: '#ff5d5d',
-                    stroke: '#000000',
-                    strokeThickness: 3
-                });
+                fontFamily: 'monospace', fontSize: '18px',
+                color: '#ff5d5d', stroke: '#000000', strokeThickness: 3
+            });
             runText.setOrigin(0, 1);
             runText.setScrollFactor(0);
             runText.setDepth(depth);
@@ -843,18 +293,14 @@ export default class PrizePointScene extends Phaser.Scene {
             lastRunInfo ? cx + 280 : cx,
             bottomY,
             lastRunInfo ? 'Press ENTER to return to Hub' : 'Press ENTER for a new run', {
-                fontFamily: 'monospace',
-                fontSize: '28px',
-                color: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 5
-            });
+            fontFamily: 'monospace', fontSize: '28px',
+            color: '#ffffff', stroke: '#000000', strokeThickness: 5
+        });
         enterText.setOrigin(lastRunInfo ? 1 : 0.5, 1);
         enterText.setScrollFactor(0);
         enterText.setDepth(depth);
         elements.push(enterText);
 
-        // Tween between white and dark gray
         this.tweens.add({
             targets: enterText,
             alpha: { from: 1, to: 0.35 },
@@ -873,10 +319,7 @@ export default class PrizePointScene extends Phaser.Scene {
     showInputOverlay() {
         this.clearInputOverlay();
         this.inputBuffer = '';
-
-        if (this.matter?.world?.pause) {
-            this.matter.world.pause();
-        }
+        if (this.matter?.world?.pause) this.matter.world.pause();
 
         const cx = this.scale.width * 0.5;
         const cy = this.scale.height * 0.5;
@@ -886,15 +329,9 @@ export default class PrizePointScene extends Phaser.Scene {
         dimBg.setDepth(6000);
         this.inputOverlayElements.push(dimBg);
 
-        const promptText = `Enter your tag (max ${this.maxTagLen} chars)\nType and press ENTER`;
-
-        const prompt = this.add.text(cx, cy - 80, promptText, {
-            fontFamily: 'monospace',
-            fontSize: '28px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4,
-            align: 'center'
+        const prompt = this.add.text(cx, cy - 80, `Enter your tag (max ${this.maxTagLen} chars)\nType and press ENTER`, {
+            fontFamily: 'monospace', fontSize: '28px',
+            color: '#ffffff', stroke: '#000000', strokeThickness: 4, align: 'center'
         });
         prompt.setOrigin(0.5, 0.5);
         prompt.setScrollFactor(0);
@@ -902,75 +339,54 @@ export default class PrizePointScene extends Phaser.Scene {
         this.inputOverlayElements.push(prompt);
 
         this.inputDisplay = this.add.text(cx, cy + 20, '_', {
-            fontFamily: 'monospace',
-            fontSize: '36px',
-            color: '#5dff8b',
-            stroke: '#000000',
-            strokeThickness: 5,
-            align: 'center'
+            fontFamily: 'monospace', fontSize: '36px',
+            color: '#5dff8b', stroke: '#000000', strokeThickness: 5, align: 'center'
         });
         this.inputDisplay.setOrigin(0.5, 0.5);
         this.inputDisplay.setScrollFactor(0);
         this.inputDisplay.setDepth(6001);
         this.inputOverlayElements.push(this.inputDisplay);
 
-        if (this._inputKeyListener) {
-            this.input.keyboard.off('keydown', this._inputKeyListener);
-        }
+        if (this._inputKeyListener) this.input.keyboard.off('keydown', this._inputKeyListener);
         this._inputKeyListener = (event) => this.handleInputKey(event);
         this.input.keyboard.on('keydown', this._inputKeyListener);
     }
 
     handleInputKey(event) {
-        if (this.inputPhase !== 'tag') {
-            return;
-        }
+        if (this.inputPhase !== 'tag') return;
 
         const key = event.key || '';
 
         if (key === 'Enter') {
             if (this.inputBuffer.length === 0) return;
-
-            this.playerTag = this.inputBuffer.toUpperCase();
+            this.playerTag  = this.inputBuffer.toUpperCase();
             this.inputPhase = 'playing';
             this.clearInputOverlay();
             this.input.keyboard.off('keydown', this._inputKeyListener);
             this._inputKeyListener = null;
             this.setGameplayVisibility(true);
             this.gameplayPaused = false;
-            // Reset ENTER key so it doesn't fire portal transition this frame
-            this.enterKey.isDown = false;
+            this.enterKey.isDown   = false;
             this.enterKey._justDown = false;
-            if (this.matter?.world?.resume) {
-                this.matter.world.resume();
-            }
+            if (this.matter?.world?.resume) this.matter.world.resume();
             return;
         }
 
         if (key === 'Backspace') {
             this.inputBuffer = this.inputBuffer.slice(0, -1);
-        } else if (key.length === 1) {
-            const maxLen = this.maxTagLen;
-            if (this.inputBuffer.length < maxLen) {
-                this.inputBuffer += key;
-            }
+        } else if (key.length === 1 && this.inputBuffer.length < this.maxTagLen) {
+            this.inputBuffer += key;
         }
 
         if (this.inputDisplay) {
-            const display = this.inputBuffer.length > 0
-                ? this.inputBuffer.toUpperCase() + '_'
-                : '_';
-            this.inputDisplay.setText(display);
+            this.inputDisplay.setText(this.inputBuffer.length > 0 ? this.inputBuffer.toUpperCase() + '_' : '_');
         }
     }
 
     clearInputOverlay() {
-        this.inputOverlayElements.forEach((el) => {
-            if (el && el.destroy) el.destroy();
-        });
+        this.inputOverlayElements.forEach((el) => { if (el?.destroy) el.destroy(); });
         this.inputOverlayElements = [];
         this.inputDisplay = null;
-
         if (this._entryKeyListener) {
             this.input.keyboard.off('keydown', this._entryKeyListener);
             this._entryKeyListener = null;
@@ -984,30 +400,22 @@ export default class PrizePointScene extends Phaser.Scene {
             if (!raw) return [];
             const parsed = JSON.parse(raw);
             return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
+        } catch { return []; }
     }
 
     saveLeaderboard(board) {
-        try {
-            localStorage.setItem(this.leaderboardStorageKey, JSON.stringify(board));
-        } catch {
-            // Ignore
-        }
+        try { localStorage.setItem(this.leaderboardStorageKey, JSON.stringify(board)); } catch {}
     }
 
     addLeaderboardEntry(tag, pixelsUp, secondsRemaining) {
         const board = this.loadLeaderboard();
         const score = Math.round(pixelsUp + secondsRemaining);
         board.push({ tag, pixelsUp, secondsRemaining, score });
-        // Sort by combined score (pixels + time), descending
         board.sort((a, b) => {
             const sa = a.score != null ? a.score : Math.round(a.pixelsUp + a.secondsRemaining);
             const sb = b.score != null ? b.score : Math.round(b.pixelsUp + b.secondsRemaining);
             return sb - sa;
         });
-        // Keep top 7
         const top7 = board.slice(0, 7);
         this.saveLeaderboard(top7);
         return top7;
@@ -1015,28 +423,16 @@ export default class PrizePointScene extends Phaser.Scene {
 
     // --- ATLAS TEXT RENDERING ---
     renderAtlasText(text, x, y, depth, align) {
-        const images = [];
-        const upper = text.toUpperCase();
+        const images           = [];
+        const upper            = text.toUpperCase();
         const effectiveCharWidth = this.atlasCellW * 0.5;
-        const totalWidth = upper.length * effectiveCharWidth;
-        let cursorX;
-        if (align === 'left') {
-            cursorX = x;
-        } else {
-            cursorX = x - totalWidth * 0.5;
-        }
+        let cursorX = align === 'left' ? x : x - (upper.length * effectiveCharWidth * 0.5);
 
         for (let i = 0; i < upper.length; i++) {
             const ch = upper[i];
-            if (ch === ' ') {
-                cursorX += effectiveCharWidth;
-                continue;
-            }
+            if (ch === ' ') { cursorX += effectiveCharWidth; continue; }
             const frameIndex = this.atlasCharMap[ch];
-            if (frameIndex == null) {
-                cursorX += effectiveCharWidth;
-                continue;
-            }
+            if (frameIndex == null) { cursorX += effectiveCharWidth; continue; }
             const img = this.add.image(cursorX + effectiveCharWidth * 0.5, y, 'highscore_atlas', frameIndex);
             img.setScrollFactor(0);
             img.setDepth(depth || 5000);
@@ -1047,58 +443,32 @@ export default class PrizePointScene extends Phaser.Scene {
     }
 
     getPlayerBottomY() {
-        if (!this.player) {
-            return 0;
-        }
-
-        if (typeof this.player.getBottomCenter === 'function') {
-            return this.player.getBottomCenter().y;
-        }
-
+        if (!this.player) return 0;
+        if (typeof this.player.getBottomCenter === 'function') return this.player.getBottomCenter().y;
         const h = this.player.displayHeight || this.player.height || 0;
         return this.player.y + (h * 0.5);
     }
 
     loadBestPixelsUp() {
         try {
-            const raw = localStorage.getItem(this.bestPixelsUpStorageKey);
-            if (raw == null) {
-                return 0;
-            }
-            const parsed = Number(raw);
+            const parsed = Number(localStorage.getItem(this.bestPixelsUpStorageKey));
             return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
-        } catch {
-            return 0;
-        }
+        } catch { return 0; }
     }
 
     saveBestPixelsUp(value) {
-        try {
-            localStorage.setItem(this.bestPixelsUpStorageKey, String(value));
-        } catch {
-            // Ignore storage errors (e.g. private mode restrictions).
-        }
+        try { localStorage.setItem(this.bestPixelsUpStorageKey, String(value)); } catch {}
     }
 
     loadBestSecondsRemaining() {
         try {
-            const raw = localStorage.getItem(this.bestSecondsRemainingStorageKey);
-            if (raw == null) {
-                return 0;
-            }
-            const parsed = Number(raw);
+            const parsed = Number(localStorage.getItem(this.bestSecondsRemainingStorageKey));
             return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
-        } catch {
-            return 0;
-        }
+        } catch { return 0; }
     }
 
     saveBestSecondsRemaining(value) {
-        try {
-            localStorage.setItem(this.bestSecondsRemainingStorageKey, String(value));
-        } catch {
-            // Ignore storage errors (e.g. private mode restrictions).
-        }
+        try { localStorage.setItem(this.bestSecondsRemainingStorageKey, String(value)); } catch {}
     }
 
     getCurrentPixelsPushedUp() {
@@ -1106,98 +476,60 @@ export default class PrizePointScene extends Phaser.Scene {
     }
 
     formatTimeMs(ms) {
-        const clamped = Math.max(0, ms);
-        const seconds = Math.floor(clamped / 1000);
+        const clamped      = Math.max(0, ms);
+        const seconds      = Math.floor(clamped / 1000);
         const milliseconds = Math.floor(clamped % 1000).toString().padStart(3, '0');
         return `${seconds}.${milliseconds}`;
     }
 
     endRun(goalReached) {
-        if (this.runEnded) {
-            return;
-        }
+        if (this.runEnded) return;
 
-        this.runEnded = true;
-        this.goalReached = goalReached;
+        this.runEnded             = true;
+        this.goalReached          = goalReached;
         this.finalRemainingTimeMs = this.remainingTimeMs;
 
-        const currentPixelsUp = this.getCurrentPixelsPushedUp();
+        const currentPixelsUp         = this.getCurrentPixelsPushedUp();
         const currentSecondsRemaining = goalReached ? (this.finalRemainingTimeMs / 1000) : 0;
 
-        // Update personal bests
         const bestPixelsUp = Math.max(this.loadBestPixelsUp(), currentPixelsUp);
         this.saveBestPixelsUp(bestPixelsUp);
         if (goalReached) {
-            const bestSec = Math.max(this.loadBestSecondsRemaining(), currentSecondsRemaining);
-            this.saveBestSecondsRemaining(bestSec);
+            this.saveBestSecondsRemaining(Math.max(this.loadBestSecondsRemaining(), currentSecondsRemaining));
         }
 
-        // Add to leaderboard
-        const top7 = this.addLeaderboardEntry(
-            this.playerTag || 'ANON',
-            currentPixelsUp,
-            currentSecondsRemaining
-        );
+        const top7 = this.addLeaderboardEntry(this.playerTag || 'ANON', currentPixelsUp, currentSecondsRemaining);
 
-        if (this.matter?.world?.pause) {
-            this.matter.world.pause();
-        }
+        if (this.matter?.world?.pause) this.matter.world.pause();
 
-        // Hide all children except park background
         const snapshot = [...this.children.list];
-        snapshot.forEach((child) => {
-            if (child !== this.parkBackground) {
-                child.setVisible(false);
-            }
-        });
+        snapshot.forEach((child) => { if (child !== this.parkBackground) child.setVisible(false); });
 
         const currentScore = Math.round(currentPixelsUp + currentSecondsRemaining);
-        const lastRunInfo = {
-            score: currentScore,
+        this.renderHighscoreBoard(this.endScreenElements, 5000, top7, {
+            score:    currentScore,
             pixelsUp: currentPixelsUp,
-            seconds: Math.round(currentSecondsRemaining)
-        };
-
-        this.renderHighscoreBoard(this.endScreenElements, 5000, top7, lastRunInfo);
-    }
-
-    isCapturingKeyboard() {
-        return this.inputPhase === 'tag';
+            seconds:  Math.round(currentSecondsRemaining)
+        });
     }
 
     update() {
         if (this.runEnded) {
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-                this.scene.start('HubScene', {
-                    spawnPoint: {
-                        x: HUB_PRIZE_POINT_RETURN_SPAWN.x,
-                        y: HUB_PRIZE_POINT_RETURN_SPAWN.y
-                    }
-                });
+                this.scene.start('HubScene', { spawnPoint: HUB_PRIZE_POINT_RETURN_SPAWN });
             }
             return;
         }
 
-        if (this.gameplayPaused) {
-            return;
-        }
+        if (this.gameplayPaused) return;
 
-        // Skip a couple of frames after input phase ends to avoid ENTER leaking
-        if (this._inputGraceFrames == null) {
-            this._inputGraceFrames = 0;
-        }
-        if (this._inputGraceFrames < 2) {
-            this._inputGraceFrames++;
-            return;
-        }
+        if (this._inputGraceFrames == null) this._inputGraceFrames = 0;
+        if (this._inputGraceFrames < 2) { this._inputGraceFrames++; return; }
 
         this.player.update();
 
         const playerBottomY = this.getPlayerBottomY();
-
-        if (playerBottomY < this.highestLineY) {
-            this.highestLineY = playerBottomY;
-        }
+        if (playerBottomY < this.highestLineY) this.highestLineY = playerBottomY;
 
         this.remainingTimeMs = Math.max(0, this.remainingTimeMs - this.game.loop.delta);
         this.timerText.setText(this.formatTimeMs(this.remainingTimeMs));
@@ -1207,14 +539,7 @@ export default class PrizePointScene extends Phaser.Scene {
             return;
         }
 
-        if (this.finishPortal.isPlayerTouching) {
-            this.endRun(true);
-            return;
-        }
-
-        if (this.remainingTimeMs <= 0) {
-            this.endRun(false);
-            return;
-        }
+        if (this.finishPortal.isPlayerTouching) { this.endRun(true); return; }
+        if (this.remainingTimeMs <= 0)           { this.endRun(false); return; }
     }
 }
