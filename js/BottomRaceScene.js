@@ -37,6 +37,8 @@ export default class BottomRaceScene extends BaseGameScene {
         this.worldHeight     = level.worldHeight;
         this.spawnPoint      = level.spawnPoint;
         this.returnPortalPos = level.returnPortalPos;
+        // Intentional override: goal portal Y is shifted +120px from level data so the
+        // graffiti visual sits at the correct height relative to the bottom platform.
         this.goalPortalPos   = { x: level.goalPortalPos.x, y: level.goalPortalPos.y + 120 };
 
         this.levelPlatforms = level.platforms.map((def) => ({

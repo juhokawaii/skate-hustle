@@ -42,6 +42,12 @@ export default class HubScene extends BaseGameScene {
         this.worldHeight = level.worldHeight;
         this.spawnPoint  = data.spawnPoint || level.spawnPoint;
 
+        // Store raw level-resolved positions so getRestartData() can pass them
+        // without re-applying the visual offsets on each restart cycle.
+        this._levelPortal1Pos       = { ...level.portal1Pos };
+        this._levelRacePortalPos    = { ...level.racePortalPos };
+        this._levelZombiesPortalPos = { ...level.zombiesPortalPos };
+
         this.portal1Pos    = { x: level.portal1Pos.x,    y: level.portal1Pos.y - 100 };
         this.racePortalPos = { x: level.racePortalPos.x, y: level.racePortalPos.y - 130 };
 
@@ -51,6 +57,8 @@ export default class HubScene extends BaseGameScene {
         };
         const resolvedZombies = level.zombiesPortalPos.x ? level.zombiesPortalPos : defaultZombiesPos;
         this.zombiesPortalPos    = { x: resolvedZombies.x,    y: resolvedZombies.y - 115 };
+        // Intentional override: Prize Point portal is placed at a fixed design position,
+        // not derived from level JSON, to keep it visually anchored in the hub layout.
         this.prizePointPortalPos = { x: 500, y: 400 };
 
         this.levelPlatforms = level.platforms.map((def) => ({
@@ -129,10 +137,7 @@ export default class HubScene extends BaseGameScene {
         this.dealWithItGraffitiShown = false;
         this.dealWithItCheatEnabled = false;
         this.dealWithItCheatBuffer = '';
-        this.input.keyboard.on('keydown', this.handleDealWithItCheatInput, this);
-        this.events.once('shutdown', () => {
-            this.input.keyboard.off('keydown', this.handleDealWithItCheatInput, this);
-        });
+        this.registerKeyboard('keydown', this.handleDealWithItCheatInput, this);
 
 
     // --- 2. THE PARK LAYOUT  ---
@@ -229,7 +234,7 @@ export default class HubScene extends BaseGameScene {
         const cheatWords = Object.keys(cheatCodes);
         const allWords = [debugWord, businessWord, ...cheatWords];
         const maxCheatLen = allWords.reduce((m, word) => Math.max(m, word.length), 0);
-        this.input.keyboard.on('keydown', (event) => {
+        this._handleCheatCodes = (event) => {
             const key = (event.key || '').toLowerCase();
             if (!/^[a-z]$/.test(key)) {
                 this._cheatBuffer = '';
@@ -277,8 +282,8 @@ export default class HubScene extends BaseGameScene {
                     this._cheatBuffer = '';
                 }
             }
-        });
-
+        };
+        this.registerKeyboard('keydown', this._handleCheatCodes);
 
     }
 
@@ -288,9 +293,9 @@ export default class HubScene extends BaseGameScene {
             worldHeight:         this.worldHeight,
             levelPlatforms:      this.levelPlatforms,
             spawnPoint:          this.spawnPoint,
-            portal1Pos:          this.portal1Pos,
-            racePortalPos:       this.racePortalPos,
-            zombiesPortalPos:    this.zombiesPortalPos,
+            portal1Pos:          this._levelPortal1Pos,
+            racePortalPos:       this._levelRacePortalPos,
+            zombiesPortalPos:    this._levelZombiesPortalPos,
             prizePointPortalPos: this.prizePointPortalPos
         };
     }

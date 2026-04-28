@@ -57,3 +57,46 @@ export function resetHubProgress() {
         // Ignore storage removal errors.
     }
 }
+
+// -------------------------------------------------------------------------
+// PRIZE POINT PERSISTENCE
+// -------------------------------------------------------------------------
+
+const PRIZE_POINT_BEST_PIXELS_KEY    = 'skate_hustle_prize_point_best_pixels_up';
+const PRIZE_POINT_BEST_SECONDS_KEY   = 'skate_hustle_prize_point_best_seconds_remaining';
+const PRIZE_POINT_LEADERBOARD_KEY    = 'skate_hustle_prize_point_leaderboard';
+
+export function loadBestPixelsUp() {
+    try {
+        const parsed = Number(localStorage.getItem(PRIZE_POINT_BEST_PIXELS_KEY));
+        return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    } catch { return 0; }
+}
+
+export function saveBestPixelsUp(value) {
+    try { localStorage.setItem(PRIZE_POINT_BEST_PIXELS_KEY, String(value)); } catch {}
+}
+
+export function loadBestSecondsRemaining() {
+    try {
+        const parsed = Number(localStorage.getItem(PRIZE_POINT_BEST_SECONDS_KEY));
+        return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    } catch { return 0; }
+}
+
+export function saveBestSecondsRemaining(value) {
+    try { localStorage.setItem(PRIZE_POINT_BEST_SECONDS_KEY, String(value)); } catch {}
+}
+
+export function loadLeaderboard() {
+    try {
+        const raw = localStorage.getItem(PRIZE_POINT_LEADERBOARD_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+}
+
+export function saveLeaderboard(board) {
+    try { localStorage.setItem(PRIZE_POINT_LEADERBOARD_KEY, JSON.stringify(board)); } catch {}
+}

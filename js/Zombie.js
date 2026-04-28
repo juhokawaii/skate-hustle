@@ -37,7 +37,7 @@ export default class Zombie extends Phaser.Physics.Matter.Sprite {
         this.groundTimer = 0;
         this.groundNormal = new Phaser.Math.Vector2(0, -1);
 
-        this.scene.matter.world.on('collisionactive', (event) => {
+        this._onCollisionActive = (event) => {
             for (let i = 0; i < event.pairs.length; i++) {
                 const pair = event.pairs[i];
                 const bodyA = pair.bodyA;
@@ -53,7 +53,8 @@ export default class Zombie extends Phaser.Physics.Matter.Sprite {
                     this.groundTimer = 10;
                 }
             }
-        });
+        };
+        this.scene.matter.world.on('collisionactive', this._onCollisionActive);
 
         // --- Tuning knobs ---
         this.WALK_FORCE = 0.006;      // Much smaller than Player's 0.02
@@ -188,6 +189,14 @@ export default class Zombie extends Phaser.Physics.Matter.Sprite {
 
     updateStanding() {
         this.setTexture('zombie_standing');
+    }
+
+    destroy(fromScene) {
+        if (this._onCollisionActive) {
+            this.scene.matter.world.off('collisionactive', this._onCollisionActive);
+            this._onCollisionActive = null;
+        }
+        super.destroy(fromScene);
     }
 
     updateSitting(dt) {

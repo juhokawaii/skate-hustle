@@ -43,7 +43,8 @@ export default class ZombieHordeScene extends BaseGameScene {
         this.worldWidth      = level.worldWidth;
         this.worldHeight     = level.worldHeight;
         this.spawnPoint      = level.spawnPoint;
-        // Keep the return logo close to spawn for quick exit back to Hub.
+        // Intentional override: return portal is pinned relative to spawn rather than
+        // using the level JSON value, so the exit is always immediately accessible.
         this.returnPortalPos = { x: this.spawnPoint.x - 80, y: this.spawnPoint.y };
 
         this.levelPlatforms = level.platforms.map((def) => ({

@@ -3,6 +3,43 @@ import { isDebugMode } from './GameState.js';
 
 export default class BaseGameScene extends Phaser.Scene {
 
+    constructor(key) {
+        super(key);
+        this._disposables = [];
+    }
+
+    // -------------------------------------------------------------------------
+    // LIFECYCLE — register listeners/events for automatic cleanup on shutdown
+    // -------------------------------------------------------------------------
+
+    // Register a keyboard listener that will be removed on scene shutdown.
+    registerKeyboard(event, handler, context) {
+        this.input.keyboard.on(event, handler, context);
+        this._disposables.push(() => this.input.keyboard.off(event, handler, context));
+    }
+
+    // Register a Matter world event that will be removed on scene shutdown.
+    registerWorldEvent(event, handler, context) {
+        this.matter.world.on(event, handler, context);
+        this._disposables.push(() => this.matter.world.off(event, handler, context));
+    }
+
+    // Register a timed event that will be removed on scene shutdown.
+    registerTimedEvent(config) {
+        const timedEvent = this.time.addEvent(config);
+        this._disposables.push(() => timedEvent.remove(false));
+        return timedEvent;
+    }
+
+    // Called automatically by Phaser when the scene shuts down or restarts.
+    // Tears down all registered disposables to prevent listener accumulation.
+    shutdown() {
+        for (let i = this._disposables.length - 1; i >= 0; i--) {
+            this._disposables[i]();
+        }
+        this._disposables.length = 0;
+    }
+
     // -------------------------------------------------------------------------
     // PRELOAD — shared assets used by every scene
     // -------------------------------------------------------------------------
@@ -249,7 +286,7 @@ export default class BaseGameScene extends Phaser.Scene {
     // Requires this.player to exist for the map-off camera restore.
     // Requires this.worldWidth / this.worldHeight to be set.
     setupMapEditor(debugGrid) {
-        this.input.keyboard.on('keydown', (event) => {
+        this._handleMapToggle = (event) => {
             // Block map editor toggle during text input phases (e.g. PrizePointScene tag entry)
             if (typeof this.inputPhase === 'string' &&
                 (this.inputPhase === 'intro' || this.inputPhase === 'tag')) return;
@@ -282,11 +319,13 @@ export default class BaseGameScene extends Phaser.Scene {
                 debugGrid.setVisible(false);
                 this.scene.restart(this.getRestartData());
             }
-        });
+        };
+        this.registerKeyboard('keydown', this._handleMapToggle);
 
-        this.input.keyboard.on('keydown-S', () => {
+        this._handleMapSave = () => {
             if (this.isMapMode) this.exportLevelData();
-        });
+        };
+        this.registerKeyboard('keydown-S', this._handleMapSave);
     }
 
     // Override in subclass to include scene-specific portal positions in the

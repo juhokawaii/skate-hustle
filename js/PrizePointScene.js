@@ -1,7 +1,7 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
-import { isDebugMode } from './GameState.js';
+import { isDebugMode, loadBestPixelsUp, saveBestPixelsUp, loadBestSecondsRemaining, saveBestSecondsRemaining, loadLeaderboard, saveLeaderboard } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
@@ -11,9 +11,6 @@ const HUB_PRIZE_POINT_RETURN_SPAWN = { x: 670, y: 400 };
 export default class PrizePointScene extends BaseGameScene {
     constructor() {
         super('PrizePointScene');
-        this.bestPixelsUpStorageKey          = 'skate_hustle_prize_point_best_pixels_up';
-        this.bestSecondsRemainingStorageKey  = 'skate_hustle_prize_point_best_seconds_remaining';
-        this.leaderboardStorageKey           = 'skate_hustle_prize_point_leaderboard';
 
         // Atlas grid: 8 cols x 6 rows, 560x423 image
         this.atlasCols  = 8;
@@ -362,8 +359,6 @@ export default class PrizePointScene extends BaseGameScene {
             this.playerTag  = this.inputBuffer.toUpperCase();
             this.inputPhase = 'playing';
             this.clearInputOverlay();
-            this.input.keyboard.off('keydown', this._inputKeyListener);
-            this._inputKeyListener = null;
             this.setGameplayVisibility(true);
             this.gameplayPaused = false;
             this.enterKey.isDown   = false;
@@ -391,20 +386,24 @@ export default class PrizePointScene extends BaseGameScene {
             this.input.keyboard.off('keydown', this._entryKeyListener);
             this._entryKeyListener = null;
         }
+        if (this._inputKeyListener) {
+            this.input.keyboard.off('keydown', this._inputKeyListener);
+            this._inputKeyListener = null;
+        }
+    }
+
+    shutdown() {
+        this.clearInputOverlay();
+        super.shutdown();
     }
 
     // --- LEADERBOARD ---
     loadLeaderboard() {
-        try {
-            const raw = localStorage.getItem(this.leaderboardStorageKey);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch { return []; }
+        return loadLeaderboard();
     }
 
     saveLeaderboard(board) {
-        try { localStorage.setItem(this.leaderboardStorageKey, JSON.stringify(board)); } catch {}
+        saveLeaderboard(board);
     }
 
     addLeaderboardEntry(tag, pixelsUp, secondsRemaining) {
@@ -450,25 +449,19 @@ export default class PrizePointScene extends BaseGameScene {
     }
 
     loadBestPixelsUp() {
-        try {
-            const parsed = Number(localStorage.getItem(this.bestPixelsUpStorageKey));
-            return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
-        } catch { return 0; }
+        return loadBestPixelsUp();
     }
 
     saveBestPixelsUp(value) {
-        try { localStorage.setItem(this.bestPixelsUpStorageKey, String(value)); } catch {}
+        saveBestPixelsUp(value);
     }
 
     loadBestSecondsRemaining() {
-        try {
-            const parsed = Number(localStorage.getItem(this.bestSecondsRemainingStorageKey));
-            return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
-        } catch { return 0; }
+        return loadBestSecondsRemaining();
     }
 
     saveBestSecondsRemaining(value) {
-        try { localStorage.setItem(this.bestSecondsRemainingStorageKey, String(value)); } catch {}
+        saveBestSecondsRemaining(value);
     }
 
     getCurrentPixelsPushedUp() {

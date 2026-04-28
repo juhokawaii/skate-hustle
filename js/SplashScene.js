@@ -163,7 +163,7 @@ export default class SplashScene extends Phaser.Scene {
 
         // BUSINESS cheat code — permanently unlocks Prize Point
         this._cheatBuffer = '';
-        this.input.keyboard.on('keydown', (event) => {
+        this._handleBusinessCheat = (event) => {
             const key = (event.key || '').toLowerCase();
             if (!/^[a-z]$/.test(key)) { this._cheatBuffer = ''; return; }
             this._cheatBuffer = (this._cheatBuffer + key).slice(-8);
@@ -172,6 +172,10 @@ export default class SplashScene extends Phaser.Scene {
                 this._cheatBuffer = '';
                 this.scene.start('PrizePointScene');
             }
+        };
+        this.input.keyboard.on('keydown', this._handleBusinessCheat);
+        this.events.once('shutdown', () => {
+            this.input.keyboard.off('keydown', this._handleBusinessCheat);
         });
 
         this.tutorialStep = 0;
