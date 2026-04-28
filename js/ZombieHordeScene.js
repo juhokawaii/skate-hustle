@@ -142,6 +142,20 @@ export default class ZombieHordeScene extends BaseGameScene {
         this.hintText.setScrollFactor(0);
         this.hintText.setDepth(2000);
 
+        // --- ZOMBIE OVERLAP SLOWDOWN ---
+        this.zombieOverlapping = false;
+        this.zombieOverlapRadius = 50; // sum of player + zombie radii (~35 + ~32, with a little tolerance)
+        this.zombieSlowFactor = 0.31;  // 69% reduction → 31% of normal speed
+
+        this.zombieOverlay = this.add.rectangle(
+            this.scale.width / 2, this.scale.height / 2,
+            this.scale.width, this.scale.height,
+            0x00ff00, 1
+        );
+        this.zombieOverlay.setScrollFactor(0);
+        this.zombieOverlay.setDepth(1500);
+        this.zombieOverlay.setAlpha(0);
+
         this.runTimeMs   = 0;
         this.goalReached = false;
         this.timerText   = this.add.text(this.scale.width / 2, 16, this.formatTimeMs(this.runTimeMs), {
@@ -245,6 +259,45 @@ export default class ZombieHordeScene extends BaseGameScene {
             for (const z of this.zombies) z.update(time, delta);
         }
         this.hintText.setText('');
+
+        // --- Zombie overlap detection ---
+        let touching = false;
+        if (this.zombies) {
+            const px = this.player.x;
+            const py = this.player.y;
+            const rSq = this.zombieOverlapRadius * this.zombieOverlapRadius;
+            for (const z of this.zombies) {
+                if (!z.active) continue;
+                const dx = px - z.x;
+                const dy = py - z.y;
+                if (dx * dx + dy * dy < rSq) {
+                    touching = true;
+                    break;
+                }
+            }
+        }
+
+        if (touching && !this.zombieOverlapping) {
+            this.zombieOverlapping = true;
+            this.player.moveSpeedMultiplier = this.zombieSlowFactor;
+            this.tweens.killTweensOf(this.zombieOverlay);
+            this.tweens.add({
+                targets: this.zombieOverlay,
+                alpha: 0.25,
+                duration: 150,
+                ease: 'Sine.easeOut'
+            });
+        } else if (!touching && this.zombieOverlapping) {
+            this.zombieOverlapping = false;
+            this.player.moveSpeedMultiplier = 1.0;
+            this.tweens.killTweensOf(this.zombieOverlay);
+            this.tweens.add({
+                targets: this.zombieOverlay,
+                alpha: 0,
+                duration: 200,
+                ease: 'Sine.easeIn'
+            });
+        }
 
         if (!this.goalReached) {
             this.runTimeMs += delta;

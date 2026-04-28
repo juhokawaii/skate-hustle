@@ -32,6 +32,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.groundNormal = new Phaser.Math.Vector2(0, -1);
         this.smoothedNormal = new Phaser.Math.Vector2(0, -1);
         this.groundTimer = 0;
+        this.moveSpeedMultiplier = 1.0;
         this.cornerLockTimer = 0;
         this.cornerWallNormalX = 0;
         this.rampDragGraceTimer = 0;
@@ -197,22 +198,22 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         // The magical video game thrusters while in the air 
         const AIR_CONTROL = 0.35; 
         
+        const moveMul = this.moveSpeedMultiplier;
+
         if (this.cursors.left.isDown) {
             this.setFlipX(true);
             if (canUseGroundAssist) {
-                this.applyForce({ x: -forceX, y: -forceY });
+                this.applyForce({ x: -forceX * moveMul, y: -forceY * moveMul });
             } else {
-                // Use the variable here instead of hardcoded 0.1
-                this.applyForce({ x: -forceX * AIR_CONTROL, y: -forceY * AIR_CONTROL });
+                this.applyForce({ x: -forceX * AIR_CONTROL * moveMul, y: -forceY * AIR_CONTROL * moveMul });
             }
         } 
         else if (this.cursors.right.isDown) {
             this.setFlipX(false);
             if (canUseGroundAssist) {
-                this.applyForce({ x: forceX, y: forceY });
+                this.applyForce({ x: forceX * moveMul, y: forceY * moveMul });
             } else {
-                // And here
-                this.applyForce({ x: forceX * AIR_CONTROL, y: forceY * AIR_CONTROL });
+                this.applyForce({ x: forceX * AIR_CONTROL * moveMul, y: forceY * AIR_CONTROL * moveMul });
             }
         }
 
