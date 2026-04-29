@@ -29,11 +29,6 @@ export default class ZombieHordeScene extends BaseGameScene {
         this.load.image('zombie_sitting2', 'assets/player_sprites/zombie-sitting2.png');
         this.load.image('zombie_lying', 'assets/player_sprites/zombie-lying-down.png');
         this.load.audio('run_track', 'assets/music/run.mp3');
-        this.load.image('high_score_title', 'assets/backgrounds/high-score-title.png');
-        this.load.spritesheet('highscore_atlas', 'assets/backgrounds/highscore-atlas.png', {
-            frameWidth: Math.floor(560 / 8),
-            frameHeight: Math.floor(423 / 6)
-        });
     }
 
     create(data = {}) {

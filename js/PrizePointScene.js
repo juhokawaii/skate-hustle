@@ -1,12 +1,15 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
-import { isDebugMode, loadBestPixelsUp, saveBestPixelsUp, loadBestSecondsRemaining, saveBestSecondsRemaining, loadLeaderboard, saveLeaderboard } from './GameState.js';
+import { isDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
+import { getBoard, addEntry, qualifies } from './Leaderboard.js';
+import { renderWallLeaderboard } from './WallLeaderboard.js';
 
 const HUB_PRIZE_POINT_RETURN_SPAWN = { x: 670, y: 400 };
+const LEADERBOARD_KEY = 'PrizePointScene';
 
 export default class PrizePointScene extends BaseGameScene {
     constructor() {
@@ -39,12 +42,7 @@ export default class PrizePointScene extends BaseGameScene {
         this.load.image('prize_point_color', 'assets/backgrounds/prize-point.png');
         this.load.json('prize_point_level', 'assets/levels/prizePointLevel.json');
         this.load.audio('run_track', 'assets/music/run.mp3');
-        this.load.image('high_score_title', 'assets/backgrounds/high-score-title.png');
         this.load.image('logo_portal', 'assets/backgrounds/logo.png');
-        this.load.spritesheet('highscore_atlas', 'assets/backgrounds/highscore-atlas.png', {
-            frameWidth: this.atlasCellW,
-            frameHeight: this.atlasCellH
-        });
     }
 
     create(data = {}) {
@@ -178,7 +176,13 @@ export default class PrizePointScene extends BaseGameScene {
 
         // Start gameplay immediately — tag is only requested post-run if the
         // player qualifies for the top 7 leaderboard.
-        this.renderWallLeaderboard();
+        const lbSprites = renderWallLeaderboard(this, {
+            sceneKey: LEADERBOARD_KEY,
+            x: 857,
+            y: 2833,
+            titleOffset: { x: 230, y: -130 }
+        });
+        lbSprites.forEach((s) => this.registerParallaxObject(s, 0.85, 0.85));
         this.inputPhase     = 'playing';
         this.gameplayPaused = false;
     }
@@ -233,7 +237,7 @@ export default class PrizePointScene extends BaseGameScene {
         this.setGameplayVisibility(false);
         this.inputPhase     = 'intro';
         this.gameplayPaused = true;
-        this.renderHighscoreBoard(this.inputOverlayElements, 6001, this.loadLeaderboard(), null);
+        this.renderHighscoreBoard(this.inputOverlayElements, 6001, getBoard(LEADERBOARD_KEY), null);
 
         if (this._entryKeyListener) this.input.keyboard.off('keydown', this._entryKeyListener);
         this._entryKeyListener = (event) => {
@@ -270,7 +274,7 @@ export default class PrizePointScene extends BaseGameScene {
                 const rowY = startY + 200 + (index * rowGap);
                 elements.push(...this.renderAtlasText(`${index + 1}`, cx - 310, rowY, depth, 'left'));
                 elements.push(...this.renderAtlasText(entry.tag || 'ANON', cx - 80, rowY, depth));
-                const entryScore = entry.score != null ? entry.score : Math.round(entry.pixelsUp + entry.secondsRemaining);
+                const entryScore = entry.score != null ? entry.score : 0;
                 elements.push(...this.renderAtlasText(`${entryScore}`, cx + 220, rowY, depth));
             });
         }
@@ -412,39 +416,6 @@ export default class PrizePointScene extends BaseGameScene {
         super.shutdown();
     }
 
-    // --- LEADERBOARD ---
-    loadLeaderboard() {
-        return loadLeaderboard();
-    }
-
-    saveLeaderboard(board) {
-        saveLeaderboard(board);
-    }
-
-    addLeaderboardEntry(tag, pixelsUp, secondsRemaining) {
-        const board = this.loadLeaderboard();
-        const score = Math.round(pixelsUp + secondsRemaining);
-        board.push({ tag, pixelsUp, secondsRemaining, score });
-        board.sort((a, b) => {
-            const sa = a.score != null ? a.score : Math.round(a.pixelsUp + a.secondsRemaining);
-            const sb = b.score != null ? b.score : Math.round(b.pixelsUp + b.secondsRemaining);
-            return sb - sa;
-        });
-        const top7 = board.slice(0, 7);
-        this.saveLeaderboard(top7);
-        return top7;
-    }
-
-    qualifiesForTop7(score) {
-        const board = this.loadLeaderboard();
-        if (board.length < 7) return true;
-        const lowestScore = board.reduce((min, entry) => {
-            const s = entry.score != null ? entry.score : Math.round(entry.pixelsUp + entry.secondsRemaining);
-            return Math.min(min, s);
-        }, Infinity);
-        return score > lowestScore;
-    }
-
     // --- ATLAS TEXT RENDERING ---
     renderAtlasText(text, x, y, depth, align) {
         const images           = [];
@@ -466,77 +437,11 @@ export default class PrizePointScene extends BaseGameScene {
         return images;
     }
 
-    // --- WALL LEADERBOARD GRAFFITI ---
-    renderWorldAtlasText(text, x, y, depth) {
-        const images = [];
-        const upper  = text.toUpperCase();
-        const charW  = this.atlasCellW * 0.5;
-
-        for (let i = 0; i < upper.length; i++) {
-            const ch = upper[i];
-            if (ch === ' ') { x += charW; continue; }
-            const frame = this.atlasCharMap[ch];
-            if (frame == null) { x += charW; continue; }
-            const img = this.add.image(x + charW * 0.5, y, 'highscore_atlas', frame);
-            img.setDepth(depth);
-            images.push(img);
-            x += charW;
-        }
-        return images;
-    }
-
-    renderWallLeaderboard() {
-        const board = this.loadLeaderboard();
-        if (board.length === 0) return;
-
-        const wallX   = 857;
-        const wallY   = 2833;
-        const rowGap  = 46;
-        const depth   = -3;
-        const pxFactor = 0.85;
-
-        const titleImg = this.add.image(wallX + 230, wallY - 130, 'high_score_title');
-        titleImg.setOrigin(0.5, 0.5);
-        titleImg.setDepth(depth);
-        titleImg.setScrollFactor(pxFactor, pxFactor);
-        titleImg.setAlpha(0.77);
-        this.registerParallaxObject(titleImg, pxFactor, pxFactor);
-
-        board.slice(0, 7).forEach((entry, i) => {
-            const rowY = wallY + (i * rowGap);
-            const tag   = entry.tag || 'ANON';
-            const score = entry.score != null ? entry.score : Math.round(entry.pixelsUp + entry.secondsRemaining);
-            const line  = `${i + 1} ${tag} ${score}`;
-            const sprites = this.renderWorldAtlasText(line, wallX, rowY, depth);
-            sprites.forEach((s) => {
-                s.setScrollFactor(pxFactor, pxFactor);
-                s.setAlpha(0.82);
-                this.registerParallaxObject(s, pxFactor, pxFactor);
-            });
-        });
-    }
-
     getPlayerBottomY() {
         if (!this.player) return 0;
         if (typeof this.player.getBottomCenter === 'function') return this.player.getBottomCenter().y;
         const h = this.player.displayHeight || this.player.height || 0;
         return this.player.y + (h * 0.5);
-    }
-
-    loadBestPixelsUp() {
-        return loadBestPixelsUp();
-    }
-
-    saveBestPixelsUp(value) {
-        saveBestPixelsUp(value);
-    }
-
-    loadBestSecondsRemaining() {
-        return loadBestSecondsRemaining();
-    }
-
-    saveBestSecondsRemaining(value) {
-        saveBestSecondsRemaining(value);
     }
 
     getCurrentPixelsPushedUp() {
@@ -560,12 +465,6 @@ export default class PrizePointScene extends BaseGameScene {
         const currentPixelsUp         = this.getCurrentPixelsPushedUp();
         const currentSecondsRemaining = goalReached ? (this.finalRemainingTimeMs / 1000) : 0;
 
-        const bestPixelsUp = Math.max(this.loadBestPixelsUp(), currentPixelsUp);
-        this.saveBestPixelsUp(bestPixelsUp);
-        if (goalReached) {
-            this.saveBestSecondsRemaining(Math.max(this.loadBestSecondsRemaining(), currentSecondsRemaining));
-        }
-
         if (this.matter?.world?.pause) this.matter.world.pause();
 
         const currentScore = Math.round(currentPixelsUp + currentSecondsRemaining);
@@ -575,7 +474,7 @@ export default class PrizePointScene extends BaseGameScene {
         this._pendingSecondsRemaining = currentSecondsRemaining;
         this._pendingScore            = currentScore;
 
-        if (this.qualifiesForTop7(currentScore)) {
+        if (qualifies(LEADERBOARD_KEY, currentScore)) {
             // Player earned a leaderboard spot — ask for tag
             const snapshot = [...this.children.list];
             snapshot.forEach((child) => { if (child !== this.parkBackground) child.setVisible(false); });
@@ -597,7 +496,11 @@ export default class PrizePointScene extends BaseGameScene {
             }
         });
 
-        const top7 = this.addLeaderboardEntry(tag, pixelsUp, secondsRemaining);
+        const top7 = addEntry(LEADERBOARD_KEY, {
+            tag,
+            score,
+            detail: { pixelsUp, secondsRemaining }
+        });
 
         this.renderHighscoreBoard(this.endScreenElements, 5000, top7, {
             score,

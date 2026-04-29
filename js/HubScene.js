@@ -5,6 +5,8 @@ import { getHubProgress, saveHubProgress, isDebugMode, setDebugMode, setPrizePoi
 import { CATS } from './CollisionCategories.js';
 import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
+import { getBestPerScene } from './Leaderboard.js';
+import { renderWorldAtlasText } from './WallLeaderboard.js';
 
 export default class HubScene extends BaseGameScene {
     constructor() { super('HubScene'); }
@@ -228,6 +230,9 @@ export default class HubScene extends BaseGameScene {
 
         this.setupMapEditor(this.buildDebugGrid());
 
+        // --- BEST OF BESTS WALL DISPLAY ---
+        this.renderBestOfBests();
+
         // Cheat codes: type "debug" to enable debug mode, then "silly" or "bottom" to jump to scenes
         this._cheatBuffer = '';
         const cheatCodes = {
@@ -316,6 +321,72 @@ export default class HubScene extends BaseGameScene {
             zombiesPortal:    this.zombiesPortalPos,
             prizePointPortal: this.prizePointPortalPos
         };
+    }
+
+    renderBestOfBests() {
+        const sceneKeys = [
+            'SillySpeedRunScene',
+            'BottomRaceScene',
+            'ZombieHordeScene',
+            'PrizePointScene'
+        ];
+        const sceneLabels = {
+            SillySpeedRunScene: 'SILLY SPEEDRUN',
+            BottomRaceScene:    'RACE TO THE BOTTOM',
+            ZombieHordeScene:   'SMARTPHONE ZOMBIES',
+            PrizePointScene:    'PRIZE POINT'
+        };
+
+        const bests = getBestPerScene(sceneKeys);
+        const entries = sceneKeys.filter((k) => bests[k]).map((k) => ({
+            label: sceneLabels[k],
+            tag:   bests[k].tag || 'ANON'
+        }));
+        if (entries.length === 0) return;
+
+        const wallY      = 400;
+        const rowGap     = 46;
+        const depth      = -3;
+        const pxFactor   = 0.85;
+        const titleAlpha = 0.77;
+        const textAlpha  = 0.82;
+        const charW      = Math.floor(560 / 8) * 0.5; // 35px per char
+
+        // Layout centered on the title graffiti
+        const titleCenterX = 2850;
+        const wallX        = titleCenterX - 495; // left column start
+        const tagColumnRightX = titleCenterX + 495; // right column right edge
+
+        // Title
+        const titleImg = this.add.image(titleCenterX, wallY - 130, 'high_score_title');
+        titleImg.setOrigin(0.5, 0.5);
+        titleImg.setDepth(depth);
+        titleImg.setScrollFactor(pxFactor, pxFactor);
+        titleImg.setAlpha(titleAlpha);
+        this.registerParallaxObject(titleImg, pxFactor, pxFactor);
+
+        // Rows
+        entries.forEach((entry, i) => {
+            const rowY = wallY + (i * rowGap);
+
+            // Left column: scene name
+            const labelSprites = renderWorldAtlasText(this, entry.label, wallX, rowY, depth);
+            labelSprites.forEach((s) => {
+                s.setScrollFactor(pxFactor, pxFactor);
+                s.setAlpha(textAlpha);
+                this.registerParallaxObject(s, pxFactor, pxFactor);
+            });
+
+            // Right column: tag (right-aligned)
+            const tagWidth = entry.tag.length * charW;
+            const tagX = tagColumnRightX - tagWidth;
+            const tagSprites = renderWorldAtlasText(this, entry.tag, tagX, rowY, depth);
+            tagSprites.forEach((s) => {
+                s.setScrollFactor(pxFactor, pxFactor);
+                s.setAlpha(textAlpha);
+                this.registerParallaxObject(s, pxFactor, pxFactor);
+            });
+        });
     }
 
     getCryptoPortalPosition() {

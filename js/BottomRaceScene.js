@@ -4,6 +4,10 @@ import TextureFactory from './TextureFactory.js';
 import { CATS } from './CollisionCategories.js';
 import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
+import { addEntry, qualifies } from './Leaderboard.js';
+import { renderWallLeaderboard } from './WallLeaderboard.js';
+
+const LEADERBOARD_KEY = 'BottomRaceScene';
 
 export default class BottomRaceScene extends BaseGameScene {
     constructor() {
@@ -30,7 +34,7 @@ export default class BottomRaceScene extends BaseGameScene {
             worldWidth:      1600,
             worldHeight:     6000,
             spawnPoint:      { x: 800, y: 190 },
-            returnPortalPos: { x: 620, y: 210 },
+            returnPortalPos: { x: 470, y: 210 },
             goalPortalPos:   { x: 800, y: 5750 }
         });
         this.worldWidth      = level.worldWidth;
@@ -114,6 +118,7 @@ export default class BottomRaceScene extends BaseGameScene {
         this.timerStartedAt = this.time.now;
         this.timerStopped   = false;
         this.finalTimeMs    = 0;
+        this.runEnded       = false;
 
         this.timerText = this.add.text(this.scale.width / 2, 16, '00.000', {
             fontFamily: 'monospace',
@@ -135,6 +140,27 @@ export default class BottomRaceScene extends BaseGameScene {
         });
         this.hintText.setScrollFactor(0);
         this.hintText.setDepth(2000);
+
+        // --- LEADERBOARD ---
+        this.inputPhase           = 'playing';
+        this.playerTag            = '';
+        this.inputBuffer          = '';
+        this.maxTagLen            = 7;
+        this.inputOverlayElements = [];
+
+        const lbSprites = renderWallLeaderboard(this, {
+            sceneKey: LEADERBOARD_KEY,
+            x: 950,
+            y: 400,
+            formatRow: (entry, index) => {
+                const tag = entry.tag || 'ANON';
+                const timeMs = entry.detail?.timeMs ?? entry.score;
+                const secs = Math.floor(timeMs / 1000);
+                const ms   = Math.floor(timeMs % 1000).toString().padStart(3, '0');
+                return `${index + 1} ${tag} ${secs}.${ms}`;
+            }
+        });
+        lbSprites.forEach((s) => this.registerParallaxObject(s, 0.85, 0.85));
     }
 
     resolveTexture(key) {
@@ -163,6 +189,14 @@ export default class BottomRaceScene extends BaseGameScene {
         this.player.update();
         this.hintText.setText('');
 
+        if (this.runEnded) {
+            this.hintText.setText('Press ENTER to return to Hub');
+            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+                this.scene.start('HubScene');
+            }
+            return;
+        }
+
         if (this.returnPortal.isPlayerTouching) {
             this.hintText.setText('Press ENTER to return to Hub');
             if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
@@ -175,6 +209,8 @@ export default class BottomRaceScene extends BaseGameScene {
             this.timerStopped = true;
             this.finalTimeMs  = this.time.now - this.timerStartedAt;
             this.timerText.setColor('#5dff8b');
+            this.endRun();
+            return;
         }
 
         if (this.goalPortal.isPlayerTouching) {
@@ -189,5 +225,111 @@ export default class BottomRaceScene extends BaseGameScene {
         const seconds      = Math.floor(elapsed / 1000);
         const milliseconds = Math.floor(elapsed % 1000).toString().padStart(3, '0');
         this.timerText.setText(`${seconds}.${milliseconds}`);
+    }
+
+    isCapturingKeyboard() {
+        return this.inputPhase === 'tag';
+    }
+
+    endRun() {
+        if (this.runEnded) return;
+        this.runEnded = true;
+
+        const timeMs = Math.round(this.finalTimeMs);
+        this._pendingTimeMs = timeMs;
+
+        if (qualifies(LEADERBOARD_KEY, timeMs, 'asc')) {
+            this.inputPhase = 'tag';
+            this.showInputOverlay();
+        } else {
+            addEntry(LEADERBOARD_KEY, {
+                tag: 'ANON',
+                score: timeMs,
+                detail: { timeMs }
+            }, 'asc');
+            this.hintText.setText('Bottom reached. Press ENTER for Hub');
+        }
+    }
+
+    showInputOverlay() {
+        this.clearInputOverlay();
+        this.inputBuffer = '';
+
+        const cx = this.scale.width * 0.5;
+        const cy = this.scale.height * 0.5;
+
+        const dimBg = this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.7);
+        dimBg.setScrollFactor(0);
+        dimBg.setDepth(6000);
+        this.inputOverlayElements.push(dimBg);
+
+        const prompt = this.add.text(cx, cy - 80, `Top 7! Enter your tag (max ${this.maxTagLen} chars)\nType and press ENTER`, {
+            fontFamily: 'monospace', fontSize: '28px',
+            color: '#ffffff', stroke: '#000000', strokeThickness: 4, align: 'center'
+        });
+        prompt.setOrigin(0.5, 0.5);
+        prompt.setScrollFactor(0);
+        prompt.setDepth(6001);
+        this.inputOverlayElements.push(prompt);
+
+        this.inputDisplay = this.add.text(cx, cy + 20, '_', {
+            fontFamily: 'monospace', fontSize: '36px',
+            color: '#5dff8b', stroke: '#000000', strokeThickness: 5, align: 'center'
+        });
+        this.inputDisplay.setOrigin(0.5, 0.5);
+        this.inputDisplay.setScrollFactor(0);
+        this.inputDisplay.setDepth(6001);
+        this.inputOverlayElements.push(this.inputDisplay);
+
+        if (this._inputKeyListener) this.input.keyboard.off('keydown', this._inputKeyListener);
+        this._inputKeyListener = (event) => this.handleInputKey(event);
+        this.input.keyboard.on('keydown', this._inputKeyListener);
+    }
+
+    handleInputKey(event) {
+        if (this.inputPhase !== 'tag') return;
+
+        const key = event.key || '';
+
+        if (key === 'Enter') {
+            if (this.inputBuffer.length === 0) return;
+            this.playerTag  = this.inputBuffer.toUpperCase();
+            this.inputPhase = 'playing';
+            this.clearInputOverlay();
+
+            addEntry(LEADERBOARD_KEY, {
+                tag: this.playerTag,
+                score: this._pendingTimeMs,
+                detail: { timeMs: this._pendingTimeMs }
+            }, 'asc');
+
+            this.hintText.setText('Bottom reached. Press ENTER for Hub');
+            return;
+        }
+
+        if (key === 'Backspace') {
+            this.inputBuffer = this.inputBuffer.slice(0, -1);
+        } else if (key.length === 1 && this.inputBuffer.length < this.maxTagLen) {
+            this.inputBuffer += key;
+        }
+
+        if (this.inputDisplay) {
+            this.inputDisplay.setText(this.inputBuffer.length > 0 ? this.inputBuffer.toUpperCase() + '_' : '_');
+        }
+    }
+
+    clearInputOverlay() {
+        this.inputOverlayElements.forEach((el) => { if (el?.destroy) el.destroy(); });
+        this.inputOverlayElements = [];
+        this.inputDisplay = null;
+        if (this._inputKeyListener) {
+            this.input.keyboard.off('keydown', this._inputKeyListener);
+            this._inputKeyListener = null;
+        }
+    }
+
+    shutdown() {
+        this.clearInputOverlay();
+        super.shutdown();
     }
 }

@@ -59,6 +59,11 @@ export default class BaseGameScene extends Phaser.Scene {
             frameWidth: 512,
             frameHeight: 512
         });
+        this.load.image('high_score_title', 'assets/backgrounds/high-score-title.png');
+        this.load.spritesheet('highscore_atlas', 'assets/backgrounds/highscore-atlas.png', {
+            frameWidth: Math.floor(560 / 8),
+            frameHeight: Math.floor(423 / 6)
+        });
     }
 
     // -------------------------------------------------------------------------
