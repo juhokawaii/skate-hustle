@@ -59,6 +59,7 @@ export default class BottomRaceScene extends BaseGameScene {
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
+        this.registerParallaxObject(bg, 0.85, 0.85);
 
         const viewW      = this.scale.width;
         const viewH      = this.scale.height;
@@ -79,6 +80,7 @@ export default class BottomRaceScene extends BaseGameScene {
             depth: -2,
             alpha: 0.75
         });
+        this.registerParallaxObject(this.goalPortal.visualProxy, pxFactor, pxFactor);
 
         TextureFactory.ensureGrayscaleTexture(this, 'logo_portal', 'logo_portal_bw');
         this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
@@ -89,6 +91,7 @@ export default class BottomRaceScene extends BaseGameScene {
             depth: -2,
             alpha: 0.62
         });
+        this.registerParallaxObject(this.returnPortal.visualProxy, pxFactor, pxFactor);
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 

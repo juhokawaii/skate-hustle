@@ -316,7 +316,6 @@ export default class SplashScene extends Phaser.Scene {
             this.spawnTutorialCoinB();
         } else if (this.tutorialStep === 3) {
             this.portalActivated = true;
-            this.setPortalTexture('logo_full_portal');
         }
     }
 

@@ -81,6 +81,7 @@ export default class HubScene extends BaseGameScene {
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
+        this.registerParallaxObject(bg, 0.85, 0.85);
 
 
         
@@ -92,6 +93,7 @@ export default class HubScene extends BaseGameScene {
         this.portal1.enableParallaxVisual(0.85, 0.85, {
             alpha: 0.85
         });
+        this.registerParallaxObject(this.portal1.visualProxy, 0.85, 0.85);
 
         TextureFactory.ensureGrayscaleTexture(this, 'race_bottom', 'race_bottom_bw');
         this.racePortal = new Graffiti(this, this.racePortalPos.x, this.racePortalPos.y, "race_bottom_bw", "race_bottom", this.cats.SENSOR);
@@ -100,6 +102,7 @@ export default class HubScene extends BaseGameScene {
             depth: -2,
             alpha: 0.70
         });
+        this.registerParallaxObject(this.racePortal.visualProxy, 0.85, 0.85);
 
         TextureFactory.ensureGrayscaleTexture(this, 'zombies', 'zombies_bw');
         this.zombiesPortal = new Graffiti(this, this.zombiesPortalPos.x, this.zombiesPortalPos.y, 'zombies_bw', 'zombies', this.cats.SENSOR);
@@ -108,6 +111,7 @@ export default class HubScene extends BaseGameScene {
             depth: -2,
             alpha: 0.74
         });
+        this.registerParallaxObject(this.zombiesPortal.visualProxy, 0.85, 0.85);
 
         TextureFactory.ensureGrayscaleTexture(this, 'prize_point_color', 'prize_point_bw');
         this.prizePointPortal = new Graffiti(this, this.prizePointPortalPos.x, this.prizePointPortalPos.y, 'prize_point_bw', 'prize_point_color', this.cats.SENSOR);
@@ -116,6 +120,7 @@ export default class HubScene extends BaseGameScene {
             depth: -2,
             alpha: 0.85
         });
+        this.registerParallaxObject(this.prizePointPortal.visualProxy, 0.85, 0.85);
 
         const defaultCryptoPos = this.getCryptoPortalPosition();
         this.cryptoPortalPos = {
@@ -126,6 +131,7 @@ export default class HubScene extends BaseGameScene {
         this.cryptoPortal = new Graffiti(this, this.cryptoPortalPos.x, this.cryptoPortalPos.y, "crypto_bw", "crypto", this.cats.SENSOR);
         this.cryptoPortal.setScrollFactor(1, 1);
         this.cryptoPortal.enableParallaxVisual(0.85, 0.85);
+        this.registerParallaxObject(this.cryptoPortal.visualProxy, 0.85, 0.85);
 
         // Decorative unlock graffiti on the center ramp wall.
         this.dealWithItGraffiti = this.add.image(4680, 1030, 'dealwithit');
@@ -134,6 +140,7 @@ export default class HubScene extends BaseGameScene {
         this.dealWithItGraffiti.setScale(0.56);
         this.dealWithItGraffiti.setAlpha(0);
         this.dealWithItGraffiti.setVisible(false);
+        this.registerParallaxObject(this.dealWithItGraffiti, 0.85, 0.85);
         this.dealWithItGraffitiShown = false;
         this.dealWithItCheatEnabled = false;
         this.dealWithItCheatBuffer = '';

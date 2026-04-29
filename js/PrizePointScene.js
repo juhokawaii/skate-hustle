@@ -91,6 +91,7 @@ export default class PrizePointScene extends BaseGameScene {
         this.parkBackground.setOrigin(0, 0);
         this.parkBackground.setScrollFactor(0.85, 0.85);
         this.parkBackground.setDepth(-10);
+        this.registerParallaxObject(this.parkBackground, 0.85, 0.85);
 
         const viewW      = this.scale.width;
         const viewH      = this.scale.height;
@@ -108,6 +109,7 @@ export default class PrizePointScene extends BaseGameScene {
             y: this.finishPortalPos.y - finCamY * (1 - pxFactor),
             depth: -2
         });
+        this.registerParallaxObject(this.finishPortal.visualProxy, pxFactor, pxFactor);
 
         const retCamX = Phaser.Math.Clamp(this.returnPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
         const retCamY = Phaser.Math.Clamp(this.returnPortalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
@@ -121,6 +123,7 @@ export default class PrizePointScene extends BaseGameScene {
             depth: -2,
             alpha: 0.62
         });
+        this.registerParallaxObject(this.returnPortal.visualProxy, pxFactor, pxFactor);
 
         const sponsorX = 820;
         const sponsorY = 4070;
@@ -129,6 +132,7 @@ export default class PrizePointScene extends BaseGameScene {
         this.sponsorGraffiti.setAngle(15);
         this.sponsorGraffiti.setScrollFactor(pxFactor, pxFactor);
         this.sponsorGraffiti.setDepth(-2);
+        this.registerParallaxObject(this.sponsorGraffiti, pxFactor, pxFactor);
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
@@ -496,6 +500,7 @@ export default class PrizePointScene extends BaseGameScene {
         titleImg.setDepth(depth);
         titleImg.setScrollFactor(pxFactor, pxFactor);
         titleImg.setAlpha(0.77);
+        this.registerParallaxObject(titleImg, pxFactor, pxFactor);
 
         board.slice(0, 7).forEach((entry, i) => {
             const rowY = wallY + (i * rowGap);
@@ -503,7 +508,11 @@ export default class PrizePointScene extends BaseGameScene {
             const score = entry.score != null ? entry.score : Math.round(entry.pixelsUp + entry.secondsRemaining);
             const line  = `${i + 1} ${tag} ${score}`;
             const sprites = this.renderWorldAtlasText(line, wallX, rowY, depth);
-            sprites.forEach((s) => { s.setScrollFactor(pxFactor, pxFactor); s.setAlpha(0.82); });
+            sprites.forEach((s) => {
+                s.setScrollFactor(pxFactor, pxFactor);
+                s.setAlpha(0.82);
+                this.registerParallaxObject(s, pxFactor, pxFactor);
+            });
         });
     }
 

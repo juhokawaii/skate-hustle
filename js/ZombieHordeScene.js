@@ -72,6 +72,7 @@ export default class ZombieHordeScene extends BaseGameScene {
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
+        this.registerParallaxObject(bg, 0.85, 0.85);
 
         const viewW        = this.scale.width;
         const viewH        = this.scale.height;
@@ -99,6 +100,7 @@ export default class ZombieHordeScene extends BaseGameScene {
             depth: -2,
             alpha: 0.9
         });
+        this.registerParallaxObject(this.goalGraffiti.visualProxy, pxFactor, pxFactor);
 
         TextureFactory.ensureGrayscaleTexture(this, 'logo_portal', 'logo_portal_bw');
         this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
@@ -111,6 +113,7 @@ export default class ZombieHordeScene extends BaseGameScene {
             depth: -2,
             alpha: 0.62
         });
+        this.registerParallaxObject(this.returnPortal.visualProxy, pxFactor, pxFactor);
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
@@ -185,10 +188,10 @@ export default class ZombieHordeScene extends BaseGameScene {
         this.maxTagLen           = 7;
         this.inputOverlayElements = [];
 
-        renderWallLeaderboard(this, {
+        const lbSprites = renderWallLeaderboard(this, {
             sceneKey: this.leaderboardKey,
-            x: 600,
-            y: 350,
+            x: 6780,
+            y: 1250,
             formatRow: (entry, index) => {
                 const tag = entry.tag || 'ANON';
                 const timeMs = entry.detail?.timeMs ?? entry.score;
@@ -197,6 +200,7 @@ export default class ZombieHordeScene extends BaseGameScene {
                 return `${index + 1} ${tag} ${secs}.${ms}`;
             }
         });
+        lbSprites.forEach((s) => this.registerParallaxObject(s, 0.85, 0.85));
     }
 
     getRestartData() {
@@ -378,6 +382,7 @@ export default class ZombieHordeScene extends BaseGameScene {
             sprite.setAlpha(alpha);
             sprite.setFlipX(rng.realInRange(0, 1) < 0.35);
             sprite.setAngle(rng.realInRange(-7, 7));
+            this.registerParallaxObject(sprite, scrollFactor, scrollFactor);
         };
 
         let x = 180;

@@ -75,6 +75,14 @@ export default class BaseGameScene extends Phaser.Scene {
         this.editorToast    = null;
         this._mapBuffer     = '';
         this._editorPointerMove = null;
+        this._parallaxObjects   = [];
+    }
+
+    // Register a game object that uses parallax scrollFactor so the map editor
+    // can temporarily lock it to world space (scrollFactor 1,1) and restore it.
+    registerParallaxObject(obj, scrollX, scrollY) {
+        if (!obj) return;
+        this._parallaxObjects.push({ obj, scrollX, scrollY });
     }
 
     // Call after setting this.cats = CATS and this.worldWidth/worldHeight.
@@ -359,6 +367,11 @@ export default class BaseGameScene extends Phaser.Scene {
     enterMapEditorMode() {
         this.destroyEditorHandles();
 
+        // Lock all parallax objects to world space so they align with the grid.
+        this._parallaxObjects.forEach(({ obj }) => {
+            if (obj?.active !== false) obj.setScrollFactor(1, 1);
+        });
+
         this.editorHud = this.add.text(16, 16,
             'Editor: drag platforms | hover = inspect | S = export JSON | M = apply + exit', {
             fontFamily: 'monospace', fontSize: '20px',
@@ -428,6 +441,11 @@ export default class BaseGameScene extends Phaser.Scene {
     exitMapEditorMode() {
         this.input.off('drag', this.onEditorDrag, this);
         this.destroyEditorHandles();
+
+        // Restore parallax scrollFactors for normal gameplay.
+        this._parallaxObjects.forEach(({ obj, scrollX, scrollY }) => {
+            if (obj?.active !== false) obj.setScrollFactor(scrollX, scrollY);
+        });
     }
 
     destroyEditorHandles() {

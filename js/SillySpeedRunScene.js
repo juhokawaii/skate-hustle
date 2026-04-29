@@ -55,6 +55,7 @@ export default class SillySpeedRunScene extends BaseGameScene {
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0.85, 0.85);
         bg.setDepth(-10);
+        this.registerParallaxObject(bg, 0.85, 0.85);
 
         const viewW      = this.scale.width;
         const viewH      = this.scale.height;
@@ -72,6 +73,7 @@ export default class SillySpeedRunScene extends BaseGameScene {
             y: this.finishPortalPos.y - finCamY * (1 - pxFactor),
             depth: -2
         });
+        this.registerParallaxObject(this.finishPortal.visualProxy, pxFactor, pxFactor);
 
         const retCamX = Phaser.Math.Clamp(this.returnPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
         const retCamY = Phaser.Math.Clamp(this.returnPortalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
@@ -85,6 +87,7 @@ export default class SillySpeedRunScene extends BaseGameScene {
             depth: -2,
             alpha: 0.62
         });
+        this.registerParallaxObject(this.returnPortal.visualProxy, pxFactor, pxFactor);
 
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
