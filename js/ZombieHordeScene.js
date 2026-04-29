@@ -280,6 +280,7 @@ export default class ZombieHordeScene extends BaseGameScene {
         if (touching && !this.zombieOverlapping) {
             this.zombieOverlapping = true;
             this.player.moveSpeedMultiplier = this.zombieSlowFactor;
+            this.player.maxSpeedMultiplier = 0.1;
             this.tweens.killTweensOf(this.zombieOverlay);
             this.tweens.add({
                 targets: this.zombieOverlay,
@@ -290,6 +291,7 @@ export default class ZombieHordeScene extends BaseGameScene {
         } else if (!touching && this.zombieOverlapping) {
             this.zombieOverlapping = false;
             this.player.moveSpeedMultiplier = 1.0;
+            this.player.maxSpeedMultiplier = 1.0;
             this.tweens.killTweensOf(this.zombieOverlay);
             this.tweens.add({
                 targets: this.zombieOverlay,

@@ -33,6 +33,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.smoothedNormal = new Phaser.Math.Vector2(0, -1);
         this.groundTimer = 0;
         this.moveSpeedMultiplier = 1.0;
+        this.maxSpeedMultiplier = 1.0;
         this.cornerLockTimer = 0;
         this.cornerWallNormalX = 0;
         this.rampDragGraceTimer = 0;
@@ -280,6 +281,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         if (this.body.speed > MAX_SPEED) {
             const scale = MAX_SPEED / this.body.speed;
             this.setVelocity(this.body.velocity.x * scale, this.body.velocity.y * scale);
+        }
+
+        // Zombie sticky-air: clamp horizontal speed independently
+        const maxH = MAX_SPEED * this.maxSpeedMultiplier;
+        if (Math.abs(this.body.velocity.x) > maxH) {
+            this.setVelocityX(Math.sign(this.body.velocity.x) * maxH);
         }
         
         // --- 7. PLATFORMS ---

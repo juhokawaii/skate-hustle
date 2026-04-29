@@ -40,6 +40,7 @@ export default class PrizePointScene extends BaseGameScene {
         this.load.json('prize_point_level', 'assets/levels/prizePointLevel.json');
         this.load.audio('run_track', 'assets/music/run.mp3');
         this.load.image('high_score_title', 'assets/backgrounds/high-score-title.png');
+        this.load.image('logo_portal', 'assets/backgrounds/logo.png');
         this.load.spritesheet('highscore_atlas', 'assets/backgrounds/highscore-atlas.png', {
             frameWidth: this.atlasCellW,
             frameHeight: this.atlasCellH
@@ -111,7 +112,8 @@ export default class PrizePointScene extends BaseGameScene {
         const retCamX = Phaser.Math.Clamp(this.returnPortalPos.x - viewW / 2, 0, this.worldWidth - viewW);
         const retCamY = Phaser.Math.Clamp(this.returnPortalPos.y + followOffY - viewH / 2, 0, this.worldHeight - viewH);
 
-        this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'prize_point_bw', 'prize_point_bw', this.cats.SENSOR);
+        TextureFactory.ensureGrayscaleTexture(this, 'logo_portal', 'logo_portal_bw');
+        this.returnPortal = new Graffiti(this, this.returnPortalPos.x, this.returnPortalPos.y, 'logo_portal_bw', 'logo_portal', this.cats.SENSOR);
         this.returnPortal.setScrollFactor(1, 1);
         this.returnPortal.enableParallaxVisual(pxFactor, pxFactor, {
             x: this.returnPortalPos.x - retCamX * (1 - pxFactor),
@@ -170,14 +172,11 @@ export default class PrizePointScene extends BaseGameScene {
         this.timerText.setScrollFactor(0);
         this.timerText.setDepth(2000);
 
-        // Ask only for the run tag before gameplay; highscore board is shown after the run.
-        this.setGameplayVisibility(false);
-        this.inputPhase     = 'tag';
-        this.gameplayPaused = true;
-        if (this.matter?.world?.pause) {
-            this.matter.world.pause();
-        }
-        this.showInputOverlay();
+        // Start gameplay immediately — tag is only requested post-run if the
+        // player qualifies for the top 7 leaderboard.
+        this.renderWallLeaderboard();
+        this.inputPhase     = 'playing';
+        this.gameplayPaused = false;
     }
 
     getRestartData() {
@@ -359,11 +358,23 @@ export default class PrizePointScene extends BaseGameScene {
             this.playerTag  = this.inputBuffer.toUpperCase();
             this.inputPhase = 'playing';
             this.clearInputOverlay();
-            this.setGameplayVisibility(true);
-            this.gameplayPaused = false;
-            this.enterKey.isDown   = false;
-            this.enterKey._justDown = false;
-            if (this.matter?.world?.resume) this.matter.world.resume();
+
+            if (this.runEnded) {
+                // Post-run tag entry — save to leaderboard and show end screen
+                this.showEndScreen(
+                    this.playerTag,
+                    this._pendingPixelsUp,
+                    this._pendingSecondsRemaining,
+                    this._pendingScore
+                );
+            } else {
+                // Pre-run tag entry (unused in current flow, kept for safety)
+                this.setGameplayVisibility(true);
+                this.gameplayPaused = false;
+                this.enterKey.isDown   = false;
+                this.enterKey._justDown = false;
+                if (this.matter?.world?.resume) this.matter.world.resume();
+            }
             return;
         }
 
@@ -420,6 +431,16 @@ export default class PrizePointScene extends BaseGameScene {
         return top7;
     }
 
+    qualifiesForTop7(score) {
+        const board = this.loadLeaderboard();
+        if (board.length < 7) return true;
+        const lowestScore = board.reduce((min, entry) => {
+            const s = entry.score != null ? entry.score : Math.round(entry.pixelsUp + entry.secondsRemaining);
+            return Math.min(min, s);
+        }, Infinity);
+        return score > lowestScore;
+    }
+
     // --- ATLAS TEXT RENDERING ---
     renderAtlasText(text, x, y, depth, align) {
         const images           = [];
@@ -439,6 +460,51 @@ export default class PrizePointScene extends BaseGameScene {
             cursorX += effectiveCharWidth;
         }
         return images;
+    }
+
+    // --- WALL LEADERBOARD GRAFFITI ---
+    renderWorldAtlasText(text, x, y, depth) {
+        const images = [];
+        const upper  = text.toUpperCase();
+        const charW  = this.atlasCellW * 0.5;
+
+        for (let i = 0; i < upper.length; i++) {
+            const ch = upper[i];
+            if (ch === ' ') { x += charW; continue; }
+            const frame = this.atlasCharMap[ch];
+            if (frame == null) { x += charW; continue; }
+            const img = this.add.image(x + charW * 0.5, y, 'highscore_atlas', frame);
+            img.setDepth(depth);
+            images.push(img);
+            x += charW;
+        }
+        return images;
+    }
+
+    renderWallLeaderboard() {
+        const board = this.loadLeaderboard();
+        if (board.length === 0) return;
+
+        const wallX   = 857;
+        const wallY   = 2833;
+        const rowGap  = 46;
+        const depth   = -3;
+        const pxFactor = 0.85;
+
+        const titleImg = this.add.image(wallX + 230, wallY - 130, 'high_score_title');
+        titleImg.setOrigin(0.5, 0.5);
+        titleImg.setDepth(depth);
+        titleImg.setScrollFactor(pxFactor, pxFactor);
+        titleImg.setAlpha(0.77);
+
+        board.slice(0, 7).forEach((entry, i) => {
+            const rowY = wallY + (i * rowGap);
+            const tag   = entry.tag || 'ANON';
+            const score = entry.score != null ? entry.score : Math.round(entry.pixelsUp + entry.secondsRemaining);
+            const line  = `${i + 1} ${tag} ${score}`;
+            const sprites = this.renderWorldAtlasText(line, wallX, rowY, depth);
+            sprites.forEach((s) => { s.setScrollFactor(pxFactor, pxFactor); s.setAlpha(0.82); });
+        });
     }
 
     getPlayerBottomY() {
@@ -491,18 +557,43 @@ export default class PrizePointScene extends BaseGameScene {
             this.saveBestSecondsRemaining(Math.max(this.loadBestSecondsRemaining(), currentSecondsRemaining));
         }
 
-        const top7 = this.addLeaderboardEntry(this.playerTag || 'ANON', currentPixelsUp, currentSecondsRemaining);
-
         if (this.matter?.world?.pause) this.matter.world.pause();
 
-        const snapshot = [...this.children.list];
-        snapshot.forEach((child) => { if (child !== this.parkBackground) child.setVisible(false); });
-
         const currentScore = Math.round(currentPixelsUp + currentSecondsRemaining);
+
+        // Store run results for use after tag entry
+        this._pendingPixelsUp         = currentPixelsUp;
+        this._pendingSecondsRemaining = currentSecondsRemaining;
+        this._pendingScore            = currentScore;
+
+        if (this.qualifiesForTop7(currentScore)) {
+            // Player earned a leaderboard spot — ask for tag
+            const snapshot = [...this.children.list];
+            snapshot.forEach((child) => { if (child !== this.parkBackground) child.setVisible(false); });
+            this.setGameplayVisibility(false);
+            this.inputPhase     = 'tag';
+            this.gameplayPaused = true;
+            this.showInputOverlay();
+        } else {
+            // No leaderboard spot — show board directly
+            this.showEndScreen('ANON', currentPixelsUp, currentSecondsRemaining, currentScore);
+        }
+    }
+
+    showEndScreen(tag, pixelsUp, secondsRemaining, score) {
+        const snapshot = [...this.children.list];
+        snapshot.forEach((child) => {
+            if (child !== this.parkBackground && !this.endScreenElements.includes(child)) {
+                child.setVisible(false);
+            }
+        });
+
+        const top7 = this.addLeaderboardEntry(tag, pixelsUp, secondsRemaining);
+
         this.renderHighscoreBoard(this.endScreenElements, 5000, top7, {
-            score:    currentScore,
-            pixelsUp: currentPixelsUp,
-            seconds:  Math.round(currentSecondsRemaining)
+            score,
+            pixelsUp,
+            seconds: Math.round(secondsRemaining)
         });
     }
 
