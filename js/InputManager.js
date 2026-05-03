@@ -110,10 +110,6 @@ export default class InputManager {
         canvas.addEventListener('touchstart', this._onTouchStart, { passive: true });
         canvas.addEventListener('touchend', this._onTouchEnd, { passive: true });
     }
-        };
-        this.scene.input.on('pointerdown', this._onTouchStart);
-        this.scene.input.on('pointerup', this._onTouchEnd);
-    }
 
     // -----------------------------------------------------------------
     //  PER-FRAME UPDATE
