@@ -4,6 +4,7 @@ import TextureFactory from './TextureFactory.js';
 import { CATS } from './CollisionCategories.js';
 import { setPrizePointUnlocked } from './GameState.js';
 import InputManager from './InputManager.js';
+import { setCalibration } from './PlayerSkin.js';
 
 export default class SplashScene extends Phaser.Scene {
     constructor() {
@@ -87,13 +88,32 @@ export default class SplashScene extends Phaser.Scene {
             this._tiltButton.addEventListener('click', () => {
                 const needsPermission = typeof DeviceOrientationEvent !== 'undefined'
                     && typeof DeviceOrientationEvent.requestPermission === 'function';
+
+                const onGranted = () => {
+                    this._tiltButton.textContent = 'CALIBRATING...';
+                    this._tiltButton.style.backgroundColor = '#cc8800';
+                    // Listen briefly to capture neutral orientation
+                    let calibGamma = 0;
+                    let calibBeta  = 0;
+                    const calibListener = (e) => {
+                        if (e.gamma != null) calibGamma = e.gamma;
+                        if (e.beta  != null) calibBeta  = e.beta;
+                    };
+                    window.addEventListener('deviceorientation', calibListener);
+                    setTimeout(() => {
+                        window.removeEventListener('deviceorientation', calibListener);
+                        setCalibration(calibGamma, calibBeta);
+                        this._tiltButton.textContent = 'TILT ON';
+                        this._tiltButton.style.backgroundColor = '#22aa44';
+                        setTimeout(() => this._removeTiltButton(), 1200);
+                    }, 300);
+                };
+
                 if (needsPermission) {
                     DeviceOrientationEvent.requestPermission()
                         .then((state) => {
                             if (state === 'granted') {
-                                this._tiltButton.textContent = 'TILT ON';
-                                this._tiltButton.style.backgroundColor = '#22aa44';
-                                setTimeout(() => this._removeTiltButton(), 1200);
+                                onGranted();
                             } else {
                                 this._tiltButton.textContent = 'DENIED';
                                 this._tiltButton.style.backgroundColor = '#666';
@@ -105,9 +125,7 @@ export default class SplashScene extends Phaser.Scene {
                         });
                 } else {
                     // Non-iOS mobile — tilt works without permission
-                    this._tiltButton.textContent = 'TILT ON';
-                    this._tiltButton.style.backgroundColor = '#22aa44';
-                    setTimeout(() => this._removeTiltButton(), 1200);
+                    onGranted();
                 }
             });
             document.body.appendChild(this._tiltButton);

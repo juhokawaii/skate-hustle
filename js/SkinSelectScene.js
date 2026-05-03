@@ -1,4 +1,4 @@
-import { setSkin, getSkinLoadEntries, getPreviewPath, setCalibration } from './PlayerSkin.js';
+import { setSkin, getSkinLoadEntries, getPreviewPath } from './PlayerSkin.js';
 
 export default class SkinSelectScene extends Phaser.Scene {
     constructor() {
@@ -261,11 +261,6 @@ export default class SkinSelectScene extends Phaser.Scene {
     }
 
     _finishConfirmation() {
-        // Calibrate tilt — capture current phone orientation as neutral.
-        if (this._currentGamma != null) {
-            setCalibration(this._currentGamma, this._currentBeta);
-        }
-
         // On mobile, enter fullscreen and lock to landscape.
         const isMobile = (navigator.maxTouchPoints || 0) > 0;
         if (isMobile) {
