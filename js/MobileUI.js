@@ -126,8 +126,10 @@ export default class MobileUI {
     }
 
     _recalibrate() {
+        // Save raw sensor values — getLandscapeTilt and _updatePostureDot
+        // both subtract calib from raw, so this zeroes out correctly.
         setCalibration(this._tiltGamma, this._tiltBeta);
-        // Reset dot to center
+        // Force an immediate dot update so it snaps to center
         if (this.postureDot) {
             this.postureDot.style.left = '50%';
             this.postureDot.style.top  = '50%';
