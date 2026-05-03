@@ -90,7 +90,10 @@ export default class InputManager {
     // -----------------------------------------------------------------
 
     _initTouch() {
-        // Single tap = jump, two-finger tap = confirm/enter portal
+        // Single tap = jump, two-finger tap = confirm/enter portal.
+        // Use native DOM events for reliable multi-touch detection.
+        const canvas = this.scene.game.canvas;
+
         this._onTouchStart = (event) => {
             this._touchActive = true;
             if (event.touches.length >= 2) {
@@ -103,6 +106,10 @@ export default class InputManager {
             if (event.touches.length === 0) {
                 this._touchActive = false;
             }
+        };
+        canvas.addEventListener('touchstart', this._onTouchStart, { passive: true });
+        canvas.addEventListener('touchend', this._onTouchEnd, { passive: true });
+    }
         };
         this.scene.input.on('pointerdown', this._onTouchStart);
         this.scene.input.on('pointerup', this._onTouchEnd);
@@ -190,11 +197,10 @@ export default class InputManager {
             this._onDeviceOrientation = null;
         }
         if (this._onTouchStart) {
-            this.scene.input.off('pointerdown', this._onTouchStart);
+            const canvas = this.scene.game.canvas;
+            canvas.removeEventListener('touchstart', this._onTouchStart);
+            canvas.removeEventListener('touchend', this._onTouchEnd);
             this._onTouchStart = null;
-        }
-        if (this._onTouchEnd) {
-            this.scene.input.off('pointerup', this._onTouchEnd);
             this._onTouchEnd = null;
         }
     }
