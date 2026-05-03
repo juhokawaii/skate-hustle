@@ -409,6 +409,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         // Kick Speed Limit: 4.0
         if (isInput && currentSpeed < 4.0) {
              this.play("kick", true);
+        } else if (this.anims.isPlaying && this.anims.currentAnim?.key === 'kick') {
+             // Let the kick animation finish before switching
+             return;
         } else {
              this.play("idle_pump", true);
         }

@@ -1,3 +1,4 @@
+import SkinSelectScene from './SkinSelectScene.js';
 import SplashScene from './SplashScene.js';
 import HubScene from './HubScene.js';
 import SillySpeedRunScene from './SillySpeedRunScene.js';
@@ -26,7 +27,7 @@ const config = {
             enableSleeping: false
         }
     },
-    scene: [SplashScene, HubScene, SillySpeedRunScene, BottomRaceScene, ZombieHordeScene, PrizePointScene]
+    scene: [SkinSelectScene, SplashScene, HubScene, SillySpeedRunScene, BottomRaceScene, ZombieHordeScene, PrizePointScene]
 };
 
 const game = new Phaser.Game(config);
