@@ -63,6 +63,58 @@ export default class SplashScene extends Phaser.Scene {
         this.player = new Player(this, 180, 560, this.cats, this.inputManager);
         this.player.setDepth(10);
 
+        // Mobile: show a native DOM button to request tilt permission (iOS requires it).
+        this._tiltButton = null;
+        const isMobile = (navigator.maxTouchPoints || 0) > 0;
+        if (isMobile) {
+            this._tiltButton = document.createElement('button');
+            this._tiltButton.textContent = 'ENABLE TILT CONTROLS';
+            Object.assign(this._tiltButton.style, {
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                zIndex: '10000',
+                padding: '12px 20px',
+                fontFamily: 'monospace',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: '#ffffff',
+                backgroundColor: '#ff0055',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+            });
+            this._tiltButton.addEventListener('click', () => {
+                const needsPermission = typeof DeviceOrientationEvent !== 'undefined'
+                    && typeof DeviceOrientationEvent.requestPermission === 'function';
+                if (needsPermission) {
+                    DeviceOrientationEvent.requestPermission()
+                        .then((state) => {
+                            if (state === 'granted') {
+                                this._tiltButton.textContent = 'TILT ON';
+                                this._tiltButton.style.backgroundColor = '#22aa44';
+                                setTimeout(() => this._removeTiltButton(), 1200);
+                            } else {
+                                this._tiltButton.textContent = 'DENIED';
+                                this._tiltButton.style.backgroundColor = '#666';
+                            }
+                        })
+                        .catch(() => {
+                            this._tiltButton.textContent = 'NOT AVAILABLE';
+                            this._tiltButton.style.backgroundColor = '#666';
+                        });
+                } else {
+                    // Non-iOS mobile — tilt works without permission
+                    this._tiltButton.textContent = 'TILT ON';
+                    this._tiltButton.style.backgroundColor = '#22aa44';
+                    setTimeout(() => this._removeTiltButton(), 1200);
+                }
+            });
+            document.body.appendChild(this._tiltButton);
+        }
+
+        this.events.once('shutdown', () => this._removeTiltButton());
+
         this.setupAnims();
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
@@ -333,7 +385,15 @@ export default class SplashScene extends Phaser.Scene {
     }
 
     enterHubScene() {
+        this._removeTiltButton();
         this.scene.start('HubScene');
+    }
+
+    _removeTiltButton() {
+        if (this._tiltButton) {
+            this._tiltButton.remove();
+            this._tiltButton = null;
+        }
     }
 
     update() {
