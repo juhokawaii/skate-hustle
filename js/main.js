@@ -5,8 +5,10 @@ import SillySpeedRunScene from './SillySpeedRunScene.js';
 import BottomRaceScene from './BottomRaceScene.js';
 import ZombieHordeScene from './ZombieHordeScene.js';
 import PrizePointScene from './PrizePointScene.js';
+import MobileUI from './MobileUI.js';
 
 const isMobile = (navigator.maxTouchPoints || 0) > 0;
+if (isMobile) MobileUI.init();
 
 const config = {
     type: Phaser.AUTO,

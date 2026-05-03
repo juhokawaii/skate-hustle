@@ -11,6 +11,7 @@
  */
 
 import { getCalibration, setCalibration } from './PlayerSkin.js';
+import MobileUI from './MobileUI.js';
 
 export default class InputManager {
     /**
@@ -69,18 +70,28 @@ export default class InputManager {
         setCalibration(this._tiltGamma, this._tiltBeta);
     }
 
-    /** Relative gamma (left-right) after calibration, clamped to [-1, 1]. */
+    /** Relative left-right tilt after calibration, clamped to [-1, 1]. Landscape-aware. */
     _relativeGamma() {
-        const calib = getCalibration();
-        const raw = this._tiltGamma - calib.gamma;
+        const mobileUI = MobileUI.getInstance();
+        let raw;
+        if (mobileUI) {
+            raw = mobileUI.getLandscapeTilt().leftRight;
+        } else {
+            const calib = getCalibration();
+            raw = this._tiltGamma - calib.gamma;
+        }
         if (Math.abs(raw) < this.TILT_DEAD_ZONE) return 0;
         const sign    = raw > 0 ? 1 : -1;
         const clamped = Math.min(Math.abs(raw) - this.TILT_DEAD_ZONE, this.TILT_MAX - this.TILT_DEAD_ZONE);
         return sign * (clamped / (this.TILT_MAX - this.TILT_DEAD_ZONE));
     }
 
-    /** Relative beta (forward tilt) after calibration. */
+    /** Relative forward tilt after calibration. Landscape-aware. */
     _relativeBeta() {
+        const mobileUI = MobileUI.getInstance();
+        if (mobileUI) {
+            return mobileUI.getLandscapeTilt().forwardBack;
+        }
         const calib = getCalibration();
         return this._tiltBeta - calib.beta;
     }
