@@ -117,16 +117,21 @@ export default class MobileUI {
             relY = this._tiltBeta - calib.beta;
         }
 
-        // Map degrees to percentage offset within the indicator (clamp to ±20px)
-        const maxOffset = 15;
-        const px = 50 + Math.max(-maxOffset, Math.min(maxOffset, relX)) * (maxOffset / 20);
-        const py = 50 + Math.max(-maxOffset, Math.min(maxOffset, relY)) * (maxOffset / 20);
+        // Map degrees to percentage offset within the indicator (clamp to edges)
+        const maxDeg = 30;  // degrees at which dot reaches the edge
+        const px = 50 + (Math.max(-maxDeg, Math.min(maxDeg, relX)) / maxDeg) * 45;
+        const py = 50 + (Math.max(-maxDeg, Math.min(maxDeg, relY)) / maxDeg) * 45;
         this.postureDot.style.left = `${px}%`;
         this.postureDot.style.top  = `${py}%`;
     }
 
     _recalibrate() {
         setCalibration(this._tiltGamma, this._tiltBeta);
+        // Reset dot to center
+        if (this.postureDot) {
+            this.postureDot.style.left = '50%';
+            this.postureDot.style.top  = '50%';
+        }
         // Flash the indicator to confirm
         if (this.postureIndicator) {
             this.postureIndicator.style.outline = '2px solid #22aa44';
