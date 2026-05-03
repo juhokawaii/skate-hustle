@@ -7,6 +7,7 @@ import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
 import { addEntry, qualifies } from './Leaderboard.js';
 import { renderWallLeaderboard } from './WallLeaderboard.js';
+import InputManager from './InputManager.js';
 
 const LEADERBOARD_KEY = 'SillySpeedRunScene';
 
@@ -103,7 +104,8 @@ export default class SillySpeedRunScene extends BaseGameScene {
             }
         });
 
-        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
+        this.inputManager = new InputManager(this);
+        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats, this.inputManager);
         this.player.setDepth(10);
 
         this.setupCamera();
@@ -172,12 +174,13 @@ export default class SillySpeedRunScene extends BaseGameScene {
     }
 
     update() {
+        this.inputManager.update();
         this.player.update();
         this.hintText.setText('');
 
         if (this.runEnded) {
             this.hintText.setText('Press ENTER to return to Hub');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.scene.start('HubScene');
             }
             return;
@@ -185,7 +188,7 @@ export default class SillySpeedRunScene extends BaseGameScene {
 
         if (this.returnPortal.isPlayerTouching) {
             this.hintText.setText('Press ENTER to return to Hub');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.scene.start('HubScene');
                 return;
             }
@@ -202,7 +205,7 @@ export default class SillySpeedRunScene extends BaseGameScene {
 
         if (this.finishPortal.isPlayerTouching) {
             this.hintText.setText('Press ENTER to return to Hub');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.scene.start('HubScene');
                 return;
             }

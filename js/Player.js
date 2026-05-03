@@ -1,7 +1,7 @@
 import { isDebugMode } from './GameState.js';
 
 export default class Player extends Phaser.Physics.Matter.Sprite {
-    constructor(scene, x, y, cats) {
+    constructor(scene, x, y, cats, inputManager) {
         // 1. CONFIGURATION
         const radius = 35; 
         
@@ -24,7 +24,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setCollisionCategory(this.cats.PLAYER);
         this.setCollidesWith([this.cats.GROUND, this.cats.ONE_WAY, this.cats.SENSOR]);
 
-        this.cursors = scene.input.keyboard.createCursorKeys();
+        this.inputMgr = inputManager;
         this.jetpackKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J);
         this.jetpackState = 'off'; // off | fly | drop
 
@@ -163,7 +163,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             this.airFrameBuffer++;
         }
 
-        const isJumping = Phaser.Input.Keyboard.JustDown(this.cursors.up);
+        const isJumping = this.inputMgr.justJumped();
 
         const rawTangent = { x: -this.groundNormal.y, y: this.groundNormal.x };
         const tangentVelocity =
@@ -201,7 +201,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         
         const moveMul = this.moveSpeedMultiplier;
 
-        if (this.cursors.left.isDown) {
+        if (this.inputMgr.isLeft()) {
             this.setFlipX(true);
             if (canUseGroundAssist) {
                 this.applyForce({ x: -forceX * moveMul, y: -forceY * moveMul });
@@ -209,7 +209,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
                 this.applyForce({ x: -forceX * AIR_CONTROL * moveMul, y: -forceY * AIR_CONTROL * moveMul });
             }
         } 
-        else if (this.cursors.right.isDown) {
+        else if (this.inputMgr.isRight()) {
             this.setFlipX(false);
             if (canUseGroundAssist) {
                 this.applyForce({ x: forceX * moveMul, y: forceY * moveMul });
@@ -242,7 +242,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
 
         // --- 4. BRAKE ---
-        if (this.cursors.down.isDown && isGrounded) {
+        if (this.inputMgr.isBrake() && isGrounded) {
             this.setVelocity(this.body.velocity.x * 0.90, this.body.velocity.y * 0.90);
         }
 
@@ -293,7 +293,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         if (this.body.velocity.y < -2.0) {
             this.setCollidesWith([this.cats.GROUND, this.cats.SENSOR]);
         } 
-        else if (this.cursors.down.isDown) {
+        else if (this.inputMgr.isBrake()) {
             this.setCollidesWith([this.cats.GROUND, this.cats.SENSOR]);
         }
         else {
@@ -335,25 +335,25 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         let vx = this.body.velocity.x;
         let vy = this.body.velocity.y;
 
-        if (this.cursors.left.isDown) {
+        if (this.inputMgr.isLeft()) {
             vx -= JETPACK_ACCEL;
             this.setFlipX(true);
         }
-        if (this.cursors.right.isDown) {
+        if (this.inputMgr.isRight()) {
             vx += JETPACK_ACCEL;
             this.setFlipX(false);
         }
-        if (this.cursors.up.isDown) {
+        if (this.inputMgr.isUp()) {
             vy -= JETPACK_ACCEL;
         }
-        if (this.cursors.down.isDown) {
+        if (this.inputMgr.isBrake()) {
             vy += JETPACK_ACCEL;
         }
 
-        if (!this.cursors.left.isDown && !this.cursors.right.isDown) {
+        if (!this.inputMgr.isLeft() && !this.inputMgr.isRight()) {
             vx = 0;
         }
-        if (!this.cursors.up.isDown && !this.cursors.down.isDown) {
+        if (!this.inputMgr.isUp() && !this.inputMgr.isBrake()) {
             vy = 0;
         }
 
@@ -398,12 +398,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             return;
         }
 
-        if (this.cursors.down.isDown) {
+        if (this.inputMgr.isBrake()) {
             this.setTexture("player5"); 
             return;
         }
         
-        const isInput = this.cursors.left.isDown || this.cursors.right.isDown;
+        const isInput = this.inputMgr.isLeft() || this.inputMgr.isRight();
         const currentSpeed = this.body.speed;
 
         // Kick Speed Limit: 4.0

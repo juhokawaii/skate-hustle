@@ -6,6 +6,8 @@ import BottomRaceScene from './BottomRaceScene.js';
 import ZombieHordeScene from './ZombieHordeScene.js';
 import PrizePointScene from './PrizePointScene.js';
 
+const isMobile = (navigator.maxTouchPoints || 0) > 0;
+
 const config = {
     type: Phaser.AUTO,
     width: 1280,
@@ -13,7 +15,7 @@ const config = {
     parent: "game-container",
     pixelArt: true,
     scale: {
-        mode: Phaser.Scale.NONE,
+        mode: isMobile ? Phaser.Scale.FIT : Phaser.Scale.NONE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
         fullscreenTarget: 'game-container'
     },
@@ -38,10 +40,12 @@ game.scale.on('enterfullscreen', () => {
 });
 
 game.scale.on('leavefullscreen', () => {
-    game.scale.scaleMode = Phaser.Scale.NONE;
-    game.scale.resize(1280, 720);
-    game.canvas.style.width = '1280px';
-    game.canvas.style.height = '720px';
+    if (!isMobile) {
+        game.scale.scaleMode = Phaser.Scale.NONE;
+        game.scale.resize(1280, 720);
+        game.canvas.style.width = '1280px';
+        game.canvas.style.height = '720px';
+    }
     game.scale.refresh();
 });
 

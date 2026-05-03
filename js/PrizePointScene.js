@@ -7,6 +7,7 @@ import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
 import { getBoard, addEntry, qualifies } from './Leaderboard.js';
 import { renderWallLeaderboard } from './WallLeaderboard.js';
+import InputManager from './InputManager.js';
 
 const HUB_PRIZE_POINT_RETURN_SPAWN = { x: 670, y: 400 };
 const LEADERBOARD_KEY = 'PrizePointScene';
@@ -142,7 +143,8 @@ export default class PrizePointScene extends BaseGameScene {
             }
         });
 
-        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
+        this.inputManager = new InputManager(this);
+        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats, this.inputManager);
         this.player.setDepth(10);
 
         this.highestLineBaselineY = this.getPlayerBottomY();
@@ -379,8 +381,7 @@ export default class PrizePointScene extends BaseGameScene {
                 // Pre-run tag entry (unused in current flow, kept for safety)
                 this.setGameplayVisibility(true);
                 this.gameplayPaused = false;
-                this.enterKey.isDown   = false;
-                this.enterKey._justDown = false;
+                this.inputManager.resetConfirm();
                 if (this.matter?.world?.resume) this.matter.world.resume();
             }
             return;
@@ -510,8 +511,9 @@ export default class PrizePointScene extends BaseGameScene {
     }
 
     update() {
+        this.inputManager.update();
         if (this.runEnded) {
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.scene.start('HubScene', { spawnPoint: HUB_PRIZE_POINT_RETURN_SPAWN });
             }
             return;
@@ -530,7 +532,7 @@ export default class PrizePointScene extends BaseGameScene {
         this.remainingTimeMs = Math.max(0, this.remainingTimeMs - this.game.loop.delta);
         this.timerText.setText(this.formatTimeMs(this.remainingTimeMs));
 
-        if (this.returnPortal.isPlayerTouching && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+        if (this.returnPortal.isPlayerTouching && this.inputManager.justConfirmed()) {
             this.scene.start('HubScene');
             return;
         }

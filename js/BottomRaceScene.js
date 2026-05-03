@@ -6,6 +6,7 @@ import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
 import { addEntry, qualifies } from './Leaderboard.js';
 import { renderWallLeaderboard } from './WallLeaderboard.js';
+import InputManager from './InputManager.js';
 
 const LEADERBOARD_KEY = 'BottomRaceScene';
 
@@ -35,15 +36,13 @@ export default class BottomRaceScene extends BaseGameScene {
             worldHeight:     6000,
             spawnPoint:      { x: 800, y: 190 },
             returnPortalPos: { x: 470, y: 210 },
-            goalPortalPos:   { x: 800, y: 5750 }
+            goalPortalPos:   { x: 800, y: 5870 }
         });
         this.worldWidth      = level.worldWidth;
         this.worldHeight     = level.worldHeight;
         this.spawnPoint      = level.spawnPoint;
         this.returnPortalPos = level.returnPortalPos;
-        // Intentional override: goal portal Y is shifted +120px from level data so the
-        // graffiti visual sits at the correct height relative to the bottom platform.
-        this.goalPortalPos   = { x: level.goalPortalPos.x, y: level.goalPortalPos.y + 120 };
+        this.goalPortalPos   = { x: level.goalPortalPos.x, y: level.goalPortalPos.y };
 
         this.levelPlatforms = level.platforms.map((def) => ({
             ...def,
@@ -107,7 +106,8 @@ export default class BottomRaceScene extends BaseGameScene {
             }
         });
 
-        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
+        this.inputManager = new InputManager(this);
+        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats, this.inputManager);
         this.player.setDepth(10);
 
         this.setupCamera();
@@ -186,12 +186,13 @@ export default class BottomRaceScene extends BaseGameScene {
     }
 
     update() {
+        this.inputManager.update();
         this.player.update();
         this.hintText.setText('');
 
         if (this.runEnded) {
             this.hintText.setText('Press ENTER to return to Hub');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.scene.start('HubScene');
             }
             return;
@@ -199,7 +200,7 @@ export default class BottomRaceScene extends BaseGameScene {
 
         if (this.returnPortal.isPlayerTouching) {
             this.hintText.setText('Press ENTER to return to Hub');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.scene.start('HubScene');
                 return;
             }
@@ -215,7 +216,7 @@ export default class BottomRaceScene extends BaseGameScene {
 
         if (this.goalPortal.isPlayerTouching) {
             this.hintText.setText('Bottom reached. Press ENTER for Hub');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.scene.start('HubScene');
                 return;
             }

@@ -7,7 +7,7 @@
   },
   "portal1": {
     "x": 300,
-    "y": 1250
+    "y": 1150
   },
   "prizePointPortal": {
     "x": 700,
@@ -15,7 +15,7 @@
   },
   "zombiesPortal": {
     "x": 1215,
-    "y": 735
+    "y": 620
   },
   "platforms": [
     {

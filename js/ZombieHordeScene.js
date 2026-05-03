@@ -7,6 +7,7 @@ import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
 import { addEntry, qualifies } from './Leaderboard.js';
 import { renderWallLeaderboard } from './WallLeaderboard.js';
+import InputManager from './InputManager.js';
 
 export default class ZombieHordeScene extends BaseGameScene {
     constructor() {
@@ -120,7 +121,8 @@ export default class ZombieHordeScene extends BaseGameScene {
             }
         });
 
-        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
+        this.inputManager = new InputManager(this);
+        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats, this.inputManager);
         this.player.setDepth(10);
 
         // Spawn 5 zombies spread across the level
@@ -393,6 +395,7 @@ export default class ZombieHordeScene extends BaseGameScene {
     }
 
     update(time, delta) {
+        this.inputManager.update();
         this.player.update();
         if (this.zombies) {
             for (const z of this.zombies) z.update(time, delta);
@@ -446,7 +449,7 @@ export default class ZombieHordeScene extends BaseGameScene {
         }
 
         if (this.runEnded) {
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.scene.start('HubScene');
             }
             return;
@@ -461,7 +464,7 @@ export default class ZombieHordeScene extends BaseGameScene {
 
         if (this.returnPortal.isPlayerTouching) {
             this.hintText.setText('Press ENTER to return to Hub');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.scene.start('HubScene');
             }
         }

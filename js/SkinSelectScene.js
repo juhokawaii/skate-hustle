@@ -1,4 +1,4 @@
-import { setSkin, getSkinLoadEntries, getPreviewPath } from './PlayerSkin.js';
+import { setSkin, getSkinLoadEntries, getPreviewPath, setCalibration } from './PlayerSkin.js';
 
 export default class SkinSelectScene extends Phaser.Scene {
     constructor() {
@@ -110,6 +110,18 @@ export default class SkinSelectScene extends Phaser.Scene {
         // Input
         this.cursors  = this.input.keyboard.createCursorKeys();
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+
+        // Tilt tracking for calibration on confirm.
+        // On iOS, the listener is deferred until permission is granted in confirmSelection().
+        this._currentGamma = null;
+        this._currentBeta  = null;
+        this._onDeviceOrientation = null;
+
+        const needsPermission = typeof DeviceOrientationEvent !== 'undefined'
+            && typeof DeviceOrientationEvent.requestPermission === 'function';
+        if (!needsPermission) {
+            this._startOrientationListener();
+        }
     }
 
     updateHighlight() {
@@ -182,6 +194,58 @@ export default class SkinSelectScene extends Phaser.Scene {
     confirmSelection() {
         setSkin(this.selected);
 
+        // On iOS 13+, DeviceOrientationEvent.requestPermission() must be called
+        // from a user gesture before deviceorientation events will fire.
+        const needsPermission = typeof DeviceOrientationEvent !== 'undefined'
+            && typeof DeviceOrientationEvent.requestPermission === 'function';
+
+        if (needsPermission) {
+            DeviceOrientationEvent.requestPermission()
+                .then((state) => {
+                    if (state === 'granted') {
+                        this._startOrientationListener();
+                        // Give a brief moment for orientation data to arrive before calibrating
+                        this.time.delayedCall(200, () => this._finishConfirmation());
+                    } else {
+                        // Permission denied — proceed without tilt (keyboard/touch only)
+                        this._finishConfirmation();
+                    }
+                })
+                .catch(() => {
+                    // Request failed — proceed without tilt
+                    this._finishConfirmation();
+                });
+        } else {
+            this._finishConfirmation();
+        }
+    }
+
+    _startOrientationListener() {
+        if (this._onDeviceOrientation) return; // already listening
+        this._onDeviceOrientation = (event) => {
+            if (event.gamma != null) this._currentGamma = event.gamma;
+            if (event.beta  != null) this._currentBeta  = event.beta;
+        };
+        window.addEventListener('deviceorientation', this._onDeviceOrientation);
+    }
+
+    _finishConfirmation() {
+        // Calibrate tilt — capture current phone orientation as neutral.
+        if (this._currentGamma != null) {
+            setCalibration(this._currentGamma, this._currentBeta);
+        }
+
+        // On mobile, enter fullscreen and lock to landscape.
+        const isMobile = (navigator.maxTouchPoints || 0) > 0;
+        if (isMobile) {
+            try {
+                this.scale.startFullscreen();
+            } catch (_) { /* fullscreen may not be available */ }
+            try {
+                screen.orientation.lock('landscape').catch(() => {});
+            } catch (_) { /* orientation lock may not be supported */ }
+        }
+
         const entries = getSkinLoadEntries(this.selected);
         entries.forEach(({ key, path }) => {
             if (this.textures.exists(key)) {
@@ -191,6 +255,10 @@ export default class SkinSelectScene extends Phaser.Scene {
         });
 
         this.load.once('complete', () => {
+            if (this._onDeviceOrientation) {
+                window.removeEventListener('deviceorientation', this._onDeviceOrientation);
+                this._onDeviceOrientation = null;
+            }
             this.scene.start('SplashScene');
         });
         this.load.start();

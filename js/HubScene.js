@@ -7,6 +7,7 @@ import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
 import { getBestPerScene } from './Leaderboard.js';
 import { renderWorldAtlasText } from './WallLeaderboard.js';
+import InputManager from './InputManager.js';
 
 export default class HubScene extends BaseGameScene {
     constructor() { super('HubScene'); }
@@ -35,8 +36,8 @@ export default class HubScene extends BaseGameScene {
             worldWidth:          6400,
             worldHeight:         1800,
             spawnPoint:          { x: 200, y: 950 },
-            portal1Pos:          { x: 300, y: 1350 },
-            racePortalPos:       { x: 1880, y: 1500 },
+            portal1Pos:          { x: 300, y: 1250 },
+            racePortalPos:       { x: 1880, y: 1370 },
             zombiesPortalPos:    { x: 0, y: 0 },
             prizePointPortalPos: { x: 500, y: 400 }
         });
@@ -44,21 +45,14 @@ export default class HubScene extends BaseGameScene {
         this.worldHeight = level.worldHeight;
         this.spawnPoint  = data.spawnPoint || level.spawnPoint;
 
-        // Store raw level-resolved positions so getRestartData() can pass them
-        // without re-applying the visual offsets on each restart cycle.
-        this._levelPortal1Pos       = { ...level.portal1Pos };
-        this._levelRacePortalPos    = { ...level.racePortalPos };
-        this._levelZombiesPortalPos = { ...level.zombiesPortalPos };
-
-        this.portal1Pos    = { x: level.portal1Pos.x,    y: level.portal1Pos.y - 100 };
-        this.racePortalPos = { x: level.racePortalPos.x, y: level.racePortalPos.y - 130 };
+        this.portal1Pos    = { ...level.portal1Pos };
+        this.racePortalPos = { ...level.racePortalPos };
 
         const defaultZombiesPos = {
             x: Math.round((level.portal1Pos.x + level.racePortalPos.x) * 0.5),
             y: Math.round((level.portal1Pos.y + level.racePortalPos.y) * 0.5)
         };
-        const resolvedZombies = level.zombiesPortalPos.x ? level.zombiesPortalPos : defaultZombiesPos;
-        this.zombiesPortalPos    = { x: resolvedZombies.x,    y: resolvedZombies.y - 115 };
+        this.zombiesPortalPos = level.zombiesPortalPos.x ? { ...level.zombiesPortalPos } : defaultZombiesPos;
         // Intentional override: Prize Point portal is placed at a fixed design position,
         // not derived from level JSON, to keep it visually anchored in the hub layout.
         this.prizePointPortalPos = { x: 500, y: 400 };
@@ -173,7 +167,8 @@ export default class HubScene extends BaseGameScene {
         this.captureLevelData = false;
 
         // --- 3. PLAYER SPAWN ---
-        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats);
+        this.inputManager = new InputManager(this);
+        this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats, this.inputManager);
         this.player.setDepth(10);
 
         // --- 4. CAMERA & ZONES ---
@@ -305,9 +300,9 @@ export default class HubScene extends BaseGameScene {
             worldHeight:         this.worldHeight,
             levelPlatforms:      this.levelPlatforms,
             spawnPoint:          this.spawnPoint,
-            portal1Pos:          this._levelPortal1Pos,
-            racePortalPos:       this._levelRacePortalPos,
-            zombiesPortalPos:    this._levelZombiesPortalPos,
+            portal1Pos:          this.portal1Pos,
+            racePortalPos:       this.racePortalPos,
+            zombiesPortalPos:    this.zombiesPortalPos,
             prizePointPortalPos: this.prizePointPortalPos
         };
     }
@@ -819,6 +814,7 @@ export default class HubScene extends BaseGameScene {
     }
 
     update() {
+        this.inputManager.update();
         this.player.update();
         this.collectNearbyCoins();
         this.updateDealWithItGraffitiVisibility();
@@ -855,7 +851,7 @@ export default class HubScene extends BaseGameScene {
                 this.hintText.setText('Press ENTER to check coins left');
             }
 
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 if (!this.coinsActivated) {
                     this.activateCoinAirdrop();
                 } else {
@@ -877,7 +873,7 @@ export default class HubScene extends BaseGameScene {
             }
 
             this.hintText.setText('Press ENTER for Race to the Bottom');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.persistHubProgress();
                 this.scene.start('BottomRaceScene');
                 return;
@@ -886,7 +882,7 @@ export default class HubScene extends BaseGameScene {
 
         if (this.zombiesPortal && this.zombiesPortal.isPlayerTouching) {
             this.hintText.setText('Press ENTER for Zombie Horde');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.persistHubProgress();
                 this.scene.start('ZombieHordeScene');
                 return;
@@ -895,7 +891,7 @@ export default class HubScene extends BaseGameScene {
 
         if (this.prizePointPortal && this.prizePointPortal.isPlayerTouching) {
             this.hintText.setText('Press ENTER for Prize Point');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.persistHubProgress();
                 this.scene.start('PrizePointScene');
                 return;
@@ -910,7 +906,7 @@ export default class HubScene extends BaseGameScene {
 
             this.hintText.setText("Press ENTER to enter the Portal");
 
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.persistHubProgress();
                 this.scene.start('SillySpeedRunScene');
             }

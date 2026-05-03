@@ -3,6 +3,7 @@ import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
 import { CATS } from './CollisionCategories.js';
 import { setPrizePointUnlocked } from './GameState.js';
+import InputManager from './InputManager.js';
 
 export default class SplashScene extends Phaser.Scene {
     constructor() {
@@ -58,7 +59,8 @@ export default class SplashScene extends Phaser.Scene {
         this.portalActivated = false;
         this.setPortalTexture('logo_full_portal_bw');
 
-        this.player = new Player(this, 180, 560, this.cats);
+        this.inputManager = new InputManager(this);
+        this.player = new Player(this, 180, 560, this.cats, this.inputManager);
         this.player.setDepth(10);
 
         this.setupAnims();
@@ -335,6 +337,7 @@ export default class SplashScene extends Phaser.Scene {
     }
 
     update() {
+        this.inputManager.update();
         this.player.update();
 
         if (!this.portalActivated) {
@@ -345,7 +348,7 @@ export default class SplashScene extends Phaser.Scene {
 
         if (this.portal.isPlayerTouching) {
             this.hintText.setText('Press ENTER to enter the Hub');
-            if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+            if (this.inputManager.justConfirmed()) {
                 this.enterHubScene();
                 return;
             }
@@ -362,7 +365,7 @@ export default class SplashScene extends Phaser.Scene {
         }
 
         if (this.tutorialStep === 2) {
-            if (this.downKey.isDown) {
+            if (this.inputManager.isBrake()) {
                 this.downHeldFrames += 1;
             } else {
                 this.downHeldFrames = 0;

@@ -56,3 +56,19 @@ export function getPreviewPath(skin, index) {
     const paths = SKIN_PATHS[skin] || SKIN_PATHS.skin1;
     return paths[index] || paths[0];
 }
+
+// -------------------------------------------------------------------------
+// TILT CALIBRATION — shared across scenes, resets on page reload
+// -------------------------------------------------------------------------
+
+let calibratedGamma = 0;
+let calibratedBeta  = 0;
+
+export function setCalibration(gamma, beta) {
+    calibratedGamma = gamma;
+    calibratedBeta  = beta;
+}
+
+export function getCalibration() {
+    return { gamma: calibratedGamma, beta: calibratedBeta };
+}
