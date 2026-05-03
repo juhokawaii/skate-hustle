@@ -87,8 +87,11 @@ export default class SkinSelectScene extends Phaser.Scene {
         this.isCrouching = false;
 
         // Instruction
+        const isMobile = (navigator.maxTouchPoints || 0) > 0;
         this.instructionText = this.add.text(this.scale.width / 2, this.scale.height - 100,
-            'LEFT / RIGHT to select    ENTER to confirm', {
+            isMobile
+                ? 'Tap to select    Double-tap to confirm'
+                : 'LEFT / RIGHT to select    ENTER to confirm', {
             fontFamily: 'monospace',
             fontSize: '20px',
             color: '#aaaaaa',
@@ -122,6 +125,27 @@ export default class SkinSelectScene extends Phaser.Scene {
         if (!needsPermission) {
             this._startOrientationListener();
         }
+
+        // Touch controls for mobile: tap left/right half to select, double-tap to confirm.
+        this._lastTapTime = 0;
+        this.input.on('pointerdown', (pointer) => {
+            const now = this.time.now;
+            if (now - this._lastTapTime < 350) {
+                // Double-tap → confirm
+                this.confirmSelection();
+                this._lastTapTime = 0;
+                return;
+            }
+            this._lastTapTime = now;
+
+            // Single tap → select based on which half of the screen
+            if (pointer.x < this.scale.width / 2) {
+                this.selected = 'skin1';
+            } else {
+                this.selected = 'skin2';
+            }
+            this.updateHighlight();
+        });
     }
 
     updateHighlight() {
