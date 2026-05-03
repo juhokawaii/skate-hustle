@@ -127,25 +127,32 @@ export default class SkinSelectScene extends Phaser.Scene {
         }
 
         // Touch controls for mobile: tap left/right half to select, double-tap to confirm.
+        // Uses native DOM events so iOS recognizes the gesture for permission requests.
         this._lastTapTime = 0;
-        this.input.on('pointerdown', (pointer) => {
-            const now = this.time.now;
+        this._skinTouchHandler = (event) => {
+            const touch = event.touches[0];
+            if (!touch) return;
+
+            const now = Date.now();
             if (now - this._lastTapTime < 350) {
                 // Double-tap → confirm
-                this.confirmSelection();
                 this._lastTapTime = 0;
+                this.confirmSelection();
                 return;
             }
             this._lastTapTime = now;
 
             // Single tap → select based on which half of the screen
-            if (pointer.x < this.scale.width / 2) {
+            const rect = this.game.canvas.getBoundingClientRect();
+            const tapX = touch.clientX - rect.left;
+            if (tapX < rect.width / 2) {
                 this.selected = 'skin1';
             } else {
                 this.selected = 'skin2';
             }
             this.updateHighlight();
-        });
+        };
+        this.game.canvas.addEventListener('touchstart', this._skinTouchHandler, { passive: true });
     }
 
     updateHighlight() {
@@ -282,6 +289,10 @@ export default class SkinSelectScene extends Phaser.Scene {
             if (this._onDeviceOrientation) {
                 window.removeEventListener('deviceorientation', this._onDeviceOrientation);
                 this._onDeviceOrientation = null;
+            }
+            if (this._skinTouchHandler) {
+                this.game.canvas.removeEventListener('touchstart', this._skinTouchHandler);
+                this._skinTouchHandler = null;
             }
             this.scene.start('SplashScene');
         });
