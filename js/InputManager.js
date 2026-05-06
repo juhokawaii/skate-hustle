@@ -134,18 +134,16 @@ export default class InputManager {
         const upNow    = this.cursors.up.isDown;
         const enterNow = this.enterKey.isDown;
 
-        // Tilt-based jump detection: backward flick
+        // Tilt-based jump detection: flick top edge away from you (forward)
         if (this.isMobile) {
             const mobileUI = MobileUI.getInstance();
-            const backTilt = mobileUI ? -mobileUI.getLandscapeTilt().forwardBack : 0;
-            const delta = backTilt - this._prevBackTilt;
-            // Trigger jump if tilted back past threshold AND the change was fast enough
-            if (backTilt > -this.JUMP_FLICK_THRESHOLD && delta > -this.JUMP_FLICK_SPEED) {
-                // Not a flick
-            } else if (backTilt < this.JUMP_FLICK_THRESHOLD && delta < this.JUMP_FLICK_SPEED) {
+            const forwardTilt = mobileUI ? mobileUI.getLandscapeTilt().forwardBack : 0;
+            const delta = forwardTilt - this._prevBackTilt;
+            // Trigger jump if tilted forward past threshold AND the change was fast enough
+            if (forwardTilt > this.JUMP_FLICK_THRESHOLD && delta > -this.JUMP_FLICK_SPEED) {
                 this._tiltJump = true;
             }
-            this._prevBackTilt = backTilt;
+            this._prevBackTilt = forwardTilt;
         }
 
         this._justUp    = (upNow && !this._prevUp) || this._tiltJump;
@@ -184,10 +182,10 @@ export default class InputManager {
         return false;
     }
 
-    /** True while down/brake is held (keyboard) or phone tilted forward (mobile). */
+    /** True while down/brake is held (keyboard) or phone top tilted toward you (mobile). */
     isBrake() {
         if (this.cursors.down.isDown) return true;
-        if (this.isMobile) return this._relativeBeta() > this.BRAKE_THRESHOLD;
+        if (this.isMobile) return this._relativeBeta() < -this.BRAKE_THRESHOLD;
         return false;
     }
 
