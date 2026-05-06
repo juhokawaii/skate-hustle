@@ -34,14 +34,17 @@ export default class InputManager {
         // --- Touch / Tilt state ---
         this._tiltGamma    = 0;   // left-right tilt (degrees)
         this._tiltBeta     = 0;   // front-back tilt (degrees)
-        this._tapJump      = false; // true on the frame a tap occurred
-        this._tapConfirm   = false; // true on the frame a two-finger tap occurred
+        this._tapConfirm   = false; // true on the frame a tap occurred
         this._touchActive  = false; // any touch currently held
+        this._tiltJump     = false; // true on the frame a backward flick is detected
+        this._prevBackTilt = 0;     // previous frame's backward tilt value
 
         // Tuning
-        this.TILT_DEAD_ZONE  = 5;   // degrees of gamma ignored around neutral
-        this.TILT_MAX        = 30;  // degrees at which tilt is "full"
-        this.BRAKE_THRESHOLD = 15;  // beta degrees forward from neutral to trigger brake
+        this.TILT_DEAD_ZONE    = 5;   // degrees of gamma ignored around neutral
+        this.TILT_MAX          = 30;  // degrees at which tilt is "full"
+        this.BRAKE_THRESHOLD   = 15;  // beta degrees forward from neutral to trigger brake
+        this.JUMP_FLICK_THRESHOLD = -12; // backward tilt degrees (negative = tilted back) to trigger jump
+        this.JUMP_FLICK_SPEED  = -6;  // minimum change per frame to count as a flick
 
         if (this.isMobile) {
             this._initTilt();
@@ -101,17 +104,13 @@ export default class InputManager {
     // -----------------------------------------------------------------
 
     _initTouch() {
-        // Single tap = jump, two-finger tap = confirm/enter portal.
-        // Use native DOM events for reliable multi-touch detection.
+        // Tap = confirm/enter portal.
+        // Use native DOM events for reliable touch detection.
         const canvas = this.scene.game.canvas;
 
         this._onTouchStart = (event) => {
             this._touchActive = true;
-            if (event.touches.length >= 2) {
-                this._tapConfirm = true;
-            } else {
-                this._tapJump = true;
-            }
+            this._tapConfirm = true;
         };
         this._onTouchEnd = (event) => {
             if (event.touches.length === 0) {
@@ -135,14 +134,28 @@ export default class InputManager {
         const upNow    = this.cursors.up.isDown;
         const enterNow = this.enterKey.isDown;
 
-        this._justUp    = (upNow && !this._prevUp)       || this._tapJump;
-        this._justEnter = (enterNow && !this._prevEnter)  || this._tapConfirm;
+        // Tilt-based jump detection: backward flick
+        if (this.isMobile) {
+            const mobileUI = MobileUI.getInstance();
+            const backTilt = mobileUI ? -mobileUI.getLandscapeTilt().forwardBack : 0;
+            const delta = backTilt - this._prevBackTilt;
+            // Trigger jump if tilted back past threshold AND the change was fast enough
+            if (backTilt > -this.JUMP_FLICK_THRESHOLD && delta > -this.JUMP_FLICK_SPEED) {
+                // Not a flick
+            } else if (backTilt < this.JUMP_FLICK_THRESHOLD && delta < this.JUMP_FLICK_SPEED) {
+                this._tiltJump = true;
+            }
+            this._prevBackTilt = backTilt;
+        }
+
+        this._justUp    = (upNow && !this._prevUp) || this._tiltJump;
+        this._justEnter = (enterNow && !this._prevEnter) || this._tapConfirm;
 
         this._prevUp    = upNow;
         this._prevEnter = enterNow;
 
-        // Clear single-frame touch flags after they've been consumed
-        this._tapJump    = false;
+        // Clear single-frame flags after they've been consumed
+        this._tiltJump   = false;
         this._tapConfirm = false;
     }
 
