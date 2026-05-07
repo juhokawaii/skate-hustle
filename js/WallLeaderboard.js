@@ -90,8 +90,21 @@ export function renderWallLeaderboard(scene, options) {
         rankSprites.forEach((s) => { s.setScrollFactor(scrollFactor, scrollFactor); s.setAlpha(textAlpha); });
         allSprites.push(...rankSprites);
 
-        if (entry.detail && entry.detail.tag_strokes) {
-            // Render hand-drawn scribble for tag
+        if (entry.detail && entry.detail.tag_image) {
+            // Render scribble PNG for tag
+            const texKey = `scribble_${sceneKey}_${i}`;
+            if (scene.textures.exists(texKey)) scene.textures.remove(texKey);
+            const img = scene.textures.addBase64(texKey, entry.detail.tag_image);
+            // addBase64 is async — use a callback to create the image once loaded
+            scene.textures.once(`addtexture-${texKey}`, () => {
+                const scribbleImg = scene.add.image(tagX + scribbleWidth * 0.5, rowY, texKey);
+                scribbleImg.setDisplaySize(scribbleWidth, scribbleHeight);
+                scribbleImg.setDepth(depth);
+                scribbleImg.setScrollFactor(scrollFactor, scrollFactor);
+                scribbleImg.setAlpha(textAlpha);
+            });
+        } else if (entry.detail && entry.detail.tag_strokes) {
+            // Legacy: render hand-drawn strokes for tag
             const gfx = renderWallScribble(scene, entry.detail.tag_strokes, tagX, rowY - scribbleHeight * 0.5, scribbleWidth, scribbleHeight, depth);
             gfx.setScrollFactor(scrollFactor, scrollFactor);
             gfx.setAlpha(textAlpha);

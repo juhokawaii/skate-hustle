@@ -168,8 +168,10 @@ export default class HubScene extends BaseGameScene {
 
         // --- 3. PLAYER SPAWN ---
         this.inputManager = new InputManager(this);
+        this._disposables.push(() => this.inputManager.destroy());
         this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats, this.inputManager);
         this.player.setDepth(10);
+        this._disposables.push(() => this.player.destroy());
 
         // --- 4. CAMERA & ZONES ---
         this.setupCamera();

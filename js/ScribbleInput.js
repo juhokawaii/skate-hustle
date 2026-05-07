@@ -186,18 +186,20 @@ export default class ScribbleInput {
     }
 
     _confirm() {
-        // Normalize strokes to 0–1 range
-        const w = this.canvas.width;
-        const h = this.canvas.height;
-        const normalized = this.strokes.map((stroke) =>
-            stroke.map((pt) => ({
-                x: pt.x / w,
-                y: pt.y / h
-            }))
-        );
+        // Scale down to display size (245×35) and export as PNG data URL.
+        const displayW = 245;
+        const displayH = 35;
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width  = displayW;
+        exportCanvas.height = displayH;
+        const exportCtx = exportCanvas.getContext('2d');
+        exportCtx.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height, 0, 0, displayW, displayH);
+
+        const dataUrl = exportCanvas.toDataURL('image/png');
+        const hasContent = this.strokes.length > 0;
 
         this._destroy();
-        if (this.onComplete) this.onComplete(normalized.length > 0 ? normalized : null);
+        if (this.onComplete) this.onComplete(hasContent ? dataUrl : null);
     }
 
     _destroy() {

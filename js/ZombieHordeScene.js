@@ -123,8 +123,10 @@ export default class ZombieHordeScene extends BaseGameScene {
         });
 
         this.inputManager = new InputManager(this);
+        this._disposables.push(() => this.inputManager.destroy());
         this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats, this.inputManager);
         this.player.setDepth(10);
+        this._disposables.push(() => this.player.destroy());
 
         // Spawn 5 zombies spread across the level
         this.zombies = [];
@@ -138,6 +140,9 @@ export default class ZombieHordeScene extends BaseGameScene {
             zombie.__wasTouching = false;
             this.zombies.push(zombie);
         }
+        this._disposables.push(() => {
+            for (const z of this.zombies) { if (z?.active) z.destroy(); }
+        });
 
         this.setupCamera();
         this.setupAnims();
@@ -262,14 +267,14 @@ export default class ZombieHordeScene extends BaseGameScene {
 
     _showScribbleInput() {
         this._scribbleInput = new ScribbleInput();
-        this._scribbleInput.show((strokes) => {
+        this._scribbleInput.show((dataUrl) => {
             this._scribbleInput = null;
             this.inputPhase = 'playing';
 
             addEntry(this.leaderboardKey, {
                 tag: 'SCRIBBLE',
                 score: this._pendingTimeMs,
-                detail: { timeMs: this._pendingTimeMs, tag_strokes: strokes }
+                detail: { timeMs: this._pendingTimeMs, tag_image: dataUrl }
             }, 'asc');
 
             this.showEndMessage();

@@ -107,8 +107,10 @@ export default class BottomRaceScene extends BaseGameScene {
         });
 
         this.inputManager = new InputManager(this);
+        this._disposables.push(() => this.inputManager.destroy());
         this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y, this.cats, this.inputManager);
         this.player.setDepth(10);
+        this._disposables.push(() => this.player.destroy());
 
         this.setupCamera();
         this.setupAnims();

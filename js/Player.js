@@ -330,7 +330,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const JETPACK_ACCEL = 0.55;
         const JETPACK_MAX_H_SPEED = 12;
         const JETPACK_MAX_V_SPEED = 10;
-        const JETPACK_DRAG = 0.88;
 
         let vx = this.body.velocity.x;
         let vy = this.body.velocity.y;

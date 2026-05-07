@@ -61,6 +61,10 @@ export default class SplashScene extends Phaser.Scene {
         this.setPortalTexture('logo_full_portal_bw');
 
         this.inputManager = new InputManager(this);
+        this.events.once('shutdown', () => {
+            this.inputManager.destroy();
+            this.player.destroy();
+        });
         this.player = new Player(this, 180, 560, this.cats, this.inputManager);
         this.player.setDepth(10);
 
