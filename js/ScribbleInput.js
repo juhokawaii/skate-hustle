@@ -23,7 +23,7 @@ export default class ScribbleInput {
 
         // Drawing config
         this.strokeColor = '#ffffff';
-        this.strokeWidth = 35; // at input scale, matches atlas stroke width when scaled down
+        this.strokeWidth = 12; // at input scale, matches atlas stroke width when scaled down
         this.bgColor     = 'rgba(0, 0, 0, 0.85)';
     }
 

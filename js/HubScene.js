@@ -337,7 +337,8 @@ export default class HubScene extends BaseGameScene {
         const bests = getBestPerScene(sceneKeys);
         const entries = sceneKeys.filter((k) => bests[k]).map((k) => ({
             label: sceneLabels[k],
-            tag:   bests[k].tag || 'ANON'
+            tag:   bests[k].tag || 'ANON',
+            detail: bests[k].detail || {}
         }));
         if (entries.length === 0) return;
 
@@ -374,15 +375,31 @@ export default class HubScene extends BaseGameScene {
                 this.registerParallaxObject(s, pxFactor, pxFactor);
             });
 
-            // Right column: tag (right-aligned)
-            const tagWidth = entry.tag.length * charW;
-            const tagX = tagColumnRightX - tagWidth;
-            const tagSprites = renderWorldAtlasText(this, entry.tag, tagX, rowY, depth);
-            tagSprites.forEach((s) => {
-                s.setScrollFactor(pxFactor, pxFactor);
-                s.setAlpha(textAlpha);
-                this.registerParallaxObject(s, pxFactor, pxFactor);
-            });
+            // Right column: tag (right-aligned, or scribble PNG)
+            if (entry.detail && entry.detail.tag_image) {
+                const scribbleWidth  = charW * 7;
+                const scribbleHeight = charW;
+                const texKey = `hub_scribble_${i}`;
+                if (this.textures.exists(texKey)) this.textures.remove(texKey);
+                this.textures.addBase64(texKey, entry.detail.tag_image);
+                this.textures.once(`addtexture-${texKey}`, () => {
+                    const img = this.add.image(tagColumnRightX - scribbleWidth * 0.5, rowY, texKey);
+                    img.setDisplaySize(scribbleWidth, scribbleHeight);
+                    img.setDepth(depth);
+                    img.setScrollFactor(pxFactor, pxFactor);
+                    img.setAlpha(textAlpha);
+                    this.registerParallaxObject(img, pxFactor, pxFactor);
+                });
+            } else {
+                const tagWidth = entry.tag.length * charW;
+                const tagX = tagColumnRightX - tagWidth;
+                const tagSprites = renderWorldAtlasText(this, entry.tag, tagX, rowY, depth);
+                tagSprites.forEach((s) => {
+                    s.setScrollFactor(pxFactor, pxFactor);
+                    s.setAlpha(textAlpha);
+                    this.registerParallaxObject(s, pxFactor, pxFactor);
+                });
+            }
         });
     }
 
