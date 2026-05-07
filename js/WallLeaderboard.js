@@ -58,17 +58,58 @@ export function renderWallLeaderboard(scene, options) {
         return `${index + 1} ${tag} ${score}`;
     };
 
+    const defaultScoreFormat = (entry) => {
+        return entry.score != null ? `${entry.score}` : '0';
+    };
+
     const formatter = typeof formatRow === 'function' ? formatRow : defaultFormat;
+    const charW = ATLAS_CELL_W * 0.5; // 35px per character at display size
+    const scribbleWidth  = charW * 7;  // same width as 7 atlas characters
+    const scribbleHeight = charW;      // row height matching atlas
+
+    // Fixed column positions
+    const rankX    = x;
+    const tagX     = x + charW * 2;           // after rank + space
+    const scoreRightX = x + charW * 16;       // right edge for score column
 
     board.slice(0, 7).forEach((entry, i) => {
-        const rowY    = y + (i * rowGap);
-        const line    = formatter(entry, i);
-        const sprites = renderWorldAtlasText(scene, line, x, rowY, depth);
-        sprites.forEach((s) => {
-            s.setScrollFactor(scrollFactor, scrollFactor);
-            s.setAlpha(textAlpha);
-        });
-        allSprites.push(...sprites);
+        const rowY = y + (i * rowGap);
+
+        // Extract score text from formatRow (last space-separated token)
+        let scoreText;
+        if (typeof formatRow === 'function') {
+            const formatted = formatRow(entry, i);
+            const tokens = formatted.split(' ');
+            scoreText = tokens[tokens.length - 1];
+        } else {
+            scoreText = defaultScoreFormat(entry);
+        }
+
+        // Rank (always atlas)
+        const rankSprites = renderWorldAtlasText(scene, `${i + 1}`, rankX, rowY, depth);
+        rankSprites.forEach((s) => { s.setScrollFactor(scrollFactor, scrollFactor); s.setAlpha(textAlpha); });
+        allSprites.push(...rankSprites);
+
+        if (entry.detail && entry.detail.tag_strokes) {
+            // Render hand-drawn scribble for tag
+            const gfx = renderWallScribble(scene, entry.detail.tag_strokes, tagX, rowY - scribbleHeight * 0.5, scribbleWidth, scribbleHeight, depth);
+            gfx.setScrollFactor(scrollFactor, scrollFactor);
+            gfx.setAlpha(textAlpha);
+            allSprites.push(gfx);
+        } else {
+            // Render tag in atlas font
+            const tag = entry.tag || 'ANON';
+            const tagSprites = renderWorldAtlasText(scene, tag, tagX, rowY, depth);
+            tagSprites.forEach((s) => { s.setScrollFactor(scrollFactor, scrollFactor); s.setAlpha(textAlpha); });
+            allSprites.push(...tagSprites);
+        }
+
+        // Score (right-aligned)
+        const scoreWidth = scoreText.length * charW;
+        const scoreX = scoreRightX - scoreWidth;
+        const scoreSprites = renderWorldAtlasText(scene, scoreText, scoreX, rowY, depth);
+        scoreSprites.forEach((s) => { s.setScrollFactor(scrollFactor, scrollFactor); s.setAlpha(textAlpha); });
+        allSprites.push(...scoreSprites);
     });
 
     return allSprites;
@@ -121,6 +162,39 @@ export function renderWorldAtlasText(scene, text, x, y, depth) {
         cursorX += charW;
     }
     return images;
+}
+
+/**
+ * Render a scribble (hand-drawn strokes) as a world-space graphic.
+ *
+ * @param {Phaser.Scene} scene
+ * @param {Array<Array<{x: number, y: number}>>} strokes - Normalized 0–1 stroke data.
+ * @param {number} x       - World X position (top-left).
+ * @param {number} y       - World Y position (top-left).
+ * @param {number} width   - Target render width.
+ * @param {number} height  - Target render height.
+ * @param {number} depth
+ * @returns {Phaser.GameObjects.Graphics}
+ */
+export function renderWallScribble(scene, strokes, x, y, width, height, depth) {
+    const gfx = scene.add.graphics();
+    gfx.setDepth(depth || -3);
+
+    // Stroke width proportional to height (matches atlas character stroke at display size)
+    const lineWidth = Math.max(2, Math.round(height * 0.12));
+    gfx.lineStyle(lineWidth, 0xffffff, 0.82);
+
+    for (const stroke of strokes) {
+        if (stroke.length < 2) continue;
+        gfx.beginPath();
+        gfx.moveTo(x + stroke[0].x * width, y + stroke[0].y * height);
+        for (let i = 1; i < stroke.length; i++) {
+            gfx.lineTo(x + stroke[i].x * width, y + stroke[i].y * height);
+        }
+        gfx.strokePath();
+    }
+
+    return gfx;
 }
 
 /**

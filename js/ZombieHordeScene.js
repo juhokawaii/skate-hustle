@@ -8,6 +8,7 @@ import BaseGameScene from './BaseGameScene.js';
 import { addEntry, qualifies } from './Leaderboard.js';
 import { renderWallLeaderboard } from './WallLeaderboard.js';
 import InputManager from './InputManager.js';
+import ScribbleInput from './ScribbleInput.js';
 
 export default class ZombieHordeScene extends BaseGameScene {
     constructor() {
@@ -247,6 +248,31 @@ export default class ZombieHordeScene extends BaseGameScene {
     }
 
     showInputOverlay() {
+        const isMobile = (navigator.maxTouchPoints || 0) > 0;
+        if (isMobile) {
+            this._showScribbleInput();
+        } else {
+            this._showKeyboardInput();
+        }
+    }
+
+    _showScribbleInput() {
+        this._scribbleInput = new ScribbleInput();
+        this._scribbleInput.show((strokes) => {
+            this._scribbleInput = null;
+            this.inputPhase = 'playing';
+
+            addEntry(this.leaderboardKey, {
+                tag: 'SCRIBBLE',
+                score: this._pendingTimeMs,
+                detail: { timeMs: this._pendingTimeMs, tag_strokes: strokes }
+            }, 'asc');
+
+            this.showEndMessage();
+        });
+    }
+
+    _showKeyboardInput() {
         this.clearInputOverlay();
         this.inputBuffer = '';
 
