@@ -852,6 +852,7 @@ export default class HubScene extends BaseGameScene {
             }
 
             if (this.inputManager.justConfirmed()) {
+                this.inputManager.consumeJump();
                 if (!this.coinsActivated) {
                     this.activateCoinAirdrop();
                 } else {

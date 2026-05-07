@@ -35,6 +35,7 @@ export default class InputManager {
         this._tiltGamma    = 0;   // left-right tilt (degrees)
         this._tiltBeta     = 0;   // front-back tilt (degrees)
         this._tapConfirm   = false; // true on the frame a tap occurred
+        this._tapJump      = false; // true on the frame a tap occurred (for jump)
         this._touchActive  = false; // any touch currently held
         this._tiltJump     = false; // true on the frame a backward flick is detected
         this._prevBackTilt = 0;     // previous frame's backward tilt value
@@ -104,13 +105,14 @@ export default class InputManager {
     // -----------------------------------------------------------------
 
     _initTouch() {
-        // Tap = confirm/enter portal.
+        // Tap = confirm + jump (priority resolved by scene logic).
         // Use native DOM events for reliable touch detection.
         const canvas = this.scene.game.canvas;
 
         this._onTouchStart = (event) => {
             this._touchActive = true;
             this._tapConfirm = true;
+            this._tapJump    = true;
         };
         this._onTouchEnd = (event) => {
             if (event.touches.length === 0) {
@@ -146,7 +148,7 @@ export default class InputManager {
             this._prevBackTilt = forwardTilt;
         }
 
-        this._justUp    = (upNow && !this._prevUp) || this._tiltJump;
+        this._justUp    = (upNow && !this._prevUp) || this._tiltJump || this._tapJump;
         this._justEnter = (enterNow && !this._prevEnter) || this._tapConfirm;
 
         this._prevUp    = upNow;
@@ -154,6 +156,7 @@ export default class InputManager {
 
         // Clear single-frame flags after they've been consumed
         this._tiltJump   = false;
+        this._tapJump    = false;
         this._tapConfirm = false;
     }
 
@@ -206,6 +209,15 @@ export default class InputManager {
         this._tapConfirm = false;
         this.enterKey.isDown    = false;
         this.enterKey._justDown = false;
+    }
+
+    /**
+     * Consume the jump for this frame. Call from scene when a tap was used
+     * for confirm (portal entry) so the player doesn't also jump.
+     */
+    consumeJump() {
+        this._justUp  = false;
+        this._tapJump = false;
     }
 
     /** Clean up event listeners. Call on scene shutdown if needed. */
