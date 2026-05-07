@@ -132,7 +132,11 @@ export default class ZombieHordeScene extends BaseGameScene {
         for (let i = 0; i < 5; i++) {
             const zx = 300 + (i * zombieSpacing) + Phaser.Math.RND.between(-80, 80);
             const zy = this.spawnPoint.y;
-            this.zombies.push(new Zombie(this, zx, zy));
+            const zombie = new Zombie(this, zx, zy);
+            zombie.__hitCount = 0;
+            zombie.__spent    = false;
+            zombie.__wasTouching = false;
+            this.zombies.push(zombie);
         }
 
         this.setupCamera();
@@ -428,19 +432,32 @@ export default class ZombieHordeScene extends BaseGameScene {
         }
         this.hintText.setText('');
 
-        // --- Zombie overlap detection ---
+        // --- Zombie overlap detection (per-zombie, max 3 hits each) ---
         let touching = false;
         if (this.zombies) {
             const px = this.player.x;
             const py = this.player.y;
             const rSq = this.zombieOverlapRadius * this.zombieOverlapRadius;
             for (const z of this.zombies) {
-                if (!z.active) continue;
+                if (!z.active || z.__spent) continue;
                 const dx = px - z.x;
                 const dy = py - z.y;
-                if (dx * dx + dy * dy < rSq) {
+                const overlapping = (dx * dx + dy * dy) < rSq;
+
+                if (overlapping && !z.__wasTouching) {
+                    // New overlap started with this zombie
+                    z.__hitCount++;
+                    if (z.__hitCount >= 3) {
+                        z.__spent = true;
+                        // Make the zombie sit down permanently
+                        z.enterState('sitting', Infinity);
+                        continue;
+                    }
+                }
+                z.__wasTouching = overlapping;
+
+                if (overlapping) {
                     touching = true;
-                    break;
                 }
             }
         }
