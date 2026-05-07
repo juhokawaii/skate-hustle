@@ -22,7 +22,7 @@ export default class ScribbleInput {
         this.onComplete = null;
 
         // Drawing config
-        this.strokeColor = '#ffffff';
+        this.strokeColor = '#000000';
         this.strokeWidth = 12; // at input scale, matches atlas stroke width when scaled down
         this.bgColor     = 'rgba(0, 0, 0, 0.85)';
     }
@@ -35,7 +35,7 @@ export default class ScribbleInput {
     }
 
     _createDOM() {
-        // Container overlay
+        // Container overlay — transparent to show game background
         this.container = document.createElement('div');
         Object.assign(this.container.style, {
             position: 'fixed',
@@ -46,16 +46,17 @@ export default class ScribbleInput {
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: '25000',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)'
+            backgroundColor: 'transparent'
         });
 
         // Title
         const title = document.createElement('div');
         Object.assign(title.style, {
-            color: '#ffffff',
+            color: '#000000',
             fontFamily: 'monospace',
             fontSize: '18px',
-            marginBottom: '12px'
+            marginBottom: '12px',
+            textShadow: '0 0 4px rgba(255,255,255,0.8)'
         });
         title.textContent = 'SCRIBBLE YOUR TAG';
         this.container.appendChild(title);
@@ -69,9 +70,9 @@ export default class ScribbleInput {
         this.canvas.width  = canvasW;
         this.canvas.height = canvasH;
         Object.assign(this.canvas.style, {
-            border: '3px solid rgba(255, 255, 255, 0.5)',
+            border: '3px dashed rgba(0, 0, 0, 0.5)',
             borderRadius: '6px',
-            backgroundColor: this.bgColor,
+            backgroundColor: 'transparent',
             touchAction: 'none' // prevent scrolling while drawing
         });
         this.container.appendChild(this.canvas);
