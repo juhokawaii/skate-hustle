@@ -105,14 +105,23 @@ export default class InputManager {
     // -----------------------------------------------------------------
 
     _initTouch() {
-        // Tap = confirm + jump (priority resolved by scene logic).
+        // Single tap = jump, double tap = confirm/enter portal.
         // Use native DOM events for reliable touch detection.
         const canvas = this.scene.game.canvas;
+        this._lastTapTime = 0;
 
         this._onTouchStart = (event) => {
             this._touchActive = true;
-            this._tapConfirm = true;
-            this._tapJump    = true;
+            const now = Date.now();
+            if (now - this._lastTapTime < 350) {
+                // Double tap → confirm
+                this._tapConfirm = true;
+                this._lastTapTime = 0;
+            } else {
+                // Single tap → jump
+                this._tapJump = true;
+                this._lastTapTime = now;
+            }
         };
         this._onTouchEnd = (event) => {
             if (event.touches.length === 0) {
