@@ -61,10 +61,10 @@ export default class ScribbleInput {
         title.textContent = 'SCRIBBLE YOUR TAG';
         this.container.appendChild(title);
 
-        // Canvas — 7:1 ratio, 80% of screen width
+        // Canvas — 3.5:1 ratio (matching 7 atlas characters at full height)
         const screenW = window.innerWidth;
         const canvasW = Math.min(Math.floor(screenW * 0.8), 1960);
-        const canvasH = Math.floor(canvasW / 7);
+        const canvasH = Math.floor(canvasW / 3.5);
 
         this.canvas = document.createElement('canvas');
         this.canvas.width  = canvasW;
@@ -187,9 +187,9 @@ export default class ScribbleInput {
     }
 
     _confirm() {
-        // Scale down to display size (245×35) and export as PNG data URL.
+        // Scale down to display size (245×70) and export as PNG data URL.
         const displayW = 245;
-        const displayH = 35;
+        const displayH = 70;
         const exportCanvas = document.createElement('canvas');
         exportCanvas.width  = displayW;
         exportCanvas.height = displayH;

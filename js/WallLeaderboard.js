@@ -65,7 +65,7 @@ export function renderWallLeaderboard(scene, options) {
     const formatter = typeof formatRow === 'function' ? formatRow : defaultFormat;
     const charW = ATLAS_CELL_W * 0.5; // 35px per character at display size
     const scribbleWidth  = charW * 7;  // same width as 7 atlas characters
-    const scribbleHeight = charW;      // row height matching atlas
+    const scribbleHeight = ATLAS_CELL_H; // 70px — matches atlas character height
 
     // Fixed column positions
     const rankX    = x;

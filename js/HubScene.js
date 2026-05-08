@@ -378,7 +378,7 @@ export default class HubScene extends BaseGameScene {
             // Right column: tag (right-aligned, or scribble PNG)
             if (entry.detail && entry.detail.tag_image) {
                 const scribbleWidth  = charW * 7;
-                const scribbleHeight = charW;
+                const scribbleHeight = 70;
                 const texKey = `hub_scribble_${i}`;
                 if (this.textures.exists(texKey)) this.textures.remove(texKey);
                 this.textures.addBase64(texKey, entry.detail.tag_image);
