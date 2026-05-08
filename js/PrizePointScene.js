@@ -1,13 +1,13 @@
 import Player from './Player.js';
 import Graffiti from './graffiti.js';
 import TextureFactory from './TextureFactory.js';
-import { isDebugMode } from './GameState.js';
 import { CATS } from './CollisionCategories.js';
 import { loadLevelData } from './loadLevelData.js';
 import BaseGameScene from './BaseGameScene.js';
-import { getBoard, addEntry, qualifies } from './Leaderboard.js';
+import { addEntry, qualifies } from './Leaderboard.js';
 import { renderWallLeaderboard } from './WallLeaderboard.js';
 import InputManager from './InputManager.js';
+import ScribbleInput from './ScribbleInput.js';
 
 const HUB_PRIZE_POINT_RETURN_SPAWN = { x: 670, y: 400 };
 const LEADERBOARD_KEY = 'PrizePointScene';
@@ -15,26 +15,6 @@ const LEADERBOARD_KEY = 'PrizePointScene';
 export default class PrizePointScene extends BaseGameScene {
     constructor() {
         super('PrizePointScene');
-
-        // Atlas grid: 8 cols x 6 rows, 560x423 image
-        this.atlasCols  = 8;
-        this.atlasRows  = 6;
-        this.atlasCellW = Math.floor(560 / 8); // 70
-        this.atlasCellH = Math.floor(423 / 6); // 70
-
-        // Character map: row by row
-        this.atlasChars = [
-            'A','B','C','D','E','F','G','H',
-            'I','J','K','L','M','N','O','P',
-            'Q','R','S','T','U','V','W','X',
-            'Y','Z','Å','Ä','Ö','','','',
-            '1','2','3','4','5','6','7','8',
-            '9','0','','','','','',''
-        ];
-        this.atlasCharMap = {};
-        this.atlasChars.forEach((ch, i) => {
-            if (ch) this.atlasCharMap[ch] = i;
-        });
     }
 
     preload() {
@@ -155,7 +135,6 @@ export default class PrizePointScene extends BaseGameScene {
         this.setupCamera();
         this.setupAnims();
         this.setupDebugLabel();
-        // Store reference — setGameplayVisibility needs to control debugGrid visibility
         this.debugGrid = this.buildDebugGrid();
         this.setupMapEditor(this.debugGrid);
 
@@ -164,8 +143,6 @@ export default class PrizePointScene extends BaseGameScene {
         this.runEnded             = false;
         this.goalReached          = false;
         this.finalRemainingTimeMs = 0;
-        this.endScreenText        = null;
-        this.endScreenElements    = [];
 
         this.timerText = this.add.text(this.scale.width / 2, 16, this.formatTimeMs(this.remainingTimeMs), {
             fontFamily: 'monospace',
@@ -177,6 +154,13 @@ export default class PrizePointScene extends BaseGameScene {
         this.timerText.setOrigin(0.5, 0);
         this.timerText.setScrollFactor(0);
         this.timerText.setDepth(2000);
+
+        this.hintText = this.add.text(16, 16, '', {
+            fontFamily: 'monospace', fontSize: '20px',
+            color: '#ffffff', stroke: '#000000', strokeThickness: 4
+        });
+        this.hintText.setScrollFactor(0);
+        this.hintText.setDepth(2000);
 
         // Start gameplay immediately — tag is only requested post-run if the
         // player qualifies for the top 7 leaderboard.
@@ -211,123 +195,39 @@ export default class PrizePointScene extends BaseGameScene {
         return this.inputPhase === 'tag';
     }
 
-    // --- INPUT PHASE UI ---
-    setGameplayVisibility(visible) {
-        const snapshot = [...this.children.list];
-        snapshot.forEach((child) => {
-            if (child === this.parkBackground)                  return;
-            if (this.inputOverlayElements.includes(child))     return;
-            if (this.endScreenElements.includes(child))        return;
-            if (child instanceof Graffiti) {
-                child.setVisible(false);
-                if (child.visualProxy) child.visualProxy.setVisible(visible);
-                return;
-            }
-            if (child === this.debugGrid) {
-                child.setVisible(this.isMapMode && visible);
-                return;
-            }
-            if (child === this.debugLabel) {
-                child.setVisible(isDebugMode() && visible);
-                return;
-            }
-            child.setVisible(visible);
-        });
-    }
-
-    showEntryHighscoreOverlay() {
-        this.clearInputOverlay();
-        if (this.matter?.world?.pause) this.matter.world.pause();
-        this.setGameplayVisibility(false);
-        this.inputPhase     = 'intro';
-        this.gameplayPaused = true;
-        this.renderHighscoreBoard(this.inputOverlayElements, 6001, getBoard(LEADERBOARD_KEY), null);
-
-        if (this._entryKeyListener) this.input.keyboard.off('keydown', this._entryKeyListener);
-        this._entryKeyListener = (event) => {
-            if (event.key !== 'Enter') return;
-            this.input.keyboard.off('keydown', this._entryKeyListener);
-            this._entryKeyListener = null;
-            this.startTagEntryFlow();
-        };
-        this.input.keyboard.on('keydown', this._entryKeyListener);
-    }
-
-    renderHighscoreBoard(elements, depth, top7, lastRunInfo) {
-        const cx     = this.scale.width * 0.5;
-        const startY = 70;
-        const rowGap = 58;
-
-        const title = this.add.image(cx, startY - 60, 'high_score_title');
-        title.setOrigin(0.5, 0);
-        title.setScrollFactor(0);
-        title.setDepth(depth);
-        elements.push(title);
-
-        if (top7.length === 0) {
-            const emptyText = this.add.text(cx, startY + 120, 'No scores yet', {
-                fontFamily: 'monospace', fontSize: '28px',
-                color: '#ffffff', stroke: '#000000', strokeThickness: 4, align: 'center'
-            });
-            emptyText.setOrigin(0.5, 0);
-            emptyText.setScrollFactor(0);
-            emptyText.setDepth(depth);
-            elements.push(emptyText);
-        } else {
-            top7.forEach((entry, index) => {
-                const rowY = startY + 200 + (index * rowGap);
-                elements.push(...this.renderAtlasText(`${index + 1}`, cx - 310, rowY, depth, 'left'));
-                elements.push(...this.renderAtlasText(entry.tag || 'ANON', cx - 80, rowY, depth));
-                const entryScore = entry.score != null ? entry.score : 0;
-                elements.push(...this.renderAtlasText(`${entryScore}`, cx + 220, rowY, depth));
-            });
-        }
-
-        const bottomY = this.scale.height - 16;
-
-        if (lastRunInfo) {
-            const runText = this.add.text(16, bottomY,
-                `Score: ${lastRunInfo.score}  (${lastRunInfo.pixelsUp}px + ${lastRunInfo.seconds}s)`, {
-                fontFamily: 'monospace', fontSize: '18px',
-                color: '#ff5d5d', stroke: '#000000', strokeThickness: 3
-            });
-            runText.setOrigin(0, 1);
-            runText.setScrollFactor(0);
-            runText.setDepth(depth);
-            elements.push(runText);
-        }
-
-        const enterText = this.add.text(
-            lastRunInfo ? cx + 280 : cx,
-            bottomY,
-            lastRunInfo ? 'Press ENTER to return to Hub' : 'Press ENTER for a new run', {
-            fontFamily: 'monospace', fontSize: '28px',
-            color: '#ffffff', stroke: '#000000', strokeThickness: 5
-        });
-        enterText.setOrigin(lastRunInfo ? 1 : 0.5, 1);
-        enterText.setScrollFactor(0);
-        enterText.setDepth(depth);
-        elements.push(enterText);
-
-        this.tweens.add({
-            targets: enterText,
-            alpha: { from: 1, to: 0.35 },
-            duration: 800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-    }
-
-    startTagEntryFlow() {
-        this.inputPhase = 'tag';
-        this.showInputOverlay();
-    }
-
     showInputOverlay() {
+        if (this.matter?.world?.pause) this.matter.world.pause();
+
+        const isMobile = (navigator.maxTouchPoints || 0) > 0;
+        if (isMobile) {
+            this._showScribbleInput();
+        } else {
+            this._showKeyboardInput();
+        }
+    }
+
+    _showScribbleInput() {
+        this._scribbleInput = new ScribbleInput();
+        this._scribbleInput.show((dataUrl) => {
+            this._scribbleInput = null;
+            this.inputPhase = 'playing';
+
+            const detail = { pixelsUp: this._pendingPixelsUp, secondsRemaining: this._pendingSecondsRemaining };
+            if (dataUrl) detail.tag_image = dataUrl;
+
+            addEntry(LEADERBOARD_KEY, {
+                tag: 'SCRIBBLE',
+                score: this._pendingScore,
+                detail
+            });
+
+            this.hintText.setText('Press ENTER to return to Hub');
+        });
+    }
+
+    _showKeyboardInput() {
         this.clearInputOverlay();
         this.inputBuffer = '';
-        if (this.matter?.world?.pause) this.matter.world.pause();
 
         const cx = this.scale.width * 0.5;
         const cy = this.scale.height * 0.5;
@@ -371,21 +271,13 @@ export default class PrizePointScene extends BaseGameScene {
             this.inputPhase = 'playing';
             this.clearInputOverlay();
 
-            if (this.runEnded) {
-                // Post-run tag entry — save to leaderboard and show end screen
-                this.showEndScreen(
-                    this.playerTag,
-                    this._pendingPixelsUp,
-                    this._pendingSecondsRemaining,
-                    this._pendingScore
-                );
-            } else {
-                // Pre-run tag entry (unused in current flow, kept for safety)
-                this.setGameplayVisibility(true);
-                this.gameplayPaused = false;
-                this.inputManager.resetConfirm();
-                if (this.matter?.world?.resume) this.matter.world.resume();
-            }
+            addEntry(LEADERBOARD_KEY, {
+                tag: this.playerTag,
+                score: this._pendingScore,
+                detail: { pixelsUp: this._pendingPixelsUp, secondsRemaining: this._pendingSecondsRemaining }
+            });
+
+            this.hintText.setText('Press ENTER to return to Hub');
             return;
         }
 
@@ -417,27 +309,6 @@ export default class PrizePointScene extends BaseGameScene {
     shutdown() {
         this.clearInputOverlay();
         super.shutdown();
-    }
-
-    // --- ATLAS TEXT RENDERING ---
-    renderAtlasText(text, x, y, depth, align) {
-        const images           = [];
-        const upper            = text.toUpperCase();
-        const effectiveCharWidth = this.atlasCellW * 0.5;
-        let cursorX = align === 'left' ? x : x - (upper.length * effectiveCharWidth * 0.5);
-
-        for (let i = 0; i < upper.length; i++) {
-            const ch = upper[i];
-            if (ch === ' ') { cursorX += effectiveCharWidth; continue; }
-            const frameIndex = this.atlasCharMap[ch];
-            if (frameIndex == null) { cursorX += effectiveCharWidth; continue; }
-            const img = this.add.image(cursorX + effectiveCharWidth * 0.5, y, 'highscore_atlas', frameIndex);
-            img.setScrollFactor(0);
-            img.setDepth(depth || 5000);
-            images.push(img);
-            cursorX += effectiveCharWidth;
-        }
-        return images;
     }
 
     getPlayerBottomY() {
@@ -478,38 +349,17 @@ export default class PrizePointScene extends BaseGameScene {
         this._pendingScore            = currentScore;
 
         if (qualifies(LEADERBOARD_KEY, currentScore)) {
-            // Player earned a leaderboard spot — ask for tag
-            const snapshot = [...this.children.list];
-            snapshot.forEach((child) => { if (child !== this.parkBackground) child.setVisible(false); });
-            this.setGameplayVisibility(false);
             this.inputPhase     = 'tag';
             this.gameplayPaused = true;
             this.showInputOverlay();
         } else {
-            // No leaderboard spot — show board directly
-            this.showEndScreen('ANON', currentPixelsUp, currentSecondsRemaining, currentScore);
+            addEntry(LEADERBOARD_KEY, {
+                tag: 'ANON',
+                score: currentScore,
+                detail: { pixelsUp: currentPixelsUp, secondsRemaining: currentSecondsRemaining }
+            });
+            this.hintText.setText('Press ENTER to return to Hub');
         }
-    }
-
-    showEndScreen(tag, pixelsUp, secondsRemaining, score) {
-        const snapshot = [...this.children.list];
-        snapshot.forEach((child) => {
-            if (child !== this.parkBackground && !this.endScreenElements.includes(child)) {
-                child.setVisible(false);
-            }
-        });
-
-        const top7 = addEntry(LEADERBOARD_KEY, {
-            tag,
-            score,
-            detail: { pixelsUp, secondsRemaining }
-        });
-
-        this.renderHighscoreBoard(this.endScreenElements, 5000, top7, {
-            score,
-            pixelsUp,
-            seconds: Math.round(secondsRemaining)
-        });
     }
 
     update() {

@@ -7,6 +7,7 @@ import BaseGameScene from './BaseGameScene.js';
 import { addEntry, qualifies } from './Leaderboard.js';
 import { renderWallLeaderboard } from './WallLeaderboard.js';
 import InputManager from './InputManager.js';
+import ScribbleInput from './ScribbleInput.js';
 
 const LEADERBOARD_KEY = 'BottomRaceScene';
 
@@ -255,6 +256,31 @@ export default class BottomRaceScene extends BaseGameScene {
     }
 
     showInputOverlay() {
+        const isMobile = (navigator.maxTouchPoints || 0) > 0;
+        if (isMobile) {
+            this._showScribbleInput();
+        } else {
+            this._showKeyboardInput();
+        }
+    }
+
+    _showScribbleInput() {
+        this._scribbleInput = new ScribbleInput();
+        this._scribbleInput.show((dataUrl) => {
+            this._scribbleInput = null;
+            this.inputPhase = 'playing';
+
+            addEntry(LEADERBOARD_KEY, {
+                tag: 'SCRIBBLE',
+                score: this._pendingTimeMs,
+                detail: { timeMs: this._pendingTimeMs, tag_image: dataUrl }
+            }, 'asc');
+
+            this.hintText.setText('Bottom reached. Press ENTER for Hub');
+        });
+    }
+
+    _showKeyboardInput() {
         this.clearInputOverlay();
         this.inputBuffer = '';
 
