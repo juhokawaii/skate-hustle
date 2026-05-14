@@ -183,7 +183,9 @@ export default class SplashScene extends Phaser.Scene {
         this.step0HighlightText.setDepth(2100);
         this.step0HighlightText.setVisible(false);
 
-        this.step0SuffixText = this.add.text(28, 124, "\nYou'll find info and tips there\nNow press RIGHT to go collect your first coin", {
+        this.step0SuffixText = this.add.text(28, 124, this.isMobile
+            ? "\nYou'll find info and tips there\nNow tilt RIGHT to collect your first coin"
+            : "\nYou'll find info and tips there\nNow press RIGHT to go collect your first coin", {
             ...step0Style,
             align: 'left',
             wordWrap: { width: Math.floor(this.scale.width * 0.46), useAdvancedWrap: true }
@@ -255,6 +257,7 @@ export default class SplashScene extends Phaser.Scene {
         });
 
         this.tutorialStep = 0;
+        this.isMobile = (navigator.maxTouchPoints || 0) > 0;
         this.collectedCoins = 0;
         this.requiredBrakeFrames = 18;
         this.downHeldFrames = 0;
@@ -366,15 +369,21 @@ export default class SplashScene extends Phaser.Scene {
         this.instructionText.setVisible(true);
 
         if (step === 1) {
-            this.instructionText.setText('Good. Now move LEFT and press UP to jump. Use your deck to collect the next coin.');
+            this.instructionText.setText(this.isMobile
+                ? 'Good. Now tilt LEFT and TAP to jump. Use your deck to collect the next coin.'
+                : 'Good. Now move LEFT and press UP to jump. Use your deck to collect the next coin.');
             return;
         }
         if (step === 2) {
-            this.instructionText.setText('Got it. Hold DOWN to brake and stabilize your board.');
+            this.instructionText.setText(this.isMobile
+                ? 'Got it. Tilt the top edge toward you to brake.'
+                : 'Got it. Hold DOWN to brake and stabilize your board.');
             return;
         }
         if (step === 3) {
-            this.instructionText.setText('Go to the graffiti to light it up.\n\n\nTHEN PRESS ENTER.');
+            this.instructionText.setText(this.isMobile
+                ? 'Go to the graffiti to light it up.\n\n\nDOUBLE-TAP to enter.'
+                : 'Go to the graffiti to light it up.\n\n\nTHEN PRESS ENTER.');
             this.step3HighlightText.setVisible(true);
             this.step3HighlightTween.resume();
         }
@@ -429,7 +438,7 @@ export default class SplashScene extends Phaser.Scene {
         }
 
         if (this.portal.isPlayerTouching) {
-            this.hintText.setText('Press ENTER to enter the Hub');
+            this.hintText.setText(this.isMobile ? 'Double-tap to enter the Hub' : 'Press ENTER to enter the Hub');
             if (this.inputManager.justConfirmed()) {
                 this.enterHubScene();
                 return;
