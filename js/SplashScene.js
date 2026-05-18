@@ -90,8 +90,13 @@ export default class SplashScene extends Phaser.Scene {
                 borderRadius: '6px',
                 cursor: 'pointer'
             });
-            this._tiltButton.addEventListener('click', () => {
+            this._tiltButton.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
                 this.inputManager.suppressTouch(300);
+                // Clear any tap that already fired this frame
+                this.inputManager._tapJump = false;
+                this.inputManager._tapConfirm = false;
                 const needsPermission = typeof DeviceOrientationEvent !== 'undefined'
                     && typeof DeviceOrientationEvent.requestPermission === 'function';
 
