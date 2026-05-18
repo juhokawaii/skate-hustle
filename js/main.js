@@ -65,3 +65,26 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+// --- WAKE LOCK (prevent screen dimming during gameplay) ---
+let wakeLock = null;
+
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+        }
+    } catch (_) {
+        // Silently fail if unsupported or denied.
+    }
+}
+
+// Request on first scene transition (after skin select)
+game.events.once('step', () => requestWakeLock());
+
+// Re-acquire when returning to the tab
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        requestWakeLock();
+    }
+});
