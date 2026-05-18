@@ -90,13 +90,16 @@ export default class SplashScene extends Phaser.Scene {
                 borderRadius: '6px',
                 cursor: 'pointer'
             });
+            // Suppress jump on touch (fires before click)
             this._tiltButton.addEventListener('touchstart', (e) => {
                 e.stopPropagation();
-                e.preventDefault();
                 this.inputManager.suppressTouch(300);
-                // Clear any tap that already fired this frame
                 this.inputManager._tapJump = false;
                 this.inputManager._tapConfirm = false;
+            }, { passive: false });
+
+            // Permission request on click (iOS requires click as user gesture)
+            this._tiltButton.addEventListener('click', () => {
                 const needsPermission = typeof DeviceOrientationEvent !== 'undefined'
                     && typeof DeviceOrientationEvent.requestPermission === 'function';
 
