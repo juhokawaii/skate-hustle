@@ -25,7 +25,7 @@ export default class SkinSelectScene extends Phaser.Scene {
         // Title
         this.add.text(this.scale.width / 2, 100, 'CHOOSE YOUR SKATER', {
             fontFamily: 'monospace',
-            fontSize: '32px',
+            fontSize: '42px',
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 5
@@ -93,7 +93,7 @@ export default class SkinSelectScene extends Phaser.Scene {
                 ? 'Tap to select    Double-tap to confirm'
                 : 'LEFT / RIGHT to select    ENTER to confirm', {
             fontFamily: 'monospace',
-            fontSize: '20px',
+            fontSize: '32px',
             color: '#aaaaaa',
             stroke: '#000000',
             strokeThickness: 3

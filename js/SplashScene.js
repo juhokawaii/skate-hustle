@@ -34,6 +34,7 @@ export default class SplashScene extends Phaser.Scene {
         this.worldWidth = 1280;
         this.worldHeight = 720;
         this.cats = CATS;
+        this.isMobile = (navigator.maxTouchPoints || 0) > 0;
 
         this.matter.world.setBounds(0, 0, this.worldWidth, this.worldHeight, 1000, true, true, true, true);
         Object.values(this.matter.world.walls).forEach((wall) => {
@@ -90,6 +91,7 @@ export default class SplashScene extends Phaser.Scene {
                 cursor: 'pointer'
             });
             this._tiltButton.addEventListener('click', () => {
+                this.inputManager.suppressTouch(300);
                 const needsPermission = typeof DeviceOrientationEvent !== 'undefined'
                     && typeof DeviceOrientationEvent.requestPermission === 'function';
 
@@ -257,7 +259,6 @@ export default class SplashScene extends Phaser.Scene {
         });
 
         this.tutorialStep = 0;
-        this.isMobile = (navigator.maxTouchPoints || 0) > 0;
         this.collectedCoins = 0;
         this.requiredBrakeFrames = 18;
         this.downHeldFrames = 0;
@@ -376,7 +377,7 @@ export default class SplashScene extends Phaser.Scene {
         }
         if (step === 2) {
             this.instructionText.setText(this.isMobile
-                ? 'Got it. Tilt the top edge toward you to brake.'
+                ? 'Got it. Tilt the top edge away from you to brake.'
                 : 'Got it. Hold DOWN to brake and stabilize your board.');
             return;
         }

@@ -37,6 +37,7 @@ export default class InputManager {
         this._tapConfirm   = false; // true on the frame a tap occurred
         this._tapJump      = false; // true on the frame a tap occurred (for jump)
         this._touchActive  = false; // any touch currently held
+        this._suppressUntil = 0;   // timestamp until which touch input is ignored
         this._tiltJump     = false; // true on the frame a backward flick is detected
         this._prevBackTilt = 0;     // previous frame's backward tilt value
 
@@ -111,6 +112,7 @@ export default class InputManager {
         this._lastTapTime = 0;
 
         this._onTouchStart = (event) => {
+            if (this._suppressUntil && Date.now() < this._suppressUntil) return;
             this._touchActive = true;
             const now = Date.now();
             if (now - this._lastTapTime < 350) {
@@ -227,6 +229,11 @@ export default class InputManager {
     consumeJump() {
         this._justUp  = false;
         this._tapJump = false;
+    }
+
+    /** Suppress all touch input for a brief duration (ms). */
+    suppressTouch(durationMs = 200) {
+        this._suppressUntil = Date.now() + durationMs;
     }
 
     /** Clean up event listeners. Call on scene shutdown if needed. */
